@@ -175,12 +175,12 @@
   border-bottom: 1px solid var(--rule);
 }
 .masthead-inner {
-  display: flex; align-items: center; gap: 1rem;
+  display: flex; align-items: center; gap: 0.75rem 1rem; flex-wrap: wrap;
   min-height: 60px; padding-block: 0.5rem;
 }
 .brand {
   display: inline-flex; align-items: center; gap: 0.6rem;
-  text-decoration: none; color: var(--ink); flex: none;
+  text-decoration: none; color: var(--ink); flex: none; order: 0;
 }
 .brand img { width: 30px; height: 30px; object-fit: contain; }
 .brand .wordmark {
@@ -201,14 +201,40 @@
   color: var(--ink); background: var(--surface-2);
   box-shadow: inset 0 -2px 0 var(--amber);
 }
-.nav-spacer { flex: 1 1 auto; }
 
-/* Theme toggle button. */
-.theme-toggle {
+/* Collapsible nav wrapper: inline on desktop, a dropdown panel on mobile. */
+.nav-collapse {
+  display: flex; align-items: center; gap: 0.25rem;
+  flex: 1 1 auto; min-width: 0; order: 1;
+}
+.nav-auth { margin-left: auto; }
+
+/* Theme toggle + hamburger buttons. */
+.theme-toggle, .nav-toggle {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 38px; height: 38px; flex: none;
+  width: 38px; height: 38px; flex: none; order: 2;
   border: 1px solid var(--rule); border-radius: var(--radius);
   background: var(--surface); color: var(--ink-2); cursor: pointer;
+}
+.theme-toggle:hover, .nav-toggle:hover { color: var(--ink); background: var(--surface-2); }
+.nav-toggle { display: none; order: 1; } /* shown on mobile */
+
+/* Mobile: collapse the nav behind the hamburger. */
+@media (max-width: 760px) {
+  .nav-toggle { display: inline-flex; margin-left: auto; }
+  .theme-toggle { order: 2; }
+  .nav-collapse {
+    order: 3; flex-basis: 100%; width: 100%;
+    display: none; flex-direction: column; align-items: stretch; gap: 0.1rem;
+    padding-bottom: 0.5rem;
+  }
+  .nav-collapse.open { display: flex; }
+  .nav-collapse .nav { flex-direction: column; align-items: stretch; width: 100%; }
+  .nav-collapse .nav a { padding: 0.7em 0.65em; }
+  .nav-auth {
+    margin-left: 0; width: 100%; justify-content: space-between;
+    margin-top: 0.3rem; padding-top: 0.5rem; border-top: 1px solid var(--rule);
+  }
 }
 .theme-toggle:hover { color: var(--ink); background: var(--surface-2); }
 .theme-toggle .icon-sun { display: none; }

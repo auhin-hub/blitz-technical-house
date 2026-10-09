@@ -22,23 +22,46 @@ function isCurrent(href: string): boolean {
       </span>
     </a>
 
-    <nav class="nav" aria-label="Primary">
-      {TOP_NAV.map((item) => (
-        <a
-          href={url(item.href)}
-          aria-current={isCurrent(item.href) ? 'page' : undefined}
-        >{item.label}</a>
-      ))}
-    </nav>
-
-    <span class="nav-spacer"></span>
-
-    <!-- Auth status: filled client-side by the auth island (commit: auth). -->
-    <span class="nav" data-auth-status hidden>
-      <span class="mono" data-auth-email style="font-size:var(--fs-200);color:var(--ink-3)"></span>
-      <button class="btn btn-ghost" type="button" data-sign-out>Sign out</button>
-    </span>
+    <!-- Hamburger (mobile only). Toggles the collapsible nav below. -->
+    <button class="nav-toggle" id="nav-toggle" type="button"
+            aria-controls="primary-nav" aria-expanded="false" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M3 6h18M3 12h18M3 18h18" />
+      </svg>
+    </button>
 
     <ThemeToggle />
+
+    <div class="nav-collapse" id="primary-nav">
+      <nav class="nav" aria-label="Primary">
+        {TOP_NAV.map((item) => (
+          <a
+            href={url(item.href)}
+            aria-current={isCurrent(item.href) ? 'page' : undefined}
+          >{item.label}</a>
+        ))}
+      </nav>
+
+      <!-- Auth status: filled client-side by the auth island. -->
+      <span class="nav nav-auth" data-auth-status hidden>
+        <span class="mono" data-auth-email style="font-size:var(--fs-200);color:var(--ink-3)"></span>
+        <button class="btn btn-ghost" type="button" data-sign-out>Sign out</button>
+      </span>
+    </div>
   </div>
 </header>
+
+<script>
+  const toggle = document.getElementById('nav-toggle');
+  const nav = document.getElementById('primary-nav');
+  if (toggle && nav) {
+    toggle.addEventListener('click', () => {
+      const open = nav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+    // Close the menu after following a link (mobile).
+    nav.querySelectorAll('a').forEach((a) =>
+      a.addEventListener('click', () => { nav.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); }));
+  }
+</script>
