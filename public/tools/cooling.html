@@ -859,6 +859,12 @@ td input:focus { background: var(--white); box-shadow: none; border-radius: 0; }
      PAGE
 ═══════════════════════════════════════════════ -->
 <div class="page">
+  <div id="vspec-link" style="margin-bottom:14px;padding:10px 14px;border:1px solid var(--rule);border-left:3px solid var(--red);border-radius:var(--radius);background:var(--white);font-family:var(--sans);font-size:12px;color:var(--ink2);display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <strong style="font-family:var(--serif);">From Vehicle Spec</strong>
+    <span>Rolling radius <strong id="vs-rr">—</strong> mm · Total mass <strong id="vs-mass">—</strong> kg</span>
+    <button type="button" id="vs-apply" class="btn btn-ghost" style="font-size:10px;padding:5px 12px;">Use rolling radius → tyre Ø</button>
+    <span id="vs-note" style="color:var(--ink3);font-style:italic;"></span>
+  </div>
   <div class="grid-main">
 
     <!-- ══ LEFT — INPUTS ══════════════════════════ -->
@@ -1974,6 +1980,42 @@ function runAnalysis(){
 }
 
 renderTable();
+</script>
+<!-- Link to the shared Vehicle Spec (Master). Same origin as the workspace, so
+     the signed-in session in localStorage is reused; RLS returns nothing if not
+     signed in. The app has no mass input and computes speed itself, so the one
+     sensible link is rolling radius → tyre diameter (user-triggered, labelled). -->
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+  const sb = createClient(
+    'https://sfunpylcbaorbmgvlxpz.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmdW5weWxjYmFvcmJtZ3ZseHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1MjE0OTMsImV4cCI6MjEwNzA5NzQ5M30.oT8cjjppR8AA5kuCamLKZM1cAr03GKdgLfVZzhN_tTc',
+    { auth: { persistSession: true, autoRefreshToken: true } }
+  );
+  const note = document.getElementById('vs-note');
+  try {
+    const { data } = await sb.from('vehicle_spec').select('key,value').in('key', ['rolling_radius', 'mass_total']);
+    const m = Object.fromEntries((data || []).map((r) => [r.key, r.value]));
+    const rr = m.rolling_radius, mass = m.mass_total;
+    if (rr != null) document.getElementById('vs-rr').textContent = rr;
+    if (mass != null) document.getElementById('vs-mass').textContent = mass;
+    const btn = document.getElementById('vs-apply');
+    if (rr != null) {
+      btn.addEventListener('click', () => {
+        const dia = Math.round(rr * 2);
+        const el = document.getElementById('p-tyreDia');
+        el.value = dia;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        try { if (typeof window.runAnalysis === 'function') window.runAnalysis(); } catch (e) {}
+        note.textContent = `set tyre Ø = ${dia} mm (≈ 2 × loaded rolling radius ${rr} mm) — adjust if needed`;
+      });
+    } else {
+      btn.disabled = true;
+      note.textContent = 'Sign in on the workspace to pull live values.';
+    }
+  } catch (e) {
+    if (note) note.textContent = 'Live values unavailable (offline or not signed in).';
+  }
 </script>
 </body>
 </html>
