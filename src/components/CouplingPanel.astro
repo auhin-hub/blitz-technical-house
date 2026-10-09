@@ -1,0 +1,32 @@
+---
+/**
+ * The coupling-map panel (MASTER_BUILD_PLAN §5.1, handbook Table H-1): a
+ * collapsible "if you change X → direct effect → knock-ons to watch" table.
+ * Read the third column before committing the first.
+ */
+import { COUPLING_MAP } from '../lib/config';
+---
+<details class="coupling-panel">
+  <summary>Coupling map — how every decision pulls three others (handbook Part H)</summary>
+  <div class="ct-wrap">
+    <table class="coupling-table">
+      <thead>
+        <tr><th>If you change…</th><th>Direct effect</th><th>Knock-ons to watch</th></tr>
+      </thead>
+      <tbody>
+        {COUPLING_MAP.map((r) => (
+          <tr>
+            <td>{r.change}</td>
+            <td>{r.direct}</td>
+            <td class="ko">{r.knockOns}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <p class="ct-foot" style="padding:0 1rem 0.8rem;">
+    Before any change, say it out loud: "this changes [direct], which also moves [X]
+    and [Y], and I'll verify [X],[Y] with [measurement]." If you can't name the
+    knock-ons, you're not ready to make the change.
+  </p>
+</details>

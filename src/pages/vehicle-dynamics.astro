@@ -4,6 +4,8 @@ import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
 import CockpitShell from '../components/CockpitShell.astro';
+import VdWorkflowMap from '../components/VdWorkflowMap.astro';
+import CouplingPanel from '../components/CouplingPanel.astro';
 import { url, DISCIPLINES } from '../lib/config';
 import { PARAM_SEED } from '../lib/master';
 
@@ -163,17 +165,26 @@ const BRAKES_OUTPUTS = [
   { key: 'brakeTorque', label: 'Brake torque / wheel', unit: 'N·m' },
 ];
 ---
-<Base title={vd.title} description={vd.blurb}>
+<Base title="VD Workspace" description="Guided Vehicle Dynamics workflow — the handbook design sequence, wired to the gates.">
   <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / {vd.title}
+    <a href={url('')} style="color:inherit;">Home</a> / VD Workspace
   </nav>
   <header style="margin-bottom:1.25rem;">
-    <p class="annot annot-tick">Discipline</p>
-    <h1 style="margin-top:0.4rem;">{vd.title}</h1>
-    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{vd.blurb}</p>
+    <p class="annot annot-tick">Guided workflow · design sequence → gates</p>
+    <h1 style="margin-top:0.4rem;">VD Workspace</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">
+      The Vehicle Dynamics tools, arranged as the handbook's own design sequence
+      (Book Two Part I) with its build gates. Any tool is usable anytime — the map
+      shows the recommended order and what each stage needs first, so you can't get lost.
+    </p>
     <div style="margin-top:1rem;">{vd.workbook && <WorkbookDownload file={vd.workbook} />}</div>
   </header>
 
+  <!-- The guided design sequence (handbook Part I) + the coupling map (Part H). -->
+  <VdWorkflowMap />
+  <CouplingPanel />
+
+  <h2 style="font-size:var(--fs-700);margin:1.5rem 0 0.25rem;">Tools</h2>
   <div class="notice" style="margin-bottom:1rem;">
     <strong>Shared numbers come from Vehicle Spec.</strong> Green = read from the
     Master (edit in <a href={url('vehicle-spec')}>Vehicle Spec</a>); blue = this
