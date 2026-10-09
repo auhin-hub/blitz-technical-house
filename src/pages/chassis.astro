@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
+import CockpitShell from '../components/CockpitShell.astro';
 import { url, DISCIPLINES } from '../lib/config';
 import { MASS_COMPONENTS } from '../lib/calc/chassis-mass';
 
@@ -34,9 +35,6 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
     <div style="margin-top:1rem;">{ch.workbook && <WorkbookDownload file={ch.workbook} />}</div>
   </header>
 
-  <nav class="nav" aria-label="Chassis tools" style="gap:0.4rem;margin-bottom:1.25rem;">
-    <a href="#tube">Tube stress & FoS</a><a href="#mass">Component-mass tracker</a>
-  </nav>
 
   <div class="notice" style="margin-bottom:1.5rem;">
     <strong>Blue = your inputs (saved for the team); black = computed.</strong>
@@ -44,6 +42,8 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
   </div>
   <LegendKey />
 
+  <div style="margin-top:1.25rem;"></div>
+  <CockpitShell tools={[{ id: 'tube', title: 'Tube stress & FoS' }, { id: 'mass', title: 'Component-mass tracker' }]} railLabel="Chassis">
   <CalcTool id="tube" title="Tube stress & factor of safety" spec="TOOL_SPECS §2a"
     blurb="Axial stress and FoS for a round tube, plus the torsional-stiffness target vs measured twist test."
     inputs={TUBE_INPUTS} outputs={TUBE_OUTPUTS}
@@ -98,6 +98,7 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
     <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
     <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
   </section>
+  </CockpitShell>
 </Base>
 
 <script>

@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
+import CockpitShell from '../components/CockpitShell.astro';
 import { url, DISCIPLINES } from '../lib/config';
 import { PARAM_SEED } from '../lib/master';
 
@@ -173,12 +174,7 @@ const BRAKES_OUTPUTS = [
     <div style="margin-top:1rem;">{vd.workbook && <WorkbookDownload file={vd.workbook} />}</div>
   </header>
 
-  <nav class="nav" aria-label="Vehicle Dynamics tools" style="gap:0.4rem;margin-bottom:1.25rem;">
-    <a href="#setup">Setup</a><a href="#geometry">Geometry</a><a href="#springs">Springs & dampers</a>
-    <a href="#loads">Suspension loads</a><a href="#steering">Steering</a><a href="#brakes">Brakes</a>
-  </nav>
-
-  <div class="notice" style="margin-bottom:1.5rem;">
+  <div class="notice" style="margin-bottom:1rem;">
     <strong>Shared numbers come from Vehicle Spec.</strong> Green = read from the
     Master (edit in <a href={url('vehicle-spec')}>Vehicle Spec</a>); blue = this
     tool's own inputs, saved for the whole team; black = computed. Ported from the
@@ -186,6 +182,16 @@ const BRAKES_OUTPUTS = [
   </div>
   <LegendKey />
 
+  <div style="margin-top:1.25rem;"></div>
+  <CockpitShell tools={[
+    { id: 'setup', title: 'Setup / kinematics' },
+    { id: 'geometry', title: 'Suspension geometry' },
+    { id: 'hardpoints', title: 'Hardpoint coordinates' },
+    { id: 'springs', title: 'Springs & dampers' },
+    { id: 'loads', title: 'Suspension loads' },
+    { id: 'steering', title: 'Steering' },
+    { id: 'brakes', title: 'Brakes' },
+  ]} railLabel="VD tools">
   <CalcTool id="setup" title="Setup / kinematics" spec="TOOL_SPECS §7a"
     blurb="Kinematic targets; platform values pulled from Master. A target sheet — no computed outputs."
     linked={SETUP_LINKED} seed={seed} inputs={SETUP_INPUTS} />
@@ -219,6 +225,7 @@ const BRAKES_OUTPUTS = [
     stats={[{ key: 'achievedFrontBias', label: 'Achieved front bias' }, { key: 'olleyOptimum', label: 'Olley optimum (ff + μ·h/L)' }]}
     chartId="brakes-chart" chartTitle="Achieved vs optimum bias — deceleration sweep"
     contribute contributeNote="Writes front/rear brake torque + achieved front bias to the shared store (ToMaster → Brakes hand-off)." />
+  </CockpitShell>
 </Base>
 
 <script>
