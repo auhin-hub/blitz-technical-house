@@ -58,19 +58,31 @@ const OUTPUTS = [
     chartId="traction-chart" chartTitle="Tractive force vs traction limit"
     contribute contributeNote="Writes engine peak power, final drive ratio and max wheel torque to the shared store (ToMaster → Powertrain)." />
 
-  <!-- Cooling: a provided self-contained web app to re-skin (BRIEF §E2 / build step 3). -->
+  <!-- Cooling Dyno Analyzer — the provided self-contained app, physics kept
+       exactly and re-skinned to the design system (BRIEF §E2). Embedded here so
+       it lives inside the Powertrain page; it carries its own inputs. -->
   <section id="cooling" class="card" style="margin-top:1.25rem;">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
-      <h2 style="font-size:var(--fs-600);">Cooling — Dyno Analyzer</h2>
+      <h2 style="font-size:var(--fs-700);">Cooling — Dyno Analyzer</h2>
       <span class="badge">BRIEF §E2</span>
     </div>
     <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
-      Heat rejection vs speed, fan model, drivetrain/gearing and power/torque
-      curves. The existing self-contained tool is kept exactly as physics and
-      re-skinned to this design system — a dedicated build step after the
-      workbook calculators.
+      Measured dyno data in → engine heat load → radiator performance via the
+      NTU-effectiveness method, with heat rejection vs speed, fan model, gearing
+      and power/torque curves. The original tool's physics are unchanged; only
+      the look is re-skinned to this workspace.
     </p>
-    <p class="annot" style="margin-top:0.8rem;">Re-skin — building in step 3</p>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin:0.9rem 0;">
+      <a class="btn btn-halftone" href={url('tools/cooling.html')} target="_blank" rel="noopener">Open full-screen ↗</a>
+    </div>
+    <div style="border:1px solid var(--rule);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);">
+      <iframe src={url('tools/cooling.html')} title="Cooling Dyno Analyzer"
+        loading="lazy" style="width:100%;height:1600px;border:0;display:block;background:var(--surface);"></iframe>
+    </div>
+    <p class="mono" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);">
+      Linking its vehicle mass/speeds to Vehicle Spec is a quick follow-up; it
+      currently uses its own inputs with KTM 390 RC defaults.
+    </p>
   </section>
 </Base>
 
