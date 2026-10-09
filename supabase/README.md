@@ -10,13 +10,35 @@ Project URL: `https://sfunpylcbaorbmgvlxpz.supabase.co`
 
 ## 1. Create the tables (one time)
 Dashboard → **SQL Editor** → **New query** → paste the whole of
-`supabase/migrations/0001_master_store.sql` → **Run**.
+`supabase/migrations/0001_master_store.sql` → **Run**, then do the same with
+`supabase/migrations/0002_storage_workbooks.sql`.
 
-This creates `vehicle_spec`, `change_log`, `gates`, `tyre_results`, turns on RLS
-for all four, adds member-only policies, and seeds the 14 TOOL_SPECS §0
-parameters and the G0–G9 gates. Re-running is safe — the seed upserts.
+- `0001` creates `vehicle_spec`, `change_log`, `gates`, `tyre_results`, turns on
+  RLS for all four, adds member-only policies, and seeds the 14 TOOL_SPECS §0
+  parameters and the G0–G9 gates. Re-running is safe — the seed upserts.
+- `0002` creates the **private `workbooks` storage bucket** and a members-only
+  read policy.
 
-Verify: **Table editor → vehicle_spec** shows 14 rows; **gates** shows 10.
+Verify: **Table editor → vehicle_spec** shows 14 rows; **gates** shows 10;
+**Storage** lists a `workbooks` bucket marked *private*.
+
+## 1b. Upload the workbooks (member-only downloads)
+Everything downloadable sits **behind login** — nothing is served from the
+public Pages site. Dashboard → **Storage → `workbooks`** → **Upload** the eight
+`.xlsx` files, keeping their **exact filenames** (the download buttons reference
+them by name):
+
+```
+Blitz_Aero_WorkingFile.xlsx          Blitz_Ergonomics_WorkingFile.xlsx
+Blitz_Chassis_WorkingFile.xlsx       Blitz_Powertrain_WorkingFile.xlsx
+Blitz_DAQ_Telemetry_WorkingFile.xlsx Blitz_Vehicle_Dynamics_WorkingFile.xlsx
+Blitz_Electronics_WorkingFile.xlsx   MIST_Blitz_FS_Master_Workbook.xlsx
+```
+
+The site's “Download original workbook (.xlsx)” buttons mint a 60-second signed
+URL via the signed-in member's session. The **tyre toolset `.rar`** will use the
+same private-bucket model when the Tyre page is built (step 4) — not a public
+GitHub Release, since it must stay behind login too.
 
 ## 2. Make auth invite-only
 Dashboard → **Authentication**:

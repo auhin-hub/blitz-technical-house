@@ -1,0 +1,50 @@
+---
+// Member-only workbook download. The file lives in a PRIVATE Supabase bucket;
+// clicking mints a short-lived signed URL via the signed-in member's session
+// and downloads it. Nothing is exposed on the public Pages site.
+interface Props {
+  file: string;            // exact object name in the `workbooks` bucket
+  label?: string;
+  bucket?: string;
+}
+const { file, label = 'Download original workbook (.xlsx)', bucket = 'workbooks' } = Astro.props;
+---
+<button class="btn btn-halftone" type="button" data-workbook={file} data-bucket={bucket}>
+  {label}
+</button>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  // Event delegation: one handler for every WorkbookDownload button on the page.
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement)?.closest('[data-workbook]') as HTMLButtonElement | null;
+    if (!btn) return;
+
+    const file = btn.dataset.workbook!;
+    const bucket = btn.dataset.bucket || 'workbooks';
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Preparing…';
+
+    const { data, error } = await supabase
+      .storage
+      .from(bucket)
+      .createSignedUrl(file, 60, { download: true }); // 60s, forces attachment
+
+    btn.disabled = false;
+    btn.textContent = original;
+
+    if (error || !data?.signedUrl) {
+      alert('Could not prepare the download. Make sure you are signed in and the file has been uploaded to the bucket.');
+      return;
+    }
+    // Trigger the download without navigating away.
+    const a = document.createElement('a');
+    a.href = data.signedUrl;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+</script>

@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import LegendKey from '../components/LegendKey.astro';
+import WorkbookDownload from '../components/WorkbookDownload.astro';
 import { PARAM_SEED, fieldState } from '../lib/master';
 import { url } from '../lib/config';
 
@@ -30,9 +31,7 @@ const stateClass = {
 
   <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;justify-content:space-between;">
     <LegendKey />
-    <a class="btn btn-halftone" href={url('workbooks/MIST_Blitz_FS_Master_Workbook.xlsx')} download>
-      Download master workbook (.xlsx)
-    </a>
+    <WorkbookDownload file="MIST_Blitz_FS_Master_Workbook.xlsx" label="Download master workbook (.xlsx)" />
   </div>
 
   <div style="overflow-x:auto;margin-top:1.25rem;">

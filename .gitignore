@@ -33,3 +33,9 @@ Thumbs.db
 *.tir
 *.rar
 MIST_Blitz_TTC_Tyre_Toolset.zip
+
+# Workbooks are member-only downloads served from a PRIVATE Supabase bucket,
+# never from the public Pages site. Kept here locally for formula porting and
+# for uploading to the bucket, but not committed.
+/workbooks/
+*.xlsx
