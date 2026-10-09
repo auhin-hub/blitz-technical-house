@@ -62,6 +62,7 @@ export const DISCIPLINES: Discipline[] = [
     title: 'Powertrain',
     blurb: 'Drivetrain & traction, plus the Cooling Dyno Analyzer.',
     workbook: 'Blitz_Powertrain_WorkingFile.xlsx',
+    built: true,
     tools: [
       { title: 'Drivetrain & traction', anchor: 'traction', blurb: 'Wheel torque, tractive force vs traction limit, launch accel.', spec: 'TOOL_SPECS §6' },
       { title: 'Cooling — Dyno Analyzer', anchor: 'cooling', blurb: 'Heat rejection vs speed, fan model, power/torque curves (re-skinned).', spec: 'BRIEF §E2' },
@@ -93,6 +94,7 @@ export const DISCIPLINES: Discipline[] = [
     title: 'Aerodynamics',
     blurb: 'Downforce / drag vs speed.',
     workbook: 'Blitz_Aero_WorkingFile.xlsx',
+    built: true,
     tools: [
       { title: 'Downforce / drag vs speed', anchor: 'aero', blurb: 'Downforce, drag, %-of-weight, L/D across the speed range.', spec: 'TOOL_SPECS §1' },
     ],

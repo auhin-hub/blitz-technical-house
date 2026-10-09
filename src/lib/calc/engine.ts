@@ -13,11 +13,13 @@ import { loadMaster, loadToolState, saveToolState, saveToolOutputs, fmt, debounc
 import { applyChartDefaults, palette, watchTheme } from '../chart-theme';
 
 export type Flat = Record<string, number>;
+/** Outputs may be numbers (formatted) or strings (shown as-is, e.g. verdicts). */
+export type Out = Record<string, number | string>;
 export type Pal = ReturnType<typeof palette>;
 
 export interface ChartSpec {
   canvasId: string;
-  build: (ctx: { out: Flat; inp: Flat; master: Flat; pal: Pal }) => any | null;
+  build: (ctx: { out: Out; inp: Flat; master: Flat; pal: Pal }) => any | null;
 }
 
 export interface CalcSpec {
@@ -25,7 +27,7 @@ export interface CalcSpec {
   /** Id of the tool's <section> — all DOM queries are scoped to it, so many
    *  calculators can live on one discipline page without colliding. */
   root: string;
-  compute: (inp: Flat, master: Flat) => Flat;
+  compute: (inp: Flat, master: Flat) => Out;
   /** Per-output-key decimal places; otherwise defaultDigits. */
   digits?: Record<string, number>;
   defaultDigits?: number;
@@ -65,15 +67,15 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
   for (const i of inputs) if (state[i.dataset.in!] !== undefined) i.value = String(state[i.dataset.in!]);
 
   const charts = new Map<string, Chart>();
-  let lastOut: Flat = {};
+  let lastOut: Out = {};
 
-  function recompute(): Flat {
+  function recompute(): Out {
     const inp = readInp();
     const out = spec.compute(inp, master);
     lastOut = out;
     for (const [k, v] of Object.entries(out)) {
       const el = scope!.querySelector(`[data-out="${k}"]`);
-      if (el) el.textContent = fmt(v, spec.digits?.[k] ?? spec.defaultDigits ?? 3);
+      if (el) el.textContent = typeof v === 'number' ? fmt(v, spec.digits?.[k] ?? spec.defaultDigits ?? 3) : v;
     }
     if (spec.charts) {
       const pal = palette();
@@ -111,10 +113,11 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
     contributeBtn.addEventListener('click', async () => {
       recompute();
       if (status) { status.textContent = 'Saving…'; status.style.color = 'var(--ink-3)'; }
-      const outs = spec.toMaster!.map((m) => ({
-        key: m.key, label: m.label, unit: m.unit,
-        value: Number.isFinite(lastOut[m.from]) ? +lastOut[m.from].toFixed(4) : null,
-      }));
+      const outs = spec.toMaster!.map((m) => {
+        const raw = lastOut[m.from];
+        const num = typeof raw === 'number' ? raw : Number(raw);
+        return { key: m.key, label: m.label, unit: m.unit, value: Number.isFinite(num) ? +num.toFixed(4) : null };
+      });
       const err = await saveToolOutputs(spec.tool, outs);
       if (status) {
         status.textContent = err ? 'Failed: ' + err : 'Contributed ✓';

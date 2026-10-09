@@ -1,0 +1,108 @@
+---
+import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
+import WorkbookDownload from '../components/WorkbookDownload.astro';
+import CalcTool from '../components/CalcTool.astro';
+import { url, DISCIPLINES } from '../lib/config';
+import { PARAM_SEED } from '../lib/master';
+
+const pt = DISCIPLINES.find((d) => d.slug === 'powertrain')!;
+const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
+
+const LINKED = [
+  { mkey: 'rolling_radius', label: 'Loaded rolling radius', unit: 'mm' },
+  { mkey: 'axle_load_rear', label: 'Rear axle static load', unit: 'N' },
+  { mkey: 'mu_lat_peak', label: 'Peak μ', sym: 'μ', unit: '-' },
+  { mkey: 'mass_total', label: 'Total mass', sym: 'm', unit: 'kg' },
+];
+const INPUTS = [
+  { key: 'peakTorque', label: 'Engine peak torque', unit: 'N·m', vals: [35.3] },
+  { key: 'peakPower', label: 'Engine peak power', unit: 'kW', vals: [32] },
+  { key: 'peakRpm', label: 'Peak-power rpm', unit: 'rpm', vals: [9500] },
+  { key: 'primary', label: 'Primary reduction', unit: '-', vals: [3] },
+  { key: 'firstGear', label: '1st gear ratio', unit: '-', vals: [2.5] },
+  { key: 'finalDrive', label: 'Final drive ratio', unit: '-', vals: [3] },
+  { key: 'drivelineEff', label: 'Driveline efficiency', unit: '-', vals: [0.9] },
+];
+const OUTPUTS = [
+  { key: 'wheelTorque', label: 'Wheel torque (1st gear)', unit: 'N·m' },
+  { key: 'tractiveForce', label: 'Tractive force', unit: 'N' },
+  { key: 'tractionLimit', label: 'Traction limit (μ × rear load)', unit: 'N' },
+];
+---
+<Base title={pt.title} description={pt.blurb}>
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / {pt.title}
+  </nav>
+  <header style="margin-bottom:1.25rem;">
+    <p class="annot annot-tick">Discipline</p>
+    <h1 style="margin-top:0.4rem;">{pt.title}</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{pt.blurb}</p>
+    <div style="margin-top:1rem;">{pt.workbook && <WorkbookDownload file={pt.workbook} />}</div>
+  </header>
+
+  <nav class="nav" aria-label="Powertrain tools" style="gap:0.4rem;margin-bottom:1.25rem;">
+    <a href="#traction">Drivetrain & traction</a><a href="#cooling">Cooling</a>
+  </nav>
+
+  <div class="notice" style="margin-bottom:1.5rem;">
+    <strong>Shared numbers come from Vehicle Spec.</strong> Green = read from the
+    Master; blue = this tool's own inputs (saved for the team); black = computed.
+  </div>
+  <LegendKey />
+
+  <CalcTool id="traction" title="Drivetrain & traction" spec="TOOL_SPECS §6"
+    blurb="1st-gear wheel torque, tractive force vs the traction limit, and launch acceleration."
+    linked={LINKED} seed={seed} inputs={INPUTS} outputs={OUTPUTS}
+    stats={[{ key: 'launchAccel', label: 'Launch accel estimate', unit: 'g' }, { key: 'gripLimited', label: 'Grip-limited?' }]}
+    chartId="traction-chart" chartTitle="Tractive force vs traction limit"
+    contribute contributeNote="Writes engine peak power, final drive ratio and max wheel torque to the shared store (ToMaster → Powertrain)." />
+
+  <!-- Cooling: a provided self-contained web app to re-skin (BRIEF §E2 / build step 3). -->
+  <section id="cooling" class="card" style="margin-top:1.25rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+      <h2 style="font-size:var(--fs-600);">Cooling — Dyno Analyzer</h2>
+      <span class="badge">BRIEF §E2</span>
+    </div>
+    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
+      Heat rejection vs speed, fan model, drivetrain/gearing and power/torque
+      curves. The existing self-contained tool is kept exactly as physics and
+      re-skinned to this design system — a dedicated build step after the
+      workbook calculators.
+    </p>
+    <p class="annot" style="margin-top:0.8rem;">Re-skin — building in step 3</p>
+  </section>
+</Base>
+
+<script>
+  import { mountCalculator } from '../lib/calc/engine';
+  import { tractionCompute } from '../lib/calc/pt-traction';
+
+  mountCalculator({
+    root: 'traction', tool: 'pt_traction', compute: tractionCompute, defaultDigits: 1,
+    digits: { launchAccel: 3 },
+    charts: [{
+      canvasId: 'traction-chart',
+      build: ({ out, pal }) => ({
+        type: 'bar',
+        data: {
+          labels: ['Tractive force', 'Traction limit'],
+          datasets: [{
+            label: 'N', data: [out.tractiveForce, out.tractionLimit],
+            backgroundColor: [pal.amber, pal.sky],
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { title: { display: true, text: 'N' } } },
+        },
+      }),
+    }],
+    toMaster: [
+      { key: 'engine_peak_power', label: 'Engine peak power', unit: 'kW', from: 'enginePeakPower' },
+      { key: 'final_drive', label: 'Final drive ratio', unit: '-', from: 'finalDrive' },
+      { key: 'max_wheel_torque', label: 'Max torque per wheel', unit: 'N·m', from: 'wheelTorque' },
+    ],
+  });
+</script>

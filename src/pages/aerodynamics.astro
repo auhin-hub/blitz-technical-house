@@ -1,0 +1,139 @@
+---
+import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
+import WorkbookDownload from '../components/WorkbookDownload.astro';
+import { url, DISCIPLINES } from '../lib/config';
+import { PARAM_SEED } from '../lib/master';
+
+const aero = DISCIPLINES.find((d) => d.slug === 'aerodynamics')!;
+const seedMass = PARAM_SEED.find((p) => p.key === 'mass_total')!.value;
+const SPEEDS = [40, 60, 80, 100, 120];
+const INPUTS = [
+  { key: 'clA', label: 'Cl·A', unit: 'm²', val: 0.8 },
+  { key: 'cdA', label: 'Cd·A', unit: 'm²', val: 0.6 },
+  { key: 'rho', label: 'Air density ρ', unit: 'kg/m³', val: 1.18 },
+  { key: 'aeroBalance', label: 'Aero balance (front)', unit: '-', val: 0.45 },
+];
+const td = 'padding:0.45rem 0.6rem;';
+const th = 'padding:0.5rem 0.6rem;';
+const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
+---
+<Base title={aero.title} description={aero.blurb}>
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / {aero.title}
+  </nav>
+  <header style="margin-bottom:1.25rem;">
+    <p class="annot annot-tick">Discipline</p>
+    <h1 style="margin-top:0.4rem;">{aero.title}</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{aero.blurb}</p>
+    <div style="margin-top:1rem;">{aero.workbook && <WorkbookDownload file={aero.workbook} />}</div>
+  </header>
+
+  <div class="notice" style="margin-bottom:1.5rem;">
+    <strong>Shared numbers come from Vehicle Spec.</strong> Green = read from the
+    Master; blue = this tool's own inputs (saved for the team); black = computed.
+  </div>
+  <LegendKey />
+
+  <section id="aero" class="card" style="margin-top:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+      <h2 style="font-size:var(--fs-700);">Downforce / drag vs speed</h2>
+      <span class="badge">TOOL_SPECS §1</span>
+    </div>
+
+    <h3 style="font-size:var(--fs-500);margin-top:1.1rem;">From Master</h3>
+    <table style="border-collapse:collapse;font-size:var(--fs-300);margin-top:0.4rem;">
+      <tbody><tr>
+        <td style={td}>Total mass (with driver) <span class="mono" style="color:var(--ink-3);">(m)</span></td>
+        <td style={td + 'text-align:right;'}><span class="field field-linked mono" data-master="mass_total" data-seed={seedMass}>{seedMass}</span></td>
+        <td style={td} class="mono">kg</td>
+      </tr></tbody>
+    </table>
+
+    <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Inputs</h3>
+    <table style="border-collapse:collapse;font-size:var(--fs-300);margin-top:0.4rem;">
+      <tbody>
+        {INPUTS.map((i) => (
+          <tr style="border-bottom:1px solid var(--rule);">
+            <td style={td}>{i.label}</td>
+            <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={i.key} value={i.val} aria-label={i.label} /></td>
+            <td style={td} class="mono">{i.unit}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Per-speed outputs</h3>
+    <div style="overflow-x:auto;">
+      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:460px;margin-top:0.4rem;">
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+          <th style={th} class="annot">Speed (km/h)</th>
+          <th style={th + 'text-align:right;'} class="annot">Downforce (N)</th>
+          <th style={th + 'text-align:right;'} class="annot">Drag (N)</th>
+          <th style={th + 'text-align:right;'} class="annot">% of weight</th>
+        </tr></thead>
+        <tbody>
+          {SPEEDS.map((s) => (
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style={td} class="mono">{s}</td>
+              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`df_${s}`}>—</span></td>
+              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`drag_${s}`}>—</span></td>
+              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`pct_${s}`}>—</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));margin-top:1.25rem;">
+      <div class="card" style="background:var(--surface-2);">
+        <span class="annot">L/D (ClA / CdA)</span>
+        <p class="mono" style="font-size:var(--fs-700);margin-top:0.3rem;"><span data-out="ld">—</span></p>
+      </div>
+    </div>
+
+    <h3 style="font-size:var(--fs-500);margin-top:1.5rem;">Downforce & drag vs speed</h3>
+    <div style="margin-top:0.5rem;height:300px;position:relative;"><canvas id="aero-chart"></canvas></div>
+
+    <h3 style="font-size:var(--fs-500);margin-top:1.5rem;">Contribute to Master</h3>
+    <p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.3rem;">Writes Cl·A, Cd·A and aero balance (front) to the shared store (ToMaster → Aero).</p>
+    <button class="btn btn-heritage" type="button" data-contribute style="margin-top:0.75rem;">Contribute results to Master</button>
+    <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+    <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </section>
+</Base>
+
+<script>
+  import { mountCalculator } from '../lib/calc/engine';
+  import { aeroCompute, SPEEDS } from '../lib/calc/aero';
+
+  const digits: Record<string, number> = { ld: 3 };
+  for (const s of SPEEDS) { digits[`df_${s}`] = 1; digits[`drag_${s}`] = 1; digits[`pct_${s}`] = 1; }
+
+  mountCalculator({
+    root: 'aero', tool: 'aero', compute: aeroCompute, digits,
+    charts: [{
+      canvasId: 'aero-chart',
+      build: ({ out, pal }) => ({
+        type: 'line',
+        data: {
+          labels: SPEEDS.map(String),
+          datasets: [
+            { label: 'Downforce (N)', data: SPEEDS.map((s) => +(out[`df_${s}`] as number).toFixed(1)), borderColor: pal.sky, backgroundColor: pal.sky, tension: 0.3, pointRadius: 3 },
+            { label: 'Drag (N)', data: SPEEDS.map((s) => +(out[`drag_${s}`] as number).toFixed(1)), borderColor: pal.amber, backgroundColor: pal.amber, tension: 0.3, pointRadius: 3 },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { usePointStyle: true } } },
+          scales: { x: { title: { display: true, text: 'speed (km/h)' } }, y: { title: { display: true, text: 'force (N)' } } },
+        },
+      }),
+    }],
+    toMaster: [
+      { key: 'cl_a', label: 'Cl·A', unit: 'm²', from: 'clA' },
+      { key: 'cd_a', label: 'Cd·A', unit: 'm²', from: 'cdA' },
+      { key: 'aero_balance_front', label: 'Aero balance (front)', unit: '-', from: 'aeroBalance' },
+    ],
+  });
+</script>

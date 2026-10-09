@@ -289,7 +289,8 @@ const BRAKES_OUTPUTS = [
       build: ({ out, master, pal }) => {
         const hL = master.cog_height / master.wheelbase;
         const optimum = DECEL.map((g) => +(master.mass_frac_front + g * hL).toFixed(4));
-        const achieved = DECEL.map(() => +out.achievedFrontBias.toFixed(4));
+        const ab = Number(out.achievedFrontBias);
+        const achieved = DECEL.map(() => +ab.toFixed(4));
         return {
           type: 'line',
           data: { labels: DECEL.map((g) => g.toFixed(1)), datasets: [
