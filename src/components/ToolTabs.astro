@@ -1,0 +1,31 @@
+---
+/**
+ * In-tool tabs (MASTER_BUILD_PLAN §2): when one tool exceeds a screen (e.g.
+ * Brakes), split it into tabbed one-screen views instead of a long scroll.
+ * Panels are slotted elements with data-tab-panel matching a tab id.
+ */
+interface Tab { id: string; label: string; }
+const { tabs } = Astro.props as { tabs: Tab[] };
+---
+<div class="tooltabs" data-tooltabs>
+  <div class="tooltab-bar" role="tablist">
+    {tabs.map((t, i) => (
+      <button class="tooltab" type="button" role="tab" data-tab={t.id} aria-current={i === 0 ? 'true' : 'false'}>{t.label}</button>
+    ))}
+  </div>
+  <div class="tooltab-panels"><slot /></div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-tooltabs]').forEach((root) => {
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('.tooltab'));
+    const panels = Array.from(root.querySelectorAll<HTMLElement>('[data-tab-panel]'));
+    function show(id: string) {
+      panels.forEach((p) => { p.hidden = p.dataset.tabPanel !== id; });
+      tabs.forEach((b) => b.setAttribute('aria-current', b.dataset.tab === id ? 'true' : 'false'));
+      window.dispatchEvent(new Event('resize')); // refit charts in a revealed panel
+    }
+    tabs.forEach((b) => b.addEventListener('click', () => show(b.dataset.tab!)));
+    if (tabs.length) panels.forEach((p, i) => { p.hidden = i !== 0; });
+  });
+</script>
