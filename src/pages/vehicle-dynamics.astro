@@ -69,29 +69,6 @@ const HP_LABELS: Record<string, string> = {
 const HP_INPUTS = HP_POINTS.map((k) => ({ key: k, label: HP_LABELS[k], unit: 'mm', vals: [0, 0, 0] }));
 
 // ---- Springs & dampers ---------------------------------------------------
-const SPRINGS_LINKED = [
-  { mkey: 'mass_total', label: 'Total mass', sym: 'm', unit: 'kg' },
-  { mkey: 'mass_frac_front', label: 'Front mass fraction', sym: 'ff', unit: '-' },
-];
-const SPRINGS_INPUTS = [
-  { key: 'motionRatio', label: 'Motion ratio (wheel→spring)', unit: '-', vals: [0.7, 0.7] },
-  { key: 'unsprung', label: 'Unsprung mass per corner', unit: 'kg', vals: [12, 12] },
-  { key: 'targetFreq', label: 'Target ride frequency', unit: 'Hz', vals: [2.8, 3] },
-  { key: 'chosenRate', label: 'Chosen spring rate (0 = none yet)', unit: 'N/mm', vals: [0, 0] },
-  { key: 'bump', label: 'Target wheel travel (bump)', unit: 'mm', vals: [30, 25] },
-  { key: 'droop', label: 'Target wheel travel (droop)', unit: 'mm', vals: [25, 25] },
-  { key: 'dampingRatio', label: 'Target damping ratio', unit: '-', vals: [0.65, 0.65] },
-];
-const SPRINGS_OUTPUTS = [
-  { key: 'sprungCorner', label: 'Sprung corner mass', unit: 'kg' },
-  { key: 'wheelRate', label: 'Wheel rate = (2πf)²·m', unit: 'N/mm' },
-  { key: 'springRate', label: 'Spring rate = wheel rate / MR²', unit: 'N/mm' },
-  { key: 'recheckFreq', label: 'Re-check frequency with chosen', unit: 'Hz' },
-  { key: 'springTravel', label: 'Spring travel (wheel × MR)', unit: 'mm' },
-  { key: 'criticalDamping', label: 'Critical damping = 2√(k·m)', unit: 'N·s/m' },
-  { key: 'damperRate', label: 'Damper rate = ζ·Cc', unit: 'N·s/m' },
-];
-
 // ---- Suspension loads ----------------------------------------------------
 const LOADS_LINKED = [
   { mkey: 'mass_total', label: 'Total mass', sym: 'm', unit: 'kg' },
@@ -190,11 +167,11 @@ const STEER_OUTPUTS = [
     blurb="One corner's hardpoints (x, y, z). Data entry — freeze at G3. Saved for the whole team."
     cols={HP_COLS} inputs={HP_INPUTS} />
 
-  <CalcTool id="springs" title="Springs & dampers" spec="TOOL_SPECS §7d"
-    blurb="Ride-frequency sizing: wheel rate, spring rate, travel and damping."
-    cols={FR} linked={SPRINGS_LINKED} seed={seed} inputs={SPRINGS_INPUTS} outputs={SPRINGS_OUTPUTS}
-    chartId="springs-chart" chartTitle="Wheel & spring rate (front / rear)" chartHeight={260}
-    contribute contributeNote="Writes front/rear spring rate to the shared store (ToMaster → Springs tab)." />
+  <section id="springs" class="ct">
+    <header class="ct-head"><h2>Springs &amp; dampers</h2><span class="badge">§6.5</span></header>
+    <p class="ct-sub">Ride-frequency sizing with the tyre in series, MR from rocker geometry, damping, damper catalog and roll gradient — on its own page.</p>
+    <p style="margin-top:0.9rem;"><a class="btn btn-halftone" href={url('springs')}>Open Springs &amp; dampers ↗</a></p>
+  </section>
 
   <CalcTool id="loads" title="Suspension loads" spec="TOOL_SPECS §7e"
     blurb="Vertical / braking / cornering cases → pushrod & wishbone loads, anti-dive/anti-squat."
@@ -215,7 +192,6 @@ const STEER_OUTPUTS = [
 
 <script>
   import { mountCalculator } from '../lib/calc/engine';
-  import { springsCompute } from '../lib/calc/vd-springs';
   import { loadsCompute } from '../lib/calc/vd-loads';
   import { steeringCompute } from '../lib/calc/vd-steering';
   import { geometryCompute } from '../lib/calc/vd-geometry';
@@ -230,25 +206,6 @@ const STEER_OUTPUTS = [
   });
 
   mountCalculator({ root: 'hardpoints', tool: 'vd_hardpoints', compute: () => ({}), defaultDigits: 1 });
-
-  mountCalculator({
-    root: 'springs', tool: 'vd_springs', compute: springsCompute, defaultDigits: 2,
-    charts: [{
-      canvasId: 'springs-chart',
-      build: ({ out, pal }) => ({
-        type: 'bar',
-        data: { labels: ['Front', 'Rear'], datasets: [
-          { label: 'Wheel rate (N/mm)', data: [out.f_wheelRate, out.r_wheelRate], backgroundColor: pal.sky },
-          { label: 'Spring rate (N/mm)', data: [out.f_springRate, out.r_springRate], backgroundColor: pal.amber },
-        ] },
-        options: { ...noOpts, scales: { y: { title: { display: true, text: 'N/mm' } } } },
-      }),
-    }],
-    toMaster: [
-      { key: 'spring_rate_front', label: 'Front spring rate', unit: 'N/mm', from: 'f_springRate' },
-      { key: 'spring_rate_rear', label: 'Rear spring rate', unit: 'N/mm', from: 'r_springRate' },
-    ],
-  });
 
   mountCalculator({
     root: 'loads', tool: 'vd_loads', compute: loadsCompute, defaultDigits: 2,
