@@ -1,0 +1,159 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+
+const LINKED = [
+  { k: 'mu_lat_peak', l: 'Peak lateral μ', s: 'μy', u: '-' },
+  { k: 'mass_total', l: 'Mass', s: 'm', u: 'kg' },
+];
+const INPUTS = [
+  { key: 'muX', label: 'Peak longitudinal μ', unit: 'g', val: 1.4, ref: '1.4–1.6' },
+  { key: 'muY', label: 'Peak lateral μ', unit: 'g', val: 1.5, ref: '1.4–1.7' },
+  { key: 'accelLimit', label: 'Launch g (power/traction limit)', unit: 'g', val: 0.8, ref: 'Powertrain' },
+  { key: 'brakeLimit', label: 'Max braking g (0 = grip-limited)', unit: 'g', val: 0, ref: 'Brakes' },
+  { key: 'clA', label: 'Cl·A (downforce)', unit: 'm²', val: 0.8, ref: 'Aero' },
+  { key: 'rho', label: 'Air density ρ', unit: 'kg/m³', val: 1.18, ref: '1.18' },
+];
+const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
+---
+<Base title="g–g diagram">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / g–g diagram
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">The acceleration envelope · g–g–V</p>
+    <h1 style="margin-top:0.4rem;">g–g diagram</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
+      The grip ellipse <span class="mono">(ax/μx)² + (ay/μy)² = 1</span> in g — how
+      much lateral and longitudinal acceleration the car can use together. The top
+      is capped by the power/traction launch limit, the bottom by max braking, and
+      the whole envelope grows with speed as aero downforce adds grip. Peak μ and
+      mass come from the Master; set the longitudinal μ and limits from the
+      Powertrain, Brakes and Aero tools.
+    </p>
+  </header>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <span class="annot">From Master</span>
+    <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:0.4rem;font-size:var(--fs-300);">
+      {LINKED.map((l) => (
+        <span>{l.l} <span class="mono" style="color:var(--ink-3)">({l.s})</span>
+          <span class="field field-linked mono" data-master={l.k} style="margin-left:0.35rem;">—</span> {l.u}</span>
+      ))}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct-body">
+      <div class="ct-col">
+        <h3 class="ct-h3">Inputs</h3>
+        <div class="ct-wrap"><table class="ct-table"><tbody>
+          {INPUTS.map((i) => (
+            <tr><td>{i.label}</td>
+              <td class="ct-num"><input type="number" step="any" style={ni} data-in={i.key} value={i.val} aria-label={i.label} /></td>
+              <td class="ct-unit">{i.unit}</td>
+              <td>{i.ref && <span class="ct-ref">{i.ref}</span>}</td></tr>
+          ))}
+        </tbody></table></div>
+
+        <h3 class="ct-h3">Speed (aero expansion)</h3>
+        <div style="display:flex;gap:0.6rem;align-items:center;">
+          <input type="range" id="speed" min="0" max="140" step="5" value="60" style="flex:1;accent-color:var(--amber);" />
+          <span class="mono" style="min-width:72px;text-align:right;"><span id="speed-val">60</span> km/h</span>
+        </div>
+        <div class="ct-stats" style="margin-top:0.8rem;">
+          <div class="ct-stat"><span class="annot">Lateral grip</span><div class="val"><span data-out="latMax">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> g</span></div></div>
+          <div class="ct-stat"><span class="annot">Accel cap</span><div class="val"><span data-out="accelCap">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> g</span></div></div>
+          <div class="ct-stat"><span class="annot">Braking cap</span><div class="val"><span data-out="brakeCap">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> g</span></div></div>
+          <div class="ct-stat"><span class="annot">Aero factor</span><div class="val"><span data-out="k">—</span>×</div></div>
+        </div>
+      </div>
+
+      <div class="ct-col">
+        <h3 class="ct-h3">Envelope (ay vs ax)</h3>
+        <div style="height:360px;position:relative;"><canvas id="gg-chart"></canvas></div>
+        <p class="ct-foot">Points: skidpad (pure lateral), threshold braking, launch. Instrument view — lateral on the horizontal, longitudinal on the vertical.</p>
+      </div>
+    </div>
+    <p class="mono" data-save-status style="margin-top:0.7rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </div>
+</Base>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { ggCurve, ggLimits, type GgInput } from '../lib/calc/gg';
+  import { loadMaster, saveToolJson, loadToolJson, fmt, debounce } from '../lib/store';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+
+  const TOOL = 'gg';
+  const saveStatus = document.querySelector('[data-save-status]') as HTMLElement;
+  let master: Record<string, number> = {};
+  let chart: Chart | null = null;
+  const gi = (k: string) => Number((document.querySelector(`[data-in="${k}"]`) as HTMLInputElement)?.value);
+  const put = (k: string, v: number, d = 2) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = Number.isFinite(v) ? fmt(v, d) : '—'; };
+
+  function input(): GgInput {
+    return { muX: gi('muX'), muY: gi('muY'), accelLimit: gi('accelLimit'), brakeLimit: gi('brakeLimit'),
+      mass: master.mass_total, rho: gi('rho'), clA: gi('clA'), speedKmh: Number((document.getElementById('speed') as HTMLInputElement).value) };
+  }
+
+  function recompute() {
+    const i = input();
+    const lim = ggLimits(i);
+    put('latMax', lim.latMax); put('accelCap', lim.accelCap); put('brakeCap', lim.brakeCap); put('k', lim.k, 3);
+    const p = palette();
+    const env = ggCurve(i).map((q) => ({ x: q.ay, y: q.ax }));
+    const ops = [
+      { x: lim.latMax, y: 0 }, { x: -lim.latMax, y: 0 },   // skidpad L/R
+      { x: 0, y: -lim.brakeCap },                           // threshold braking
+      { x: 0, y: lim.accelCap },                            // launch
+    ];
+    const cfg: any = {
+      type: 'scatter',
+      data: { datasets: [
+        { label: 'Envelope', data: env, showLine: true, borderColor: p.sky, backgroundColor: 'transparent', pointRadius: 0, tension: 0 },
+        { label: 'Operating points', data: ops, backgroundColor: p.maroon, pointRadius: 5 },
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, aspectRatio: 1,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { title: { display: true, text: 'lateral ay (g)' }, min: -2.2, max: 2.2 },
+          y: { title: { display: true, text: 'longitudinal ax (g) — accel + / brake −' }, min: -2.2, max: 2.2 },
+        } },
+    };
+    if (chart) { chart.data = cfg.data; chart.options = cfg.options; chart.update(); }
+    else { const cv = document.getElementById('gg-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
+  }
+
+  const persist = debounce(async () => {
+    const data: Record<string, number> = { speed: Number((document.getElementById('speed') as HTMLInputElement).value) };
+    document.querySelectorAll('[data-in]').forEach((el) => { data[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
+    saveStatus.textContent = 'Saving…';
+    const err = await saveToolJson(TOOL, data);
+    saveStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    saveStatus.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  (async () => {
+    applyChartDefaults();
+    master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
+    for (const el of document.querySelectorAll<HTMLElement>('[data-master]')) { const k = el.dataset.master!; if (Number.isFinite(master[k])) el.textContent = fmt(master[k]); }
+    // Prefill lateral μ from the Master if set.
+    if (Number.isFinite(master.mu_lat_peak)) (document.querySelector('[data-in="muY"]') as HTMLInputElement).value = String(master.mu_lat_peak);
+
+    const saved = await loadToolJson<Record<string, number>>(TOOL, {});
+    for (const [k, v] of Object.entries(saved)) {
+      if (k === 'speed') { (document.getElementById('speed') as HTMLInputElement).value = String(v); continue; }
+      const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v);
+    }
+    (document.getElementById('speed-val') as HTMLElement).textContent = (document.getElementById('speed') as HTMLInputElement).value;
+
+    recompute();
+    document.querySelectorAll('[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
+    document.getElementById('speed')!.addEventListener('input', (e) => {
+      (document.getElementById('speed-val') as HTMLElement).textContent = (e.target as HTMLInputElement).value;
+      recompute(); persist();
+    });
+    watchTheme(() => { applyChartDefaults(); recompute(); });
+  })();
+</script>
