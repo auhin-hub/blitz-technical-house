@@ -8,7 +8,11 @@ import { DISCIPLINES, url } from '../lib/config';
 // One static page per discipline (BRIEF §D). Calculators are stubbed as tool
 // cards here; each is built from TOOL_SPECS.md in a later step.
 export function getStaticPaths() {
-  return DISCIPLINES.map((d) => ({ params: { discipline: d.slug }, props: { discipline: d } }));
+  // Disciplines with a hand-built page (built: true) have their own file and
+  // are excluded here to avoid a route collision.
+  return DISCIPLINES.filter((d) => !d.built).map((d) => ({
+    params: { discipline: d.slug }, props: { discipline: d },
+  }));
 }
 
 const { discipline } = Astro.props;

@@ -1,0 +1,315 @@
+---
+import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
+import WorkbookDownload from '../components/WorkbookDownload.astro';
+import { url, DISCIPLINES } from '../lib/config';
+import { PARAM_SEED } from '../lib/master';
+
+const vd = DISCIPLINES.find((d) => d.slug === 'vehicle-dynamics')!;
+const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
+
+// Brakes field metadata (ported from the Brakes sheet; see lib/calc/vd-brakes.ts).
+const BRAKE_LINKED = [
+  { mkey: 'mass_frac_front', label: 'Static front mass fraction', sym: 'ff', unit: '-' },
+  { mkey: 'cog_height', label: 'CoG height', sym: 'h', unit: 'mm' },
+  { mkey: 'wheelbase', label: 'Wheelbase', sym: 'L', unit: 'mm' },
+  { mkey: 'mu_lat_peak', label: 'Tyre–road μ', sym: 'μ', unit: '-' },
+];
+const BRAKE_INPUTS = [
+  { key: 'pedalForce', label: 'Pedal force (one hard push)', unit: 'N', f: 400, r: 400 },
+  { key: 'pedalRatio', label: 'Pedal ratio', unit: '-', f: 5, r: 5 },
+  { key: 'mcBore', label: 'Master-cylinder bore', unit: 'mm', f: 15.875, r: 15.875 },
+  { key: 'circuits', label: 'Circuits fed (1 or 2)', unit: '-', f: 2, r: 2 },
+  { key: 'caliperBore', label: 'Caliper piston bore', unit: 'mm', f: 25, r: 25 },
+  { key: 'pistons', label: 'Pistons per side', unit: '-', f: 2, r: 1 },
+  { key: 'padMu', label: 'Pad friction μ', unit: '-', f: 0.45, r: 0.45 },
+  { key: 'rotorOd', label: 'Rotor outer diameter', unit: 'mm', f: 180, r: 180 },
+  { key: 'padDepth', label: 'Pad radial depth', unit: 'mm', f: 27, r: 27 },
+];
+const BRAKE_OUTPUTS = [
+  { key: 'pushrodForce', label: 'Pushrod force = pedal × ratio', unit: 'N' },
+  { key: 'linePressureKpa', label: 'Line pressure', unit: 'kPa' },
+  { key: 'clamp', label: 'Clamp force = P × area × pistons', unit: 'N' },
+  { key: 'friction', label: 'Friction force = clamp × 2 × μ', unit: 'N' },
+  { key: 'effRadius', label: 'Effective radius', unit: 'm' },
+  { key: 'brakeTorque', label: 'Brake torque / wheel', unit: 'N·m' },
+];
+
+const td = 'padding:0.45rem 0.6rem;';
+const th = 'padding:0.5rem 0.6rem;text-align:left;';
+const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
+
+// Tool list for the in-page nav + stub sections.
+const TOOLS = vd.tools;
+---
+<Base title={vd.title} description={vd.blurb}>
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / {vd.title}
+  </nav>
+  <header style="margin-bottom:1.25rem;">
+    <p class="annot annot-tick">Discipline</p>
+    <h1 style="margin-top:0.4rem;">{vd.title}</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{vd.blurb}</p>
+    <div style="margin-top:1rem;">
+      {vd.workbook && <WorkbookDownload file={vd.workbook} />}
+    </div>
+  </header>
+
+  <!-- In-page tool nav -->
+  <nav class="nav" aria-label="Vehicle Dynamics tools" style="gap:0.4rem;margin-bottom:1.25rem;">
+    {TOOLS.map((t) => <a href={`#${t.anchor}`}>{t.title}</a>)}
+  </nav>
+
+  <div class="notice" style="margin-bottom:1.5rem;">
+    <strong>Shared numbers come from Vehicle Spec.</strong> Green fields are read
+    from the Master (edit them in <a href={url('vehicle-spec')}>Vehicle Spec</a>);
+    blue fields are this tool's own inputs and save for the whole team; black
+    fields are computed. Ported from the workbook — see each tool's spec tag.
+  </div>
+  <LegendKey />
+
+  <!-- ===================== BRAKES (full) ===================== -->
+  <section id="brakes" class="card" style="margin-top:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+      <h2>Brakes</h2>
+      <span class="badge">TOOL_SPECS §7b</span>
+    </div>
+    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
+      Pedal → master cylinder → caliper → rotor, then achieved vs Olley-optimum
+      front bias across a deceleration sweep.
+    </p>
+
+    <!-- Linked from Master -->
+    <h3 style="font-size:var(--fs-500);margin-top:1.1rem;">From Master</h3>
+    <div style="overflow-x:auto;">
+      <table style="border-collapse:collapse;font-size:var(--fs-300);margin-top:0.4rem;">
+        <tbody>
+          {BRAKE_LINKED.map((l) => (
+            <tr>
+              <td style={td}>{l.label} <span class="mono" style="color:var(--ink-3);">({l.sym})</span></td>
+              <td style={td + 'text-align:right;'}>
+                <span class="field field-linked mono" data-master={l.mkey} data-seed={seed[l.mkey]}>{seed[l.mkey]}</span>
+              </td>
+              <td style={td} class="mono">{l.unit}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Inputs F/R -->
+    <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Inputs</h3>
+    <div style="overflow-x:auto;">
+      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:520px;margin-top:0.4rem;">
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);">
+          <th style={th} class="annot">Parameter</th>
+          <th style={th + 'text-align:right;'} class="annot">Front</th>
+          <th style={th + 'text-align:right;'} class="annot">Rear</th>
+          <th style={th} class="annot">Unit</th>
+        </tr></thead>
+        <tbody>
+          {BRAKE_INPUTS.map((i) => (
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style={td}>{i.label}</td>
+              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`f_${i.key}`} value={i.f} aria-label={`${i.label} front`} /></td>
+              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`r_${i.key}`} value={i.r} aria-label={`${i.label} rear`} /></td>
+              <td style={td} class="mono">{i.unit}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Outputs F/R -->
+    <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Outputs</h3>
+    <div style="overflow-x:auto;">
+      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:520px;margin-top:0.4rem;">
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);">
+          <th style={th} class="annot">Result</th>
+          <th style={th + 'text-align:right;'} class="annot">Front</th>
+          <th style={th + 'text-align:right;'} class="annot">Rear</th>
+          <th style={th} class="annot">Unit</th>
+        </tr></thead>
+        <tbody>
+          {BRAKE_OUTPUTS.map((o) => (
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style={td}>{o.label}</td>
+              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`f_${o.key}`}>—</span></td>
+              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`r_${o.key}`}>—</span></td>
+              <td style={td} class="mono">{o.unit}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bias summary -->
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));margin-top:1.25rem;">
+      <div class="card" style="background:var(--surface-2);">
+        <span class="annot">Achieved front bias</span>
+        <p class="mono" style="font-size:var(--fs-700);margin-top:0.3rem;"><span data-out="achievedFrontBias">—</span></p>
+      </div>
+      <div class="card" style="background:var(--surface-2);">
+        <span class="annot">Olley optimum (ff + μ·h/L)</span>
+        <p class="mono" style="font-size:var(--fs-700);margin-top:0.3rem;"><span data-out="olleyOptimum">—</span></p>
+      </div>
+    </div>
+
+    <h3 style="font-size:var(--fs-500);margin-top:1.5rem;">Achieved vs optimum bias — deceleration sweep</h3>
+    <div style="margin-top:0.5rem;height:300px;position:relative;"><canvas id="brakes-chart"></canvas></div>
+
+    <!-- ToMaster -->
+    <h3 style="font-size:var(--fs-500);margin-top:1.5rem;">Contribute to Master</h3>
+    <p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.3rem;">
+      Writes front/rear brake-torque target and achieved front bias to the shared
+      store (ToMaster). Governed destinations (Brakes hand-off) are wired with Gates.
+    </p>
+    <button class="btn btn-heritage" type="button" id="brakes-contribute" style="margin-top:0.75rem;">
+      Contribute results to Master
+    </button>
+    <span class="mono" id="brakes-contribute-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+    <p class="mono" id="brakes-save-status" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </section>
+
+  <!-- ===================== OTHER VD TOOLS (building next) ===================== -->
+  {TOOLS.filter((t) => t.anchor !== 'brakes').map((t) => (
+    <section id={t.anchor} class="card" style="margin-top:1.25rem;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+        <h2 style="font-size:var(--fs-600);">{t.title}</h2>
+        <span class="badge">{t.spec}</span>
+      </div>
+      <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">{t.blurb}</p>
+      <p class="annot" style="margin-top:0.8rem;">Calculator — building next</p>
+    </section>
+  ))}
+</Base>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { computeBrakes, type BrakeSide } from '../lib/calc/vd-brakes';
+  import { loadMaster, loadToolState, saveToolState, saveToolOutputs, fmt, debounce } from '../lib/store';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+
+  const TOOL = 'vd_brakes';
+  const saveStatus = document.getElementById('brakes-save-status')!;
+  const linkedSeed: Record<string, number> = {};
+  let masterVals: Record<string, number> = {};
+
+  // Read Front/Rear inputs from the DOM into the compute shape.
+  function readSides(): { front: BrakeSide; rear: BrakeSide } {
+    const front: any = {}, rear: any = {};
+    document.querySelectorAll('[data-in]').forEach((el) => {
+      const input = el as HTMLInputElement;
+      const [col, ...rest] = input.dataset.in!.split('_');
+      const prop = rest.join('_');
+      (col === 'f' ? front : rear)[prop] = Number(input.value);
+    });
+    return { front, rear };
+  }
+
+  function masterVal(mkey: string): number {
+    return masterVals[mkey] ?? linkedSeed[mkey];
+  }
+
+  let chart: Chart | null = null;
+  function renderChart(sweep: { g: number; optimumFrontBias: number }[], achieved: number) {
+    const p = palette();
+    const labels = sweep.map((s) => s.g.toFixed(1));
+    const optimum = sweep.map((s) => +(s.optimumFrontBias).toFixed(4));
+    const achievedLine = sweep.map(() => +achieved.toFixed(4));
+    const data = {
+      labels,
+      datasets: [
+        { label: 'Optimum front bias', data: optimum, borderColor: p.sky, backgroundColor: p.sky, tension: 0.2, pointRadius: 3 },
+        { label: 'Achieved front bias', data: achievedLine, borderColor: p.amber, backgroundColor: p.amber, borderDash: [6, 4], pointRadius: 0 },
+      ],
+    };
+    const opts: any = {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: 'deceleration (g)' } },
+        y: { title: { display: true, text: 'front brake bias' } },
+      },
+      plugins: { legend: { labels: { usePointStyle: true } } },
+    };
+    if (chart) { chart.data = data as any; chart.update(); }
+    else { chart = new Chart(document.getElementById('brakes-chart') as HTMLCanvasElement, { type: 'line', data: data as any, options: opts }); }
+  }
+
+  function recompute() {
+    const { front, rear } = readSides();
+    const res = computeBrakes(front, rear, {
+      ff: masterVal('mass_frac_front'), h: masterVal('cog_height'),
+      L: masterVal('wheelbase'), mu: masterVal('mu_lat_peak'),
+    });
+    const put = (sel: string, v: number) => {
+      const el = document.querySelector(`[data-out="${sel}"]`);
+      if (el) el.textContent = fmt(v, sel.includes('effRadius') ? 4 : 2);
+    };
+    (['pushrodForce', 'linePressureKpa', 'clamp', 'friction', 'effRadius', 'brakeTorque'] as const).forEach((k) => {
+      put(`f_${k}`, (res.front as any)[k]); put(`r_${k}`, (res.rear as any)[k]);
+    });
+    document.querySelector('[data-out="achievedFrontBias"]')!.textContent = fmt(res.achievedFrontBias, 3);
+    document.querySelector('[data-out="olleyOptimum"]')!.textContent = fmt(res.olleyOptimum, 3);
+    renderChart(res.sweep, res.achievedFrontBias);
+    return res;
+  }
+
+  const persist = debounce(async () => {
+    const { front, rear } = readSides();
+    const flat: Record<string, number> = {};
+    for (const [k, v] of Object.entries(front)) flat[`f_${k}`] = v as number;
+    for (const [k, v] of Object.entries(rear)) flat[`r_${k}`] = v as number;
+    saveStatus.textContent = 'Saving…';
+    const err = await saveToolState(TOOL, flat);
+    saveStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    saveStatus.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  (async () => {
+    applyChartDefaults();
+    // seed fallbacks from the rendered linked cells
+    document.querySelectorAll('[data-master]').forEach((el) => {
+      const k = (el as HTMLElement).dataset.master!;
+      linkedSeed[k] = Number((el as HTMLElement).dataset.seed);
+    });
+
+    const master = await loadMaster();
+    if (Object.keys(master).length) {
+      for (const el of document.querySelectorAll('[data-master]')) {
+        const k = (el as HTMLElement).dataset.master!;
+        if (master[k]) { (el as HTMLElement).textContent = fmt(master[k].value as number); masterVals[k] = master[k].value as number; }
+      }
+    }
+
+    // Load shared inputs, apply to the DOM.
+    const defaults: Record<string, number> = {};
+    document.querySelectorAll('[data-in]').forEach((el) => { defaults[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
+    const state = await loadToolState(TOOL, defaults);
+    document.querySelectorAll('[data-in]').forEach((el) => {
+      const input = el as HTMLInputElement;
+      if (state[input.dataset.in!] !== undefined) input.value = String(state[input.dataset.in!]);
+    });
+
+    recompute();
+
+    document.querySelectorAll('[data-in]').forEach((el) => {
+      el.addEventListener('input', () => { recompute(); persist(); });
+    });
+
+    document.getElementById('brakes-contribute')!.addEventListener('click', async () => {
+      const res = recompute();
+      const status = document.getElementById('brakes-contribute-status')!;
+      status.textContent = 'Saving…';
+      const err = await saveToolOutputs(TOOL, [
+        { key: 'brake_torque_front', label: 'Front brake torque / wheel', value: +res.front.brakeTorque.toFixed(2), unit: 'N·m' },
+        { key: 'brake_torque_rear', label: 'Rear brake torque / wheel', value: +res.rear.brakeTorque.toFixed(2), unit: 'N·m' },
+        { key: 'achieved_front_bias', label: 'Achieved front brake bias', value: +res.achievedFrontBias.toFixed(4), unit: '-' },
+      ]);
+      status.textContent = err ? 'Failed: ' + err : 'Contributed ✓';
+      status.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+    });
+
+    watchTheme(() => { applyChartDefaults(); recompute(); });
+  })();
+</script>

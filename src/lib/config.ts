@@ -36,6 +36,8 @@ export interface Discipline {
   tools: Tool[];
   /** Original workbook offered as a download on the discipline page. */
   workbook?: string;
+  /** True once the discipline has its own hand-built page (not the stub route). */
+  built?: boolean;
 }
 
 /** The six landing-page disciplines and their tools (BRIEF §D, TOOL_SPECS). */
@@ -45,6 +47,7 @@ export const DISCIPLINES: Discipline[] = [
     title: 'Vehicle Dynamics',
     blurb: 'Setup, suspension geometry, springs & dampers, loads, steering, brakes.',
     workbook: 'Blitz_Vehicle_Dynamics_WorkingFile.xlsx',
+    built: true,
     tools: [
       { title: 'Setup / kinematics', anchor: 'setup', blurb: 'Kinematic targets + platform values from Master.', spec: 'TOOL_SPECS §7a' },
       { title: 'Suspension geometry & hardpoints', anchor: 'geometry', blurb: 'RC height, VSAL, scrub, KPI, caster; hardpoint table (freeze at G3).', spec: 'TOOL_SPECS §7c' },
