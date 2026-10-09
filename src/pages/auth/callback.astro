@@ -1,0 +1,40 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Signing in" bare>
+  <section style="max-width:420px;margin:12vh auto 0;text-align:center;">
+    <p class="annot annot-tick" style="justify-content:center;">Authenticating</p>
+    <h1 style="margin-top:0.6rem;font-size:var(--fs-700);">Signing you in…</h1>
+    <p id="cb-msg" role="status" aria-live="polite"
+       style="color:var(--ink-2);margin-top:0.6rem;">One moment.</p>
+  </section>
+</Base>
+
+<script>
+  import { supabase, siteUrl } from '../../lib/supabase';
+
+  const msg = document.getElementById('cb-msg') as HTMLParagraphElement;
+
+  // detectSessionInUrl (set on the client) consumes the token in the URL and
+  // establishes the session; we just wait for it, then route onward.
+  async function finish() {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      msg.style.color = 'var(--heritage)';
+      msg.textContent = error.message;
+      return;
+    }
+    if (data.session) {
+      window.location.replace(siteUrl(''));
+    } else {
+      // No session resolved — link expired or already used.
+      msg.innerHTML = 'That link did not sign you in. <a href="' + siteUrl('login') + '">Try again</a>.';
+    }
+  }
+
+  // Give the client a tick to process the URL hash, then confirm.
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_IN') window.location.replace(siteUrl(''));
+  });
+  setTimeout(finish, 600);
+</script>

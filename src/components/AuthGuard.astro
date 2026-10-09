@@ -1,0 +1,39 @@
+---
+// Client-side auth gate. Honest limitation (BRIEF): a static site cannot truly
+// hide static HTML from someone who fetches it directly — this redirects the
+// UI to /login when there's no session, and the REAL protection is row-level
+// security on the Supabase data (no session ⇒ the tables return nothing).
+// It also reveals the masthead's signed-in status and wires Sign out.
+---
+<script>
+  import { supabase, siteUrl } from '../lib/supabase';
+
+  const statusEl = document.querySelector('[data-auth-status]') as HTMLElement | null;
+  const emailEl = document.querySelector('[data-auth-email]') as HTMLElement | null;
+  const signOutBtn = document.querySelector('[data-sign-out]') as HTMLButtonElement | null;
+
+  function toLogin() {
+    const here = window.location.pathname;
+    if (!here.endsWith('/login') && !here.endsWith('/login/')) {
+      window.location.replace(siteUrl('login'));
+    }
+  }
+
+  function reflect(session: import('@supabase/supabase-js').Session | null) {
+    if (session) {
+      if (statusEl) statusEl.hidden = false;
+      if (emailEl) emailEl.textContent = session.user.email ?? '';
+    } else {
+      if (statusEl) statusEl.hidden = true;
+      toLogin();
+    }
+  }
+
+  supabase.auth.getSession().then(({ data }) => reflect(data.session));
+  supabase.auth.onAuthStateChange((_e, session) => reflect(session));
+
+  signOutBtn?.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.replace(siteUrl('login'));
+  });
+</script>

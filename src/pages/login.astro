@@ -1,0 +1,77 @@
+---
+import Base from '../layouts/Base.astro';
+import logo from '../assets/Logo_Gradient v_MIST BLITZ 300x.png';
+import { SITE } from '../lib/config';
+---
+<Base title="Sign in" bare>
+  <section style="max-width:420px;margin:6vh auto 0;text-align:center;">
+    <img src={logo.src} width="72" height="72" alt="" style="margin:0 auto;" />
+    <p class="annot annot-tick" style="justify-content:center;margin-top:1rem;">Members only</p>
+    <h1 style="margin-top:0.5rem;">{SITE.name}</h1>
+    <p style="color:var(--ink-2);margin:0.4rem auto 0;">
+      {SITE.tagline}. Sign in with your team email — we'll send a one-time link.
+    </p>
+
+    <form id="login-form" class="card" style="margin-top:1.75rem;text-align:left;" novalidate>
+      <label for="email" class="annot">Team email</label>
+      <input
+        id="email" name="email" type="email" required autocomplete="email"
+        placeholder="you@example.com"
+        style="width:100%;margin-top:0.4rem;padding:0.65rem 0.75rem;background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);"
+      />
+      <button class="btn btn-halftone" type="submit" style="width:100%;margin-top:1rem;" data-submit>
+        Send magic link
+      </button>
+      <p id="login-msg" role="status" aria-live="polite"
+         style="margin-top:0.9rem;font-size:var(--fs-300);color:var(--ink-2);min-height:1.4em;"></p>
+    </form>
+
+    <p class="mono" style="margin-top:1rem;font-size:var(--fs-200);color:var(--ink-3);">
+      Invite-only. No account? Ask an admin to add you.
+    </p>
+  </section>
+</Base>
+
+<script>
+  import { supabase, siteUrl } from '../lib/supabase';
+
+  const form = document.getElementById('login-form') as HTMLFormElement;
+  const email = document.getElementById('email') as HTMLInputElement;
+  const msg = document.getElementById('login-msg') as HTMLParagraphElement;
+  const btn = form.querySelector('[data-submit]') as HTMLButtonElement;
+
+  // Already signed in? Skip straight to the workspace.
+  supabase.auth.getSession().then(({ data }) => {
+    if (data.session) window.location.replace(siteUrl(''));
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!email.value || !email.checkValidity()) {
+      msg.textContent = 'Enter a valid email address.';
+      return;
+    }
+    btn.disabled = true;
+    msg.style.color = 'var(--ink-2)';
+    msg.textContent = 'Sending…';
+
+    // Invite-only: shouldCreateUser:false means an un-invited email gets no
+    // account (and no link), so sign-up stays closed from the client too.
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.value.trim(),
+      options: {
+        emailRedirectTo: siteUrl('auth/callback'),
+        shouldCreateUser: false,
+      },
+    });
+
+    if (error) {
+      msg.style.color = 'var(--heritage)';
+      msg.textContent = error.message || 'Could not send the link. Ask an admin if you are invited.';
+      btn.disabled = false;
+    } else {
+      msg.style.color = 'var(--state-linked)';
+      msg.textContent = 'Check your email for the sign-in link.';
+    }
+  });
+</script>

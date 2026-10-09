@@ -3,6 +3,7 @@ import '../styles/tokens.css';
 import '../styles/base.css';
 import '../styles/components.css';
 import Masthead from '../components/Masthead.astro';
+import AuthGuard from '../components/AuthGuard.astro';
 import { SITE, url } from '../lib/config';
 import logo from '../assets/Logo_Gradient v_MIST BLITZ 300x.png';
 
@@ -50,6 +51,7 @@ const year = new Date().getFullYear();
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     {!bare && <Masthead pathname={Astro.url.pathname} />}
+    {!bare && <AuthGuard />}
     <main id="main" class="container" style="padding-block: 2rem;">
       <slot />
     </main>
