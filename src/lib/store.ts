@@ -120,6 +120,43 @@ export async function saveToolOutputs(tool: string, outputs: ToolOutput[]): Prom
   return error ? error.message : null;
 }
 
+// ---- Tyre results library (BRIEF §E4) --------------------------------------
+export interface TyreResult {
+  id: string;
+  tyre_label: string; run: string | null; scope: string | null;
+  r_squared: number | null; rms: number | null; lmux: number | null; lmuy: number | null;
+  tir_link: string | null; plot_path: string | null; notes: string | null;
+  author: string | null; author_email: string | null; created_at: string;
+}
+
+export async function loadTyreResults(): Promise<TyreResult[]> {
+  const { data, error } = await supabase
+    .from('tyre_results').select('*').order('created_at', { ascending: false });
+  return error || !data ? [] : (data as TyreResult[]);
+}
+
+export async function addTyreResult(rec: Partial<TyreResult>): Promise<string | null> {
+  const { data: u } = await supabase.auth.getUser();
+  const { error } = await supabase.from('tyre_results').insert({
+    ...rec, author: u.user?.id ?? null, author_email: u.user?.email ?? null,
+  });
+  return error ? error.message : null;
+}
+
+/** Upload a fit plot to the private `tyre` bucket; returns its object path. */
+export async function uploadTyrePlot(file: File): Promise<{ path: string | null; error: string | null }> {
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `plots/${crypto.randomUUID()}-${safe}`;
+  const { error } = await supabase.storage.from('tyre').upload(path, file, { upsert: false });
+  return { path: error ? null : path, error: error ? error.message : null };
+}
+
+/** Short-lived signed URL for a private object. */
+export async function signedUrl(bucket: string, path: string, seconds = 300): Promise<string | null> {
+  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, seconds);
+  return data?.signedUrl ?? null;
+}
+
 /** Format a number for display: trim noise, keep sensible precision. */
 export function fmt(v: number | null | undefined, digits = 3): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—';

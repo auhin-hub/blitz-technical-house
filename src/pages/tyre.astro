@@ -1,17 +1,179 @@
 ---
 import Base from '../layouts/Base.astro';
+import WorkbookDownload from '../components/WorkbookDownload.astro';
+
+const td = 'padding:0.45rem 0.6rem;';
+const th = 'padding:0.5rem 0.6rem;';
+const fieldCss = 'width:100%;margin-top:0.3rem;padding:0.5rem 0.6rem;background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);font-family:var(--font-mono);font-size:var(--fs-300);';
+// Fit-result fields rendered in the add form.
+const FIELDS = [
+  { key: 'tyre_label', label: 'Tyre (anonymised)', ph: 'Tyre A / 20.5×7-13', req: true, type: 'text' },
+  { key: 'run', label: 'Run', ph: 'R8-xx', type: 'text' },
+  { key: 'scope', label: 'Scope', ph: 'Fy pure / combined', type: 'text' },
+  { key: 'r_squared', label: 'R²', ph: '0.98', type: 'number' },
+  { key: 'rms', label: 'RMS', ph: '', type: 'number' },
+  { key: 'lmux', label: 'LMUX', ph: 'if stamped', type: 'number' },
+  { key: 'lmuy', label: 'LMUY', ph: 'if stamped', type: 'number' },
+  { key: 'tir_link', label: '.tir link', ph: 'private link — not raw coeffs in repo', type: 'url' },
+];
+const R8_COLS = ['Run', 'Tyre (anon)', 'Size', 'Rim width', 'Test', 'Notes'];
 ---
 <Base title="Tyre">
   <p class="annot annot-tick">Cross-cutting</p>
   <h1 style="margin-top:0.4rem;">Tyre</h1>
-  <p style="color:var(--ink-2);margin-top:0.5rem;">
-    Download the MATLAB tyre toolset, browse shared fit results, and read the
-    Round 8 run table. Built in a later step (BRIEF §E4).
+  <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">
+    Download the MATLAB tyre toolset, share and browse fit results, and keep the
+    Round 8 run reference in one place.
   </p>
-  <div class="notice notice-heritage" style="margin-top:1.5rem;">
-    <strong>Grip caveat stays visible here.</strong> TTC belt-surface grip is not
-    track grip — shared results carry that reminder and are anonymised. The
-    toolset download sits behind login in private Supabase storage (not a public
-    release, not committed to the repo) — licence, BRIEF §G.
+
+  <!-- Grip + licence caveat — stays visible wherever tyre results appear. -->
+  <div class="notice notice-heritage" style="margin:1.25rem 0;">
+    <strong>Belt-to-track grip caveat.</strong> TTC rig grip is measured on a belt
+    surface, not the competition track — treat μ as <em>comparative</em>, not
+    absolute. Anonymise tyres (size class or “Tyre A/B/C”), share summary numbers
+    and plots (never full coefficient dumps), cite the TTC and acknowledge Calspan
+    for any external use. Uploaded files live in private storage behind login.
   </div>
+
+  <!-- Toolset download (private bucket, signed URL) -->
+  <section class="card">
+    <h2 style="font-size:var(--fs-600);">MATLAB tyre toolset</h2>
+    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
+      Members run the fit in their own MATLAB/Octave. The archive is served behind
+      login from private storage — not committed to the repo, not a public release.
+    </p>
+    <div style="margin-top:0.9rem;">
+      <WorkbookDownload bucket="tyre" file="TTC_Tyre_Tool.rar" label="Download tyre toolset" />
+    </div>
+  </section>
+
+  <!-- Results library -->
+  <section class="card" style="margin-top:1.25rem;">
+    <h2 style="font-size:var(--fs-700);">Results library</h2>
+    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
+      Share a fit: anonymised tyre, run, scope, R²/RMS, LMUX/LMUY if stamped, a
+      link to the .tir, and a plot image. Others browse them below.
+    </p>
+
+    <details style="margin-top:1rem;">
+      <summary style="cursor:pointer;font-family:var(--font-mono);font-size:var(--fs-300);color:var(--sky);">+ Add a fit result</summary>
+      <form id="tyre-form" style="margin-top:0.9rem;max-width:720px;">
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:0.75rem;">
+          {FIELDS.map((f) => (
+            <label style="font-size:var(--fs-300);color:var(--ink-2);">
+              {f.label}{f.req && <span style="color:var(--heritage);"> *</span>}
+              <input name={f.key} type={f.type as any} step="any" placeholder={f.ph} required={f.req} style={fieldCss} />
+            </label>
+          ))}
+        </div>
+        <label style="display:block;margin-top:0.75rem;font-size:var(--fs-300);color:var(--ink-2);">Notes
+          <textarea name="notes" rows="2" style={fieldCss}></textarea>
+        </label>
+        <label style="display:block;margin-top:0.75rem;font-size:var(--fs-300);color:var(--ink-2);">Plot image (optional, ≤10 MB)
+          <input name="plot" type="file" accept="image/*" style={fieldCss + 'font-family:var(--font-body);'} />
+        </label>
+        <button class="btn btn-halftone" type="submit" style="margin-top:1rem;">Share result</button>
+        <span class="mono" id="tyre-form-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+      </form>
+    </details>
+
+    <div id="tyre-results" style="margin-top:1.5rem;"><p class="mono" style="color:var(--ink-3);">Sign in to load shared results.</p></div>
+  </section>
+
+  <!-- Round 8 reference -->
+  <section class="card" style="margin-top:1.25rem;">
+    <h2 style="font-size:var(--fs-600);">Round 8 run reference</h2>
+    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
+      The TTC Round 8 run matrix (Calspan TIRF). Populate from the TTC
+      documentation — runs are kept anonymised here; raw data stays with cleared members.
+    </p>
+    <div style="overflow-x:auto;margin-top:0.8rem;">
+      <table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);min-width:560px;">
+        <thead><tr style="text-align:left;border-bottom:1px solid var(--rule-strong);">
+          {R8_COLS.map((c) => <th style={th} class="annot">{c}</th>)}
+        </tr></thead>
+        <tbody>
+          <tr><td style={td} colspan={R8_COLS.length}><span class="mono" style="color:var(--ink-3);">No runs recorded yet — add from the TTC Round 8 matrix.</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </Base>
+
+<script>
+  import { loadTyreResults, addTyreResult, uploadTyrePlot, signedUrl, fmt, type TyreResult } from '../lib/store';
+
+  const listEl = document.getElementById('tyre-results')!;
+  const form = document.getElementById('tyre-form') as HTMLFormElement | null;
+  const status = document.getElementById('tyre-form-status');
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+  async function card(r: TyreResult): Promise<string> {
+    let plot = '';
+    if (r.plot_path) {
+      const u = await signedUrl('tyre', r.plot_path);
+      if (u) plot = `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="fit plot" loading="lazy" style="margin-top:0.6rem;max-height:200px;border:1px solid var(--rule);border-radius:var(--radius);"></a>`;
+    }
+    const stat = (label: string, v: number | null) => v === null || v === undefined ? '' : `<span class="badge">${label} ${fmt(v, 3)}</span>`;
+    return `<article class="card" style="background:var(--surface-2);">
+      <div style="display:flex;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;align-items:baseline;">
+        <h3 style="font-size:var(--fs-500);">${esc(r.tyre_label)}</h3>
+        <span class="mono" style="font-size:var(--fs-200);color:var(--ink-3);">${r.author_email ? esc(r.author_email) + ' · ' : ''}${new Date(r.created_at).toLocaleDateString()}</span>
+      </div>
+      <p class="mono" style="font-size:var(--fs-200);color:var(--ink-3);margin-top:0.2rem;">${esc(r.run ?? '')} ${r.scope ? '· ' + esc(r.scope) : ''}</p>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.6rem;">
+        ${stat('R²', r.r_squared)}${stat('RMS', r.rms)}${stat('LMUX', r.lmux)}${stat('LMUY', r.lmuy)}
+      </div>
+      ${r.tir_link ? `<p style="margin-top:0.6rem;font-size:var(--fs-300);"><a href="${esc(r.tir_link)}" target="_blank" rel="noopener">.tir link ↗</a></p>` : ''}
+      ${r.notes ? `<p style="margin-top:0.4rem;font-size:var(--fs-300);color:var(--ink-2);">${esc(r.notes)}</p>` : ''}
+      ${plot}
+    </article>`;
+  }
+
+  async function render() {
+    const rows = await loadTyreResults();
+    if (!rows.length) { listEl.innerHTML = '<p class="mono" style="color:var(--ink-3);">No results shared yet — add the first above.</p>'; return; }
+    const cards = await Promise.all(rows.map(card));
+    listEl.innerHTML = `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));">${cards.join('')}</div>`;
+  }
+
+  function num(v: FormDataEntryValue | null): number | null {
+    const s = (v ?? '').toString().trim();
+    if (s === '') return null;
+    const n = Number(s); return Number.isFinite(n) ? n : null;
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const label = (fd.get('tyre_label') ?? '').toString().trim();
+    if (!label) { if (status) status.textContent = 'Tyre label is required.'; return; }
+    if (status) { status.textContent = 'Uploading…'; status.style.color = 'var(--ink-3)'; }
+
+    let plotPath: string | null = null;
+    const plot = fd.get('plot') as File | null;
+    if (plot && plot.size > 0) {
+      if (plot.size > 10 * 1024 * 1024) { if (status) { status.textContent = 'Plot exceeds 10 MB.'; status.style.color = 'var(--heritage)'; } return; }
+      const up = await uploadTyrePlot(plot);
+      if (up.error) { if (status) { status.textContent = 'Plot upload failed: ' + up.error; status.style.color = 'var(--heritage)'; } return; }
+      plotPath = up.path;
+    }
+
+    const err = await addTyreResult({
+      tyre_label: label,
+      run: (fd.get('run') ?? '').toString() || null,
+      scope: (fd.get('scope') ?? '').toString() || null,
+      r_squared: num(fd.get('r_squared')), rms: num(fd.get('rms')),
+      lmux: num(fd.get('lmux')), lmuy: num(fd.get('lmuy')),
+      tir_link: (fd.get('tir_link') ?? '').toString() || null,
+      notes: (fd.get('notes') ?? '').toString() || null,
+      plot_path: plotPath,
+    });
+    if (err) { if (status) { status.textContent = 'Save failed: ' + err; status.style.color = 'var(--heritage)'; } return; }
+    if (status) { status.textContent = 'Shared ✓'; status.style.color = 'var(--state-linked)'; }
+    form.reset();
+    render();
+  });
+
+  render();
+</script>
