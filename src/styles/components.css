@@ -1,0 +1,243 @@
+/* ============================================================================
+   Components — halftone button, engineering-annotation kit, cards, nav,
+   field-state legend. The reusable UI language of the workspace (BRIEF §H).
+   ========================================================================== */
+
+/* ---- Buttons ------------------------------------------------------------- */
+.btn {
+  --_fg: var(--ink);
+  --_bg: var(--surface);
+  --_bd: var(--rule-strong);
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 0.5em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-300);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 0.6em 1.1em;
+  color: var(--_fg);
+  background: var(--_bg);
+  border: 1px solid var(--_bd);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease),
+              box-shadow var(--dur) var(--ease),
+              background var(--dur) var(--ease);
+}
+.btn:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Halftone button — the signature CTA. Amber fill under a fine halftone dot
+   screen; the dots lift slightly on hover (ink-blot press feel). */
+.btn-halftone {
+  --_fg: #1A1205;
+  position: relative;
+  overflow: hidden;
+  color: var(--_fg);
+  background: var(--amber);
+  border-color: var(--amber-deep);
+  font-weight: 600;
+}
+.btn-halftone::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(26, 18, 5, 0.22) 1.1px, transparent 1.2px);
+  background-size: 6px 6px;
+  background-position: 0 0;
+  opacity: 0.6;
+  transition: background-position var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+.btn-halftone:hover::before { background-position: 3px 3px; opacity: 0.85; }
+.btn-halftone:hover { box-shadow: var(--shadow-lg); }
+
+/* Heritage (maroon) variant — Blitz-identity actions (sign-off, home). */
+.btn-heritage {
+  --_fg: #fff;
+  background: var(--heritage);
+  border-color: var(--heritage);
+  color: #fff;
+}
+.btn-ghost { background: transparent; border-color: var(--rule); }
+
+/* ---- Cards --------------------------------------------------------------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+}
+.card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+              border-color var(--dur) var(--ease);
+}
+.card-link:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--rule-strong);
+}
+.card-link:hover h3 { color: var(--amber-text); }
+
+/* ---- Engineering-annotation kit ------------------------------------------
+   Draughting marks used as labels/eyebrows across the workspace. Decorative
+   but legible; never carries meaning that colour alone conveys. */
+.annot {
+  font-family: var(--font-mono);
+  font-size: var(--fs-200);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sky);
+}
+/* Eyebrow with a leading dimension tick: |—— LABEL */
+.annot-tick {
+  display: inline-flex; align-items: center; gap: 0.55em;
+}
+.annot-tick::before {
+  content: '';
+  width: 22px; height: 1px;
+  background: currentColor;
+  box-shadow: 0 -3px 0 -2px currentColor, 0 3px 0 -2px currentColor; /* end ticks */
+}
+/* Corner registration ticks on a framed element. */
+.annot-frame { position: relative; }
+.annot-frame::before, .annot-frame::after {
+  content: ''; position: absolute; width: 9px; height: 9px;
+  border: 1px solid var(--sky); pointer-events: none;
+}
+.annot-frame::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.annot-frame::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+/* A measured dimension line with a centred label. */
+.annot-dim {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-family: var(--font-mono); font-size: var(--fs-200);
+  color: var(--ink-3); letter-spacing: 0.08em;
+}
+.annot-dim::before, .annot-dim::after {
+  content: ''; height: 1px; background: var(--rule-strong); flex: 1;
+}
+
+/* ---- Field-state legend (workbook colour legend → web) -------------------
+   blue = member-typed input · green = linked from Master · black = computed.
+   Chips for the key; field classes for inputs/outputs in the calculators. */
+.legend { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; }
+.legend-chip {
+  display: inline-flex; align-items: center; gap: 0.5em;
+  font-size: var(--fs-300); color: var(--ink-2);
+}
+.legend-chip .swatch {
+  width: 0.9em; height: 0.9em; border-radius: 3px; border: 1px solid;
+  flex: none;
+}
+.swatch-input    { background: var(--state-input-fill);    border-color: var(--state-input); }
+.swatch-linked   { background: var(--state-linked-fill);   border-color: var(--state-linked); }
+.swatch-computed { background: var(--state-computed-fill);  border-color: var(--state-computed); }
+
+/* Field states — applied to the actual value cells/inputs later. */
+.field { border-radius: var(--radius-sm); padding: 0.15em 0.45em; }
+.field-input {
+  color: var(--state-input); background: var(--state-input-fill);
+  border: 1px solid var(--state-input);
+}
+.field-linked {
+  color: var(--state-linked); background: var(--state-linked-fill);
+  border: 1px solid color-mix(in srgb, var(--state-linked) 45%, transparent);
+}
+.field-computed {
+  color: var(--state-computed); background: var(--state-computed-fill);
+  border: 1px solid var(--rule);
+}
+
+/* ---- Badges / pills ------------------------------------------------------ */
+.badge {
+  display: inline-flex; align-items: center; gap: 0.4em;
+  font-family: var(--font-mono); font-size: var(--fs-200);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 0.25em 0.6em; border-radius: 999px;
+  border: 1px solid var(--rule-strong); color: var(--ink-2);
+  background: var(--surface-2);
+}
+.badge-frozen { color: var(--sky); border-color: var(--sky); }
+.badge-live   { color: var(--state-linked); border-color: var(--state-linked); }
+.badge-est    { color: var(--amber-text); border-color: var(--amber-deep); }
+
+/* ---- Masthead / navigation ----------------------------------------------- */
+.masthead {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: saturate(140%) blur(8px);
+  border-bottom: 1px solid var(--rule);
+}
+.masthead-inner {
+  display: flex; align-items: center; gap: 1rem;
+  min-height: 60px; padding-block: 0.5rem;
+}
+.brand {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  text-decoration: none; color: var(--ink); flex: none;
+}
+.brand img { width: 30px; height: 30px; object-fit: contain; }
+.brand .wordmark {
+  font-family: var(--font-mono); font-weight: 600;
+  font-size: var(--fs-300); letter-spacing: 0.06em; text-transform: uppercase;
+  line-height: 1.05;
+}
+.brand .wordmark small { display: block; color: var(--ink-3); letter-spacing: 0.12em; }
+
+.nav { display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
+.nav a {
+  font-family: var(--font-mono); font-size: var(--fs-300);
+  letter-spacing: 0.03em; text-decoration: none; color: var(--ink-2);
+  padding: 0.4em 0.65em; border-radius: var(--radius);
+}
+.nav a:hover { color: var(--ink); background: var(--surface-2); }
+.nav a[aria-current='page'] {
+  color: var(--ink); background: var(--surface-2);
+  box-shadow: inset 0 -2px 0 var(--amber);
+}
+.nav-spacer { flex: 1 1 auto; }
+
+/* Theme toggle button. */
+.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; flex: none;
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--surface); color: var(--ink-2); cursor: pointer;
+}
+.theme-toggle:hover { color: var(--ink); background: var(--surface-2); }
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+:root[data-theme='dark'] .theme-toggle .icon-sun { display: block; }
+:root[data-theme='dark'] .theme-toggle .icon-moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .theme-toggle .icon-sun { display: block; }
+  :root:not([data-theme='light']) .theme-toggle .icon-moon { display: none; }
+}
+
+/* ---- Grids --------------------------------------------------------------- */
+.grid {
+  display: grid; gap: 1.1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+/* ---- Footer -------------------------------------------------------------- */
+.site-footer {
+  margin-top: 3.5rem; padding-block: 2rem;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-3); font-size: var(--fs-300);
+}
+.site-footer .mono { color: var(--ink-3); }
+
+/* ---- Notice / caveat strip (honest labels, e.g. grip caveat later) ------- */
+.notice {
+  border: 1px solid var(--rule); border-left: 3px solid var(--amber);
+  background: var(--surface-2); border-radius: var(--radius);
+  padding: 0.8rem 1rem; font-size: var(--fs-300); color: var(--ink-2);
+}
+.notice-heritage { border-left-color: var(--heritage); }
