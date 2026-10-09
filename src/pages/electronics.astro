@@ -55,11 +55,32 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
       <span class="badge">TOOL_SPECS §4b</span>
     </div>
     <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
-      One row per wire (source → destination, connector, pins, colour). This is a
-      shared editable data grid — a focused build after the calculators. The DIN
-      colour code guide (bl = black, br = brown, bu = blue, rd = red, …) ships with it.
+      One row per wire. Shared across the team and saved as you type.
     </p>
-    <p class="annot" style="margin-top:0.8rem;">Editable grid — building next</p>
+    <div style="overflow-x:auto;margin-top:0.8rem;">
+      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:820px;" id="wiring-table">
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+          <th style="padding:0.4rem 0.5rem;" class="annot">#</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Src comp</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Source name</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Connector</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Pins</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Dst comp</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Destination name</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Pin #</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Colour</th>
+          <th style="padding:0.4rem 0.5rem;"></th>
+        </tr></thead>
+        <tbody id="wiring-body"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:0.6rem;align-items:center;margin-top:0.8rem;">
+      <button class="btn btn-ghost" type="button" id="wiring-add">+ Add wire</button>
+      <span class="mono" id="wiring-status" style="font-size:var(--fs-200);color:var(--ink-3);"></span>
+    </div>
+    <p class="mono" style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);">
+      Colour code (DIN): bl black · br brown · bu blue · gn green · rd red · ws white · ye yellow · gy grey · og orange · vt violet · pk pink
+    </p>
   </section>
 
   <!-- DAQ / Telemetry: custom channel table -->
@@ -120,6 +141,44 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
   import { mountCalculator } from '../lib/calc/engine';
   import { powerCompute, LOADS } from '../lib/calc/elec-power';
   import { daqCompute, DAQ_CHANNELS } from '../lib/calc/daq';
+  import { loadToolJson, saveToolJson, debounce } from '../lib/store';
+
+  // ---- Wiring / harness grid (shared editable rows) ----
+  type Wire = { srcComp: string; srcName: string; connector: string; pins: string; dstComp: string; dstName: string; pin: string; colour: string };
+  const WIRE_COLS: (keyof Wire)[] = ['srcComp', 'srcName', 'connector', 'pins', 'dstComp', 'dstName', 'pin', 'colour'];
+  const emptyWire = (): Wire => ({ srcComp: '', srcName: '', connector: '', pins: '', dstComp: '', dstName: '', pin: '', colour: '' });
+  const body = document.getElementById('wiring-body')!;
+  const wStatus = document.getElementById('wiring-status')!;
+  let wires: Wire[] = [];
+
+  const saveWires = debounce(async () => {
+    wStatus.textContent = 'Saving…';
+    const err = await saveToolJson('elec_wiring', { rows: wires });
+    wStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    wStatus.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  function renderWires() {
+    body.innerHTML = wires.map((w, i) => `
+      <tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.3rem 0.4rem;" class="mono">${i + 1}</td>
+        ${WIRE_COLS.map((c) => `<td style="padding:0.3rem 0.4rem;"><input data-i="${i}" data-c="${c}" value="${(w[c] ?? '').replace(/"/g, '&quot;')}" style="width:100px;background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;font-family:var(--font-mono);font-size:var(--fs-200);"></td>`).join('')}
+        <td style="padding:0.3rem 0.4rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-200);padding:0.2rem 0.5rem;">✕</button></td>
+      </tr>`).join('');
+    body.querySelectorAll<HTMLInputElement>('input[data-i]').forEach((inp) =>
+      inp.addEventListener('input', () => { (wires[+inp.dataset.i!] as any)[inp.dataset.c!] = inp.value; saveWires(); }));
+    body.querySelectorAll<HTMLButtonElement>('[data-del]').forEach((b) =>
+      b.addEventListener('click', () => { wires.splice(+b.dataset.del!, 1); renderWires(); saveWires(); }));
+  }
+
+  document.getElementById('wiring-add')!.addEventListener('click', () => { wires.push(emptyWire()); renderWires(); saveWires(); });
+
+  (async () => {
+    const data = await loadToolJson<{ rows: Wire[] }>('elec_wiring', { rows: [] });
+    wires = Array.isArray(data.rows) ? data.rows : [];
+    if (wires.length === 0) wires = [emptyWire()];
+    renderWires();
+  })();
 
   const noOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } } };
 
