@@ -12,7 +12,7 @@ Project URL: `https://sfunpylcbaorbmgvlxpz.supabase.co`
 Dashboard → **SQL Editor** → **New query** → paste and **Run** each migration in
 order: `0001_master_store.sql`, `0002_storage_workbooks.sql`,
 `0003_tool_state.sql`, `0004_freeze_and_log.sql`, `0005_tyre_storage.sql`,
-`0006_resources.sql`.
+`0006_resources.sql`, `0007_vehicle_spec_blank.sql`.
 
 - `0001` creates `vehicle_spec`, `change_log`, `gates`, `tyre_results`, turns on
   RLS for all four, adds member-only policies, and seeds the 14 TOOL_SPECS §0
@@ -31,6 +31,9 @@ order: `0001_master_store.sql`, `0002_storage_workbooks.sql`,
 - `0006` creates `resource_folders` + `resources` (docs organised by system;
   entries are an uploaded file or a space-saving link) and the private
   `resources` bucket, and seeds one folder per discipline.
+- `0007` **resets Vehicle Spec to the full blank parameter set** (MASTER_BUILD_PLAN
+  §0/§4) — ~25 params, names/units/source only, no values. ⚠️ One-time: it clears
+  any values currently in `vehicle_spec` (the team enters the new car in-app).
 
 Verify: **Table editor → vehicle_spec** shows 14 rows; **gates** shows 10;
 **Storage** lists a `workbooks` bucket marked *private*.

@@ -1,0 +1,78 @@
+---
+/**
+ * VD Workspace stage flowchart (MASTER_BUILD_PLAN §5, handbook Part I). Nine
+ * stage nodes left-to-right with arrows; each is also a card (prerequisites ·
+ * tool · produces · feeds · gate · guidance). Status chips come from the gates
+ * table. Clicking a node shows its card; "Open tool" reveals the tool in the
+ * cockpit below (same page) or links to its page.
+ */
+import { VD_STAGES, url } from '../lib/config';
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+<section aria-label="VD design sequence">
+  <div class="vd-flow" role="tablist">
+    {VD_STAGES.map((s) => (
+      <button class="vd-node" type="button" data-stage={s.n} aria-current={s.n === 1 ? 'true' : 'false'}>
+        <span class="n">{pad(s.n)} · <span class="gate">{s.gate}</span></span>
+        <span class="nm">{s.name}</span>
+        <span class="vd-status" data-gate={s.gate}>not started</span>
+      </button>
+    ))}
+  </div>
+
+  {VD_STAGES.map((s) => (
+    <div class="vd-detail" data-detail={s.n} hidden={s.n !== 1}>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+        <h3>{pad(s.n)}. {s.name}</h3>
+        <span class="badge">Gate {s.gate}</span>
+      </div>
+      <p class="ct-sub">{s.guidance}</p>
+      <div class="grid-kv">
+        <div><span class="k">Prerequisites</span><div>{s.prerequisites}</div></div>
+        <div><span class="k">Tool</span><div>{s.tool}{s.pending ? ' — building in a later step' : ''}</div></div>
+        <div><span class="k">Produces → Master</span><div>{s.produces}</div></div>
+        <div><span class="k">Feeds</span><div>{s.feeds}</div></div>
+      </div>
+      {!s.pending && (s.toolId
+        ? <button class="btn btn-halftone" type="button" data-open-tool={s.toolId} style="margin-top:0.8rem;">Open {s.tool} ↓</button>
+        : s.href && <a class="btn btn-halftone" href={url(s.href)} style="margin-top:0.8rem;">Open {s.tool} ↗</a>)}
+    </div>
+  ))}
+</section>
+
+<script>
+  import { loadGates } from '../lib/store';
+
+  const nodes = Array.from(document.querySelectorAll<HTMLButtonElement>('.vd-node'));
+  const details = Array.from(document.querySelectorAll<HTMLElement>('[data-detail]'));
+
+  function showStage(n: string) {
+    details.forEach((d) => { d.hidden = d.dataset.detail !== n; });
+    nodes.forEach((b) => b.setAttribute('aria-current', b.dataset.stage === n ? 'true' : 'false'));
+  }
+  nodes.forEach((b) => b.addEventListener('click', () => showStage(b.dataset.stage!)));
+
+  // "Open tool" → reveal the tool in the cockpit rail below and scroll to it.
+  document.querySelectorAll<HTMLButtonElement>('[data-open-tool]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.openTool!;
+      const railBtn = document.querySelector<HTMLButtonElement>(`.cockpit-toolbtn[data-tool="${id}"]`);
+      railBtn?.click();
+      document.querySelector('.cockpit-shell')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Status chips from the gates table.
+  (async () => {
+    const gates = await loadGates();
+    if (!gates.length) return;
+    const byId: Record<string, string> = {};
+    for (const g of gates) byId[g.id] = g.status;
+    document.querySelectorAll<HTMLElement>('.vd-status').forEach((el) => {
+      const st = byId[el.dataset.gate!];
+      if (st === 'signed_off') { el.textContent = 'signed off ✓'; el.classList.add('s-done'); }
+      else if (st === 'in_review') { el.textContent = 'in progress'; el.classList.add('s-review'); }
+      else { el.textContent = 'not started'; }
+    });
+  })();
+</script>

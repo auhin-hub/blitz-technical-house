@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
+import CockpitShell from '../components/CockpitShell.astro';
 import { url, DISCIPLINES } from '../lib/config';
 import { PARAM_SEED } from '../lib/master';
 
@@ -35,6 +36,8 @@ const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
   </div>
   <LegendKey />
 
+  <div style="margin-top:1.25rem;"></div>
+  <CockpitShell tools={[{ id: 'aero', title: 'Downforce / drag vs speed' }]} railLabel="Aerodynamics">
   <section id="aero" class="card" style="margin-top:1.5rem;">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
       <h2 style="font-size:var(--fs-700);">Downforce / drag vs speed</h2>
@@ -101,6 +104,7 @@ const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
     <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
     <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
   </section>
+  </CockpitShell>
 </Base>
 
 <script>

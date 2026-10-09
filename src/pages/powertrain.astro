@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
+import CockpitShell from '../components/CockpitShell.astro';
 import { url, DISCIPLINES } from '../lib/config';
 import { PARAM_SEED } from '../lib/master';
 
@@ -41,16 +42,14 @@ const OUTPUTS = [
     <div style="margin-top:1rem;">{pt.workbook && <WorkbookDownload file={pt.workbook} />}</div>
   </header>
 
-  <nav class="nav" aria-label="Powertrain tools" style="gap:0.4rem;margin-bottom:1.25rem;">
-    <a href="#traction">Drivetrain & traction</a><a href="#cooling">Cooling</a>
-  </nav>
-
-  <div class="notice" style="margin-bottom:1.5rem;">
+  <div class="notice" style="margin-bottom:1rem;">
     <strong>Shared numbers come from Vehicle Spec.</strong> Green = read from the
     Master; blue = this tool's own inputs (saved for the team); black = computed.
   </div>
   <LegendKey />
 
+  <div style="margin-top:1.25rem;"></div>
+  <CockpitShell tools={[{ id: 'traction', title: 'Drivetrain & traction' }, { id: 'cooling', title: 'Cooling — Dyno Analyzer' }]} railLabel="Powertrain">
   <CalcTool id="traction" title="Drivetrain & traction" spec="TOOL_SPECS §6"
     blurb="1st-gear wheel torque, tractive force vs the traction limit, and launch acceleration."
     linked={LINKED} seed={seed} inputs={INPUTS} outputs={OUTPUTS}
@@ -84,6 +83,7 @@ const OUTPUTS = [
       currently uses its own inputs with KTM 390 RC defaults.
     </p>
   </section>
+  </CockpitShell>
 </Base>
 
 <script>

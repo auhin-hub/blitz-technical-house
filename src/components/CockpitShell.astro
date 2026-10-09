@@ -1,0 +1,50 @@
+---
+/**
+ * Two-pane cockpit (MASTER_BUILD_PLAN §2): a slim tool rail + a single-viewport
+ * tool area. The discipline's tool sections are passed as the default slot (each
+ * a <section> whose id matches a rail entry); only the selected one is shown.
+ * On mobile the rail becomes a horizontal chip strip.
+ *
+ * Props: tools = [{ id, title }] in rail order (first is shown by default).
+ */
+interface ToolRef { id: string; title: string; }
+const { tools, railLabel = 'Tools' } = Astro.props as { tools: ToolRef[]; railLabel?: string };
+---
+<div class="cockpit-shell" data-cockpit>
+  <nav class="cockpit-rail" aria-label={`${railLabel} — select a calculator`}>
+    <span class="rail-label">{railLabel}</span>
+    {tools.map((t, i) => (
+      <button class="cockpit-toolbtn" type="button" data-tool={t.id} aria-current={i === 0 ? 'true' : 'false'}>
+        {t.title}
+      </button>
+    ))}
+  </nav>
+  <div class="cockpit-view">
+    <slot />
+  </div>
+</div>
+
+<script>
+  // Scope to each shell so multiple cockpits could coexist on a page.
+  document.querySelectorAll<HTMLElement>('[data-cockpit]').forEach((shell) => {
+    const btns = Array.from(shell.querySelectorAll<HTMLButtonElement>('.cockpit-toolbtn'));
+    const ids = btns.map((b) => b.dataset.tool!).filter(Boolean);
+
+    function show(id: string) {
+      for (const x of ids) {
+        const el = document.getElementById(x);
+        if (el) el.hidden = x !== id;
+      }
+      btns.forEach((b) => b.setAttribute('aria-current', b.dataset.tool === id ? 'true' : 'false'));
+      // Charts created while hidden have 0 size — nudge Chart.js (responsive) to refit.
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    btns.forEach((b) => b.addEventListener('click', () => show(b.dataset.tool!)));
+
+    // Initial state: show the first tool, hide the rest.
+    if (ids.length) {
+      ids.forEach((x, i) => { const el = document.getElementById(x); if (el) el.hidden = i !== 0; });
+    }
+  });
+</script>

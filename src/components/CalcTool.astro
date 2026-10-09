@@ -1,15 +1,17 @@
 ---
 /**
- * Declarative calculator section. Renders the standard layout — From Master
- * (linked/green), Inputs (blue), Outputs (black), summary stat tiles, an
- * optional chart, and a Contribute-to-Master action — with the data-attributes
- * the engine (lib/calc/engine.ts) wires up. One or more per discipline page.
+ * Declarative calculator section (MASTER_BUILD_PLAN §2). Renders the compact
+ * cockpit layout — inputs (left) beside outputs + chart (right) — with the
+ * engine's data-attributes (lib/calc/engine.ts). Every field shows label +
+ * unit; computed/linked fields default to "—" (never blank); an optional
+ * reference value (`ref`) shows the typical FS-car figure with its source.
  */
+export interface Ref { typ?: string; lo?: number | string; hi?: number | string; src?: string; }
 export interface Col { prefix: string; label: string; }
-export interface LinkedDef { mkey: string; label: string; sym?: string; unit: string; }
-export interface InputDef { key: string; label: string; unit: string; vals: number[]; note?: string; }
-export interface OutputDef { key: string; label: string; unit: string; }
-export interface StatDef { key: string; label: string; unit?: string; }
+export interface LinkedDef { mkey: string; label: string; sym?: string; unit: string; ref?: Ref; }
+export interface InputDef { key: string; label: string; unit: string; vals: number[]; note?: string; ref?: Ref; }
+export interface OutputDef { key: string; label: string; unit: string; ref?: Ref; }
+export interface StatDef { key: string; label: string; unit?: string; ref?: Ref; }
 
 interface Props {
   id: string;
@@ -18,7 +20,7 @@ interface Props {
   blurb?: string;
   cols?: Col[];
   linked?: LinkedDef[];
-  seed?: Record<string, number>;
+  seed?: Record<string, number | null>;
   inputs: InputDef[];
   outputs?: OutputDef[];
   stats?: StatDef[];
@@ -33,124 +35,141 @@ const {
   id, title, spec, blurb,
   cols = [{ prefix: '', label: 'Value' }],
   linked = [], seed = {}, inputs, outputs = [], stats = [],
-  chartId, chartTitle, chartHeight = 300,
+  chartId, chartTitle, chartHeight = 240,
   contribute = false, contributeNote,
 } = Astro.props as Props;
 
-const td = 'padding:0.45rem 0.6rem;';
-const th = 'padding:0.5rem 0.6rem;';
-const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
-const key = (prefix: string, k: string) => (prefix ? `${prefix}_${k}` : k);
+const fkey = (prefix: string, k: string) => (prefix ? `${prefix}_${k}` : k);
+const refText = (r?: Ref) =>
+  !r ? '' : r.lo !== undefined && r.hi !== undefined ? `${r.lo}–${r.hi}` : (r.typ ?? '');
+
+// Collect cited sources for the per-tool footer.
+const sources = [...linked, ...inputs, ...outputs, ...stats]
+  .map((f) => f.ref?.src).filter((s): s is string => !!s);
+const uniqueSources = [...new Set(sources)];
 ---
-<section id={id} class="card" style="margin-top:1.5rem;">
-  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
-    <h2 style="font-size:var(--fs-700);">{title}</h2>
+<section id={id} class="ct">
+  <header class="ct-head">
+    <h2>{title}</h2>
     {spec && <span class="badge">{spec}</span>}
-  </div>
-  {blurb && <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">{blurb}</p>}
+  </header>
+  {blurb && <p class="ct-sub">{blurb}</p>}
 
-  {linked.length > 0 && (
-    <>
-      <h3 style="font-size:var(--fs-500);margin-top:1.1rem;">From Master</h3>
-      <div style="overflow-x:auto;">
-        <table style="border-collapse:collapse;font-size:var(--fs-300);margin-top:0.4rem;">
-          <tbody>
-            {linked.map((l) => (
-              <tr>
-                <td style={td}>{l.label} {l.sym && <span class="mono" style="color:var(--ink-3);">({l.sym})</span>}</td>
-                <td style={td + 'text-align:right;'}>
-                  <span class="field field-linked mono" data-master={l.mkey} data-seed={seed[l.mkey]}>{seed[l.mkey]}</span>
-                </td>
-                <td style={td} class="mono">{l.unit}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  )}
+  <div class="ct-body">
+    <!-- LEFT: linked (From Master) + inputs -->
+    <div class="ct-col">
+      {linked.length > 0 && (
+        <>
+          <h3 class="ct-h3">From Master</h3>
+          <div class="ct-wrap">
+            <table class="ct-table">
+              <tbody>
+                {linked.map((l) => (
+                  <tr>
+                    <td>{l.label} {l.sym && <span class="ct-unit">({l.sym})</span>}</td>
+                    <td class="ct-num"><span class="field field-linked mono" data-master={l.mkey} data-seed={seed[l.mkey] ?? ''}>{seed[l.mkey] ?? '—'}</span></td>
+                    <td class="ct-unit">{l.unit}</td>
+                    <td>{l.ref && <span class="ct-ref" title={l.ref.src ?? ''}>{refText(l.ref)}</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
-  <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Inputs</h3>
-  <div style="overflow-x:auto;">
-    <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:460px;margin-top:0.4rem;">
-      <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
-        <th style={th} class="annot">Parameter</th>
-        {cols.map((c) => <th style={th + 'text-align:right;'} class="annot">{c.label}</th>)}
-        <th style={th} class="annot">Unit</th>
-      </tr></thead>
-      <tbody>
-        {inputs.map((i) => (
-          <tr style="border-bottom:1px solid var(--rule);">
-            <td style={td}>{i.label}{i.note && <span class="mono" style="color:var(--ink-3);"> · {i.note}</span>}</td>
-            {cols.map((c, ci) => (
-              <td style={td + 'text-align:right;'}>
-                <input type="number" step="any" class="field field-input" style={numInput}
-                  data-in={key(c.prefix, i.key)} value={i.vals[ci]} aria-label={`${i.label} ${c.label}`} />
-              </td>
-            ))}
-            <td style={td} class="mono">{i.unit}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-
-  {outputs.length > 0 && (
-    <>
-      <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Outputs</h3>
-      <div style="overflow-x:auto;">
-        <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:460px;margin-top:0.4rem;">
-          <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
-            <th style={th} class="annot">Result</th>
-            {cols.map((c) => <th style={th + 'text-align:right;'} class="annot">{c.label}</th>)}
-            <th style={th} class="annot">Unit</th>
+      <h3 class="ct-h3">Inputs</h3>
+      <div class="ct-wrap">
+        <table class="ct-table">
+          <thead><tr>
+            <th>Parameter</th>
+            {cols.map((c) => <th class="ct-num">{c.label}</th>)}
+            <th>Unit</th>
+            <th></th>
           </tr></thead>
           <tbody>
-            {outputs.map((o) => (
-              <tr style="border-bottom:1px solid var(--rule);">
-                <td style={td}>{o.label}</td>
-                {cols.map((c) => (
-                  <td style={td + 'text-align:right;'}>
-                    <span class="field field-computed mono" data-out={key(c.prefix, o.key)}>—</span>
+            {inputs.map((i) => (
+              <tr>
+                <td>{i.label}{i.note && <span class="ct-unit"> · {i.note}</span>}</td>
+                {cols.map((c, ci) => (
+                  <td class="ct-num">
+                    <input type="number" step="any" class="field field-input ct-input"
+                      data-in={fkey(c.prefix, i.key)} value={i.vals[ci]} aria-label={`${i.label} ${c.label}`} />
                   </td>
                 ))}
-                <td style={td} class="mono">{o.unit}</td>
+                <td class="ct-unit">{i.unit}</td>
+                <td>{i.ref && <span class="ct-ref" title={i.ref.src ?? ''}>{refText(i.ref)}</span>}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </>
-  )}
-
-  {stats.length > 0 && (
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));margin-top:1.25rem;">
-      {stats.map((s) => (
-        <div class="card" style="background:var(--surface-2);">
-          <span class="annot">{s.label}</span>
-          <p class="mono" style="font-size:var(--fs-700);margin-top:0.3rem;">
-            <span data-out={s.key}>—</span>{s.unit && <span style="font-size:var(--fs-400);color:var(--ink-3);"> {s.unit}</span>}
-          </p>
-        </div>
-      ))}
     </div>
-  )}
 
-  {chartId && (
-    <>
-      {chartTitle && <h3 style="font-size:var(--fs-500);margin-top:1.5rem;">{chartTitle}</h3>}
-      <div style={`margin-top:0.5rem;height:${chartHeight}px;position:relative;`}><canvas id={chartId}></canvas></div>
-    </>
-  )}
+    <!-- RIGHT: key-output tiles + outputs + chart + contribute -->
+    <div class="ct-col">
+      {stats.length > 0 && (
+        <div class="ct-stats">
+          {stats.map((s) => (
+            <div class="ct-stat">
+              <span class="annot">{s.label}</span>
+              <div class="val"><span data-out={s.key}>—</span>{s.unit && <span class="ct-unit" style="font-size:var(--fs-400)"> {s.unit}</span>}</div>
+              {s.ref && <span class="ct-ref" title={s.ref.src ?? ''}>{refText(s.ref)}{s.unit ? ' ' + s.unit : ''}</span>}
+            </div>
+          ))}
+        </div>
+      )}
 
-  {contribute && (
-    <>
-      <h3 style="font-size:var(--fs-500);margin-top:1.5rem;">Contribute to Master</h3>
-      {contributeNote && <p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.3rem;">{contributeNote}</p>}
-      <button class="btn btn-heritage" type="button" data-contribute style="margin-top:0.75rem;">Contribute results to Master</button>
-      <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
-    </>
-  )}
+      {outputs.length > 0 && (
+        <>
+          <h3 class="ct-h3">Outputs</h3>
+          <div class="ct-wrap">
+            <table class="ct-table">
+              <thead><tr>
+                <th>Result</th>
+                {cols.map((c) => <th class="ct-num">{c.label}</th>)}
+                <th>Unit</th>
+                <th></th>
+              </tr></thead>
+              <tbody>
+                {outputs.map((o) => (
+                  <tr>
+                    <td>{o.label}</td>
+                    {cols.map((c) => (
+                      <td class="ct-num"><span class="field field-computed mono" data-out={fkey(c.prefix, o.key)}>—</span></td>
+                    ))}
+                    <td class="ct-unit">{o.unit}</td>
+                    <td>{o.ref && <span class="ct-ref" title={o.ref.src ?? ''}>{refText(o.ref)}</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
-  <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+      {chartId && (
+        <>
+          {chartTitle && <h3 class="ct-h3">{chartTitle}</h3>}
+          <div class="ct-chart" style={`height:${chartHeight}px;`}><canvas id={chartId}></canvas></div>
+        </>
+      )}
+
+      {contribute && (
+        <>
+          <h3 class="ct-h3">Contribute to Master</h3>
+          {contributeNote && <p class="ct-sub">{contributeNote}</p>}
+          <p style="margin-top:0.5rem;">
+            <button class="btn btn-heritage" type="button" data-contribute>Contribute results to Master</button>
+            <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+          </p>
+        </>
+      )}
+    </div>
+  </div>
+
+  <p class="ct-foot">
+    <span data-save-status></span>
+    {uniqueSources.length > 0 && <span class="ct-srcs">Typical-value sources: {uniqueSources.join(' · ')}</span>}
+  </p>
 </section>

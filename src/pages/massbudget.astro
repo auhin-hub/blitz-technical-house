@@ -1,0 +1,212 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+import { MB_COMPONENTS } from '../lib/calc/massbudget';
+
+const td = 'padding:0.3rem 0.5rem;';
+const th = 'padding:0.4rem 0.5rem;';
+const ni = 'width:76px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
+const LINKED = [
+  { mkey: 'wheelbase', label: 'Wheelbase', sym: 'L', unit: 'mm' },
+  { mkey: 'track_front', label: 'Front track', sym: 'tf', unit: 'mm' },
+  { mkey: 'track_rear', label: 'Rear track', sym: 'tr', unit: 'mm' },
+];
+---
+<Base title="MassBudget">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('vehicle-dynamics')} style="color:inherit;">VD Workspace</a> / MassBudget
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Stage 02 · Gate G0 · writes to Master</p>
+    <h1 style="margin-top:0.4rem;">MassBudget &amp; weight / balance</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
+      Log every component's mass and position; the tool computes total mass, CG,
+      yaw inertia and front fraction, then contributes them to the Master. Shared
+      with the team. <strong>Coordinates:</strong> x from the front axle (0 → wheelbase),
+      y from centreline (+ right), z from ground — all mm.
+    </p>
+  </header>
+
+  <!-- From Master -->
+  <div class="card" style="margin-bottom:1rem;">
+    <span class="annot">From Master</span>
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.4rem;font-size:var(--fs-300);">
+      {LINKED.map((l) => (
+        <span>{l.label} <span class="mono" style="color:var(--ink-3)">({l.sym})</span>
+          <span class="field field-linked mono" data-master={l.mkey} style="margin-left:0.4rem;">—</span> {l.unit}</span>
+      ))}
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:1.25rem;align-items:start;" class="mb-grid">
+    <!-- Component table -->
+    <div class="card">
+      <h2 style="font-size:var(--fs-600);">Components</h2>
+      <div style="overflow-x:auto;margin-top:0.5rem;">
+        <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:460px;">
+          <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+            <th style={th} class="annot">Component</th>
+            <th style={th + 'text-align:right;'} class="annot">Mass kg</th>
+            <th style={th + 'text-align:right;'} class="annot">x</th>
+            <th style={th + 'text-align:right;'} class="annot">y</th>
+            <th style={th + 'text-align:right;'} class="annot">z</th>
+          </tr></thead>
+          <tbody>
+            {MB_COMPONENTS.map((c) => (
+              <tr style="border-bottom:1px solid var(--rule);">
+                <td style={td}>{c.name}<br><span class="mono" style="font-size:var(--fs-200);color:var(--ink-3);">{c.subsystem}{c.unsprung ? ' · unsprung' : ''}</span></td>
+                <td style={td + 'text-align:right;'}><input type="number" step="any" style={ni} data-row={c.key} data-field="mass" aria-label={`${c.name} mass`} /></td>
+                <td style={td + 'text-align:right;'}><input type="number" step="any" style={ni} data-row={c.key} data-field="x" aria-label={`${c.name} x`} /></td>
+                <td style={td + 'text-align:right;'}><input type="number" step="any" style={ni} data-row={c.key} data-field="y" aria-label={`${c.name} y`} /></td>
+                <td style={td + 'text-align:right;'}><input type="number" step="any" style={ni} data-row={c.key} data-field="z" aria-label={`${c.name} z`} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="mono" data-save-status style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+    </div>
+
+    <!-- Outputs + charts -->
+    <div>
+      <div class="ct-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.5rem;">
+        <div class="ct-stat"><span class="annot">Total mass</span><div class="val"><span data-out="total">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> kg</span></div></div>
+        <div class="ct-stat"><span class="annot">Front fraction</span><div class="val"><span data-out="ff">—</span></div><span class="ct-ref">typ 0.45–0.50</span></div>
+        <div class="ct-stat"><span class="annot">CoG height (z)</span><div class="val"><span data-out="zcg">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div><span class="ct-ref">typ 250–320</span></div>
+        <div class="ct-stat"><span class="annot">Yaw inertia</span><div class="val"><span data-out="izz">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> kg·m²</span></div></div>
+        <div class="ct-stat"><span class="annot">x_cg (from front)</span><div class="val"><span data-out="xcg">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div></div>
+        <div class="ct-stat"><span class="annot">Sprung / unsprung</span><div class="val" style="font-size:var(--fs-500)"><span data-out="sprung">—</span> / <span data-out="unsprung">—</span></div></div>
+      </div>
+
+      <h3 class="ct-h3" style="margin-top:0.9rem;">Mass breakdown by subsystem</h3>
+      <div style="height:200px;position:relative;"><canvas id="mb-breakdown"></canvas></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.6rem;">
+        <div><h3 class="ct-h3">Front / rear</h3><div style="height:170px;position:relative;"><canvas id="mb-dist"></canvas></div></div>
+        <div><h3 class="ct-h3">CG plan view</h3><div style="height:170px;position:relative;"><canvas id="mb-plan"></canvas></div></div>
+      </div>
+
+      <h3 class="ct-h3">Contribute to Master</h3>
+      <p style="color:var(--ink-2);font-size:var(--fs-300);">Writes total mass, front fraction, CoG height and yaw inertia to the Master (unfreeze them first if locked).</p>
+      <button class="btn btn-heritage" type="button" id="mb-contribute" style="margin-top:0.5rem;">Contribute to Master</button>
+      <span class="mono" id="mb-contribute-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+    </div>
+  </div>
+</Base>
+
+<style>@media (max-width: 860px) { .mb-grid { grid-template-columns: 1fr !important; } }</style>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { massBudget, MB_COMPONENTS, type MbRow } from '../lib/calc/massbudget';
+  import { loadMaster, setMasterValue, loadToolJson, saveToolJson, fmt, debounce } from '../lib/store';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+
+  const TOOL = 'massbudget';
+  const saveStatus = document.getElementById('mb-contribute-status')!;
+  const rowStatus = document.querySelector('[data-save-status]') as HTMLElement;
+  let master: Record<string, number> = {};
+  const charts = new Map<string, Chart>();
+  let last = massBudget([], NaN);
+
+  function readRows(): MbRow[] {
+    return MB_COMPONENTS.map((c) => {
+      const get = (f: string) => {
+        const el = document.querySelector(`[data-row="${c.key}"][data-field="${f}"]`) as HTMLInputElement | null;
+        return el && el.value.trim() !== '' ? Number(el.value) : NaN;
+      };
+      return { mass: get('mass'), x: get('x'), y: get('y'), z: get('z'), unsprung: c.unsprung, subsystem: c.subsystem };
+    });
+  }
+
+  function put(id: string, v: number) {
+    const el = document.querySelector(`[data-out="${id}"]`);
+    if (el) el.textContent = v === null || !Number.isFinite(v) ? '—' : fmt(v, id === 'ff' ? 3 : id === 'izz' ? 1 : 0);
+  }
+
+  function renderCharts(r: ReturnType<typeof massBudget>) {
+    const p = palette();
+    const subs = Object.keys(r.bySubsystem);
+    upsert('mb-breakdown', {
+      type: 'bar',
+      data: { labels: subs, datasets: [{ label: 'kg', data: subs.map((s) => +r.bySubsystem[s].toFixed(2)), backgroundColor: p.sky }] },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
+    });
+    const ff = Number.isFinite(r.frontFraction) ? r.frontFraction : NaN;
+    upsert('mb-dist', {
+      type: 'doughnut',
+      data: { labels: ['Front', 'Rear'], datasets: [{ data: Number.isFinite(ff) ? [+(ff * 100).toFixed(1), +((1 - ff) * 100).toFixed(1)] : [0, 0], backgroundColor: [p.amber, p.sky] }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+    });
+    // CG plan view: wheel corners (from Master track/wheelbase) + CG point.
+    const L = master.wheelbase, tf = master.track_front, tr = master.track_rear;
+    const corners = Number.isFinite(L) && Number.isFinite(tf) && Number.isFinite(tr)
+      ? [{ x: 0, y: -tf / 2 }, { x: 0, y: tf / 2 }, { x: L, y: -tr / 2 }, { x: L, y: tr / 2 }] : [];
+    const cg = Number.isFinite(r.xCg) && Number.isFinite(r.yCg) ? [{ x: r.xCg, y: r.yCg }] : [];
+    upsert('mb-plan', {
+      type: 'scatter',
+      data: { datasets: [
+        { label: 'Wheels', data: corners, backgroundColor: p.ink3, pointRadius: 5 },
+        { label: 'CG', data: cg, backgroundColor: p.maroon, pointRadius: 7, pointStyle: 'crossRot' },
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: { title: { display: true, text: 'x from front (mm)' } }, y: { title: { display: true, text: 'y (mm)' } } } },
+    });
+  }
+  function upsert(id: string, cfg: any) {
+    const ex = charts.get(id);
+    if (ex) { ex.data = cfg.data; ex.options = cfg.options; ex.update(); }
+    else { const cv = document.getElementById(id) as HTMLCanvasElement | null; if (cv) charts.set(id, new Chart(cv, cfg)); }
+  }
+
+  function recompute() {
+    const r = massBudget(readRows(), master.wheelbase);
+    last = r;
+    put('total', r.total); put('ff', r.frontFraction); put('zcg', r.zCg);
+    put('izz', r.izz); put('xcg', r.xCg); put('sprung', r.sprung); put('unsprung', r.unsprung);
+    renderCharts(r);
+  }
+
+  const persist = debounce(async () => {
+    const data: Record<string, any> = {};
+    for (const c of MB_COMPONENTS) {
+      const get = (f: string) => { const el = document.querySelector(`[data-row="${c.key}"][data-field="${f}"]`) as HTMLInputElement | null; return el && el.value.trim() !== '' ? Number(el.value) : null; };
+      data[c.key] = { mass: get('mass'), x: get('x'), y: get('y'), z: get('z') };
+    }
+    rowStatus.textContent = 'Saving…';
+    const err = await saveToolJson(TOOL, { rows: data });
+    rowStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    rowStatus.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  (async () => {
+    applyChartDefaults();
+    master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => [k, Number((v as any).value)]));
+    for (const el of document.querySelectorAll<HTMLElement>('[data-master]')) {
+      const k = el.dataset.master!; if (Number.isFinite(master[k])) el.textContent = fmt(master[k]);
+    }
+    const saved = await loadToolJson<{ rows: Record<string, any> }>(TOOL, { rows: {} });
+    for (const c of MB_COMPONENTS) {
+      const row = saved.rows?.[c.key]; if (!row) continue;
+      for (const f of ['mass', 'x', 'y', 'z']) {
+        const el = document.querySelector(`[data-row="${c.key}"][data-field="${f}"]`) as HTMLInputElement | null;
+        if (el && row[f] != null) el.value = String(row[f]);
+      }
+    }
+    recompute();
+    document.querySelectorAll('[data-row]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
+
+    document.getElementById('mb-contribute')!.addEventListener('click', async () => {
+      if (!Number.isFinite(last.total) || last.total <= 0) { saveStatus.textContent = 'Enter component masses first.'; saveStatus.style.color = 'var(--heritage)'; return; }
+      saveStatus.textContent = 'Saving…'; saveStatus.style.color = 'var(--ink-3)';
+      const errs: string[] = [];
+      for (const [k, v] of [['mass_total', last.total], ['mass_frac_front', last.frontFraction], ['cog_height', last.zCg], ['yaw_inertia', last.izz]] as [string, number][]) {
+        if (!Number.isFinite(v)) continue;
+        const e = await setMasterValue(k, +v.toFixed(4)); if (e) errs.push(`${k}: ${e}`);
+      }
+      saveStatus.textContent = errs.length ? 'Some failed (frozen?): ' + errs.join('; ') : 'Contributed to Master ✓';
+      saveStatus.style.color = errs.length ? 'var(--heritage)' : 'var(--state-linked)';
+    });
+
+    watchTheme(() => { applyChartDefaults(); recompute(); });
+  })();
+</script>

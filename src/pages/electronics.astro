@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
+import CockpitShell from '../components/CockpitShell.astro';
 import { url, DISCIPLINES } from '../lib/config';
 import { LOADS } from '../lib/calc/elec-power';
 import { DAQ_CHANNELS } from '../lib/calc/daq';
@@ -32,15 +33,14 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
     <div style="margin-top:1rem;">{el.workbook && <WorkbookDownload file={el.workbook} />}</div>
   </header>
 
-  <nav class="nav" aria-label="Electronics tools" style="gap:0.4rem;margin-bottom:1.25rem;">
-    <a href="#power">Power budget</a><a href="#wiring">Wiring / harness</a><a href="#daq">DAQ & Telemetry</a>
-  </nav>
 
   <div class="notice" style="margin-bottom:1.5rem;">
     <strong>Blue = your inputs (saved for the team); black = computed.</strong>
   </div>
   <LegendKey />
 
+  <div style="margin-top:1.25rem;"></div>
+  <CockpitShell tools={[{ id: 'power', title: 'Power budget' }, { id: 'wiring', title: 'Wiring / harness' }, { id: 'daq', title: 'DAQ & Telemetry' }]} railLabel="Electronics">
   <CalcTool id="power" title="Power budget" spec="TOOL_SPECS §4a"
     blurb="Load currents vs stator output; margin must stay positive."
     inputs={POWER_INPUTS} outputs={POWER_OUTPUTS}
@@ -135,6 +135,7 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
     <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
     <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
   </section>
+  </CockpitShell>
 </Base>
 
 <script>
