@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIST Blitz — Cooling System Dyno Analyzer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400&family=Merriweather+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════════ */
+:root {
+  --red:        #B91C1C;
+  --red-dark:   #7F1D1D;
+  --red-deep:   #450A0A;
+  --red-light:  #FEF2F2;
+  --red-mid:    #FCA5A5;
+  --red-soft:   #FECACA;
+  --cream:      #FFFBF7;
+  --white:      #FFFFFF;
+  --ink:        #1A0A0A;
+  --ink2:       #4B2020;
+  --ink3:       #78716C;
+  --rule:       #E7D5D5;
+  --rule-light: #F5ECEC;
+  --gold:       #92400E;
+  --gold-light: #FEF3C7;
+
+  --serif: 'Merriweather', Georgia, serif;
+  --sans:  'Merriweather Sans', sans-serif;
+
+  --radius: 2px;
+  --shadow: 0 1px 3px rgba(127,29,29,0.08), 0 4px 16px rgba(127,29,29,0.06);
+  --shadow-lg: 0 4px 24px rgba(127,29,29,0.12), 0 1px 4px rgba(127,29,29,0.06);
+}
+
+/* ═══════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* subtle linen texture */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════
+   MASTHEAD
+═══════════════════════════════════════════════════ */
+.masthead {
+  background: var(--red-deep);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* ruled lines behind masthead */
+.masthead::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 59px,
+    rgba(255,255,255,0.04) 59px,
+    rgba(255,255,255,0.04) 60px
+  );
+  pointer-events: none;
+}
+
+.masthead-inner {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: stretch;
+  border-left: 1px solid rgba(255,255,255,0.08);
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+
+.masthead-logo {
+  padding: 1.6rem 2.4rem 1.6rem 0;
+  border-right: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 200px;
+}
+
+.logo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+/* logo-emblem replaced by img — kept for backward compat */
+.logo-emblem {
+  width: 42px; height: 42px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.logo-name {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: 20px;
+  color: white;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.logo-sub {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.masthead-title {
+  padding: 1.6rem 2.4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+}
+
+.masthead-eyebrow {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.masthead-h {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 26px;
+  color: white;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.masthead-h em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--red-mid);
+}
+
+.masthead-desc {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 5px;
+  font-weight: 300;
+}
+
+.masthead-meta {
+  padding: 1.6rem 0 1.6rem 2.4rem;
+  border-left: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.meta-chip {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  display: inline-block;
+  width: fit-content;
+}
+
+.meta-chip span { color: rgba(255,255,255,0.8); }
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════ */
+.page {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 2rem;
+  position: relative; z-index: 1;
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  min-height: calc(100vh - 140px);
+  background: var(--cream);
+}
+
+.grid-main {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) { .grid-main { grid-template-columns: 1fr; } }
+
+/* ═══════════════════════════════════════════════════
+   SECTION HEADERS
+═══════════════════════════════════════════════════ */
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 1rem;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.sec-num {
+  font-family: var(--serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--red);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+
+.sec-title {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.sec-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+  margin-bottom: 2px;
+}
+
+/* ═══════════════════════════════════════════════════
+   PANELS / CARDS
+═══════════════════════════════════════════════════ */
+.card {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+
+.card-head {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--red-light);
+}
+
+.card-title {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--red-dark);
+}
+
+.card-body { padding: 18px; }
+
+/* ═══════════════════════════════════════════════════
+   TABS
+═══════════════════════════════════════════════════ */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 14px;
+  gap: 0;
+}
+
+.tab {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  padding: 9px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+
+.tab:hover { color: var(--red); }
+.tab.active { color: var(--red); border-bottom-color: var(--red); font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════
+   FORM ELEMENTS
+═══════════════════════════════════════════════════ */
+label {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  display: block;
+  margin-bottom: 4px;
+}
+
+input, select, textarea {
+  width: 100%;
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  font-weight: 400;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(185,28,28,0.08);
+  background: var(--white);
+}
+
+textarea { resize: vertical; min-height: 110px; line-height: 1.7; font-size: 12px; }
+
+.field { margin-bottom: 12px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.field-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+
+details summary {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--red-dark);
+  cursor: pointer;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+details summary::before {
+  content: '+';
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--red);
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+details[open] summary::before { content: '−'; }
+details[open] summary { color: var(--red); border-top-color: var(--red); }
+details .detail-body { padding: 10px 0 4px; }
+
+/* ═══════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════ */
+.btn {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 9px 18px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.btn-primary {
+  background: var(--red);
+  color: white;
+  box-shadow: 0 2px 8px rgba(185,28,28,0.3);
+}
+.btn-primary:hover { background: var(--red-dark); box-shadow: 0 4px 14px rgba(185,28,28,0.4); transform: translateY(-1px); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid var(--red);
+}
+.btn-outline:hover { background: var(--red-light); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink3);
+  border: 1px solid var(--rule);
+}
+.btn-ghost:hover { border-color: var(--ink3); color: var(--ink); }
+
+.btn-danger-sm {
+  background: transparent;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+  font-size: 10px;
+  padding: 5px 10px;
+}
+.btn-danger-sm:hover { background: var(--red-light); }
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════════════
+   DYNO TABLE
+═══════════════════════════════════════════════════ */
+.dyno-add-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: flex-end;
+  margin-bottom: 10px;
+}
+
+.table-wrap {
+  border: 1px solid var(--rule);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+thead th {
+  background: var(--red-deep);
+  color: rgba(255,255,255,0.85);
+  padding: 7px 10px;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  position: sticky; top: 0;
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+tbody td {
+  padding: 6px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--rule-light);
+  border-right: 1px solid var(--rule-light);
+  font-family: var(--sans);
+  color: var(--ink);
+}
+
+tbody tr:nth-child(even) td { background: var(--red-light); }
+tbody tr:hover td { background: var(--red-soft); }
+
+td input {
+  border: none;
+  background: transparent;
+  color: var(--red-dark);
+  text-align: center;
+  padding: 2px;
+  width: 100%;
+  font-weight: 600;
+}
+
+td input:focus { background: var(--white); box-shadow: none; border-radius: 0; }
+
+/* ═══════════════════════════════════════════════════
+   HINTS & NOTES
+═══════════════════════════════════════════════════ */
+.hint {
+  font-size: 11px;
+  color: var(--ink3);
+  font-style: italic;
+  font-family: var(--serif);
+  line-height: 1.6;
+  border-left: 2px solid var(--red-soft);
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  background: var(--red-light);
+}
+
+.hint strong { color: var(--red-dark); font-style: normal; font-family: var(--sans); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* ═══════════════════════════════════════════════════
+   RESULTS
+═══════════════════════════════════════════════════ */
+.status-strip {
+  background: var(--red-deep);
+  color: rgba(255,255,255,0.7);
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #4ADE80;
+  animation: blink 2s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 700px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+
+.kpi {
+  background: var(--white);
+  padding: 16px;
+  position: relative;
+}
+
+.kpi.kpi-accent { background: var(--red-deep); }
+
+.kpi-label {
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 6px;
+}
+
+.kpi-accent .kpi-label { color: rgba(255,255,255,0.45); }
+
+.kpi-value {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.kpi-accent .kpi-value { color: white; }
+.kpi-value.c-red { color: var(--red); }
+.kpi-value.c-green { color: #166534; }
+.kpi-value.c-amber { color: var(--gold); }
+
+.kpi-unit {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 3px;
+}
+
+.kpi-accent .kpi-unit { color: rgba(255,255,255,0.4); }
+
+.kpi-tag {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+}
+
+.tag-pass { background: #DCFCE7; color: #166534; }
+.tag-fail { background: var(--red-soft); color: var(--red-dark); }
+.tag-warn { background: var(--gold-light); color: var(--gold); }
+
+/* mini metrics bar */
+.mini-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.mini-kpi {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  padding: 10px 12px;
+}
+
+.mini-label {
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 3px;
+}
+
+.mini-value {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--red);
+}
+
+.mini-sub {
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--ink3);
+}
+
+/* ═══════════════════════════════════════════════════
+   CHARTS
+═══════════════════════════════════════════════════ */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 800px) { .chart-grid { grid-template-columns: 1fr; } }
+
+.chart-card {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  padding: 16px;
+}
+
+.chart-label {
+  font-family: var(--serif);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule-light);
+  font-style: italic;
+}
+
+.chart-label span {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--ink3);
+  font-family: var(--sans);
+  font-weight: 400;
+  float: right;
+  margin-top: 2px;
+}
+
+.chart-wrap { position: relative; height: 210px; }
+.chart-wrap-lg { position: relative; height: 260px; }
+
+/* ═══════════════════════════════════════════════════
+   SCENARIO TABLE
+═══════════════════════════════════════════════════ */
+.sec-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 1.5rem 0 1rem;
+}
+
+.div-line { flex: 1; height: 1px; background: var(--rule); }
+.div-label {
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  white-space: nowrap;
+}
+
+.scenario-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+.scenario-table th {
+  background: var(--ink);
+  color: rgba(255,255,255,0.8);
+  padding: 8px 12px;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.scenario-table td {
+  padding: 9px 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--rule-light);
+  font-family: var(--sans);
+  color: var(--ink);
+}
+
+.scenario-table tr:nth-child(even) td { background: var(--red-light); }
+.scenario-table td:first-child { text-align: left; }
+
+.cell-pass { color: #166534; font-weight: 700; }
+.cell-fail { color: var(--red); font-weight: 700; }
+.cell-warn { color: var(--gold); font-weight: 700; }
+
+/* ═══════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════ */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ink3);
+}
+
+.empty-icon {
+  width: 56px; height: 56px;
+  background: var(--red-light);
+  border: 1px solid var(--red-soft);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 22px;
+}
+
+.empty p {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink3);
+  line-height: 1.7;
+}
+
+.empty strong { font-style: normal; color: var(--red); font-family: var(--sans); font-size: 12px; letter-spacing: 0.06em; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: var(--red-soft); }
+::-webkit-scrollbar-thumb:hover { background: var(--red); }
+
+/* ═══════════════════════════════════════════════════
+   FOOTER STRIP
+═══════════════════════════════════════════════════ */
+.footer-strip {
+  background: var(--ink);
+  color: rgba(255,255,255,0.3);
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 12px 2rem;
+  text-align: center;
+  position: relative; z-index: 1;
+}
+
+/* ── Logo sizes ── */
+.logo-img        { width:44px;  height:44px;  border-radius:4px; object-fit:cover; flex-shrink:0; }
+.logo-img-lg     { width:120px; height:120px; border-radius:8px; object-fit:cover; display:block; margin:0 auto 16px; }
+.logo-img-footer { width:28px;  height:28px;  border-radius:3px; object-fit:cover; flex-shrink:0; opacity:0.6; }
+</style>
+<script>
+  const LOGO_SRC = 'data:image/jpeg;base64,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';
+</script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     MASTHEAD
+═══════════════════════════════════════════════ -->
+<div class="masthead">
+  <div class="masthead-inner">
+    <div class="masthead-logo">
+      <div class="logo-badge">
+        <img id="logo-masthead" class="logo-img" alt="MIST Blitz Logo" style="border:2px solid rgba(255,255,255,0.25)">
+        <div>
+          <div class="logo-name">MIST Blitz</div>
+          <div class="logo-sub">Formula Student Team</div>
+        </div>
+      </div>
+    </div>
+    <div class="masthead-title">
+      <div class="masthead-eyebrow">Furiosa 2.0 · KTM 390 RC · Cooling System</div>
+      <div class="masthead-h">Dyno <em>Thermal</em> Analyzer</div>
+      <div class="masthead-desc">Input measured dyno data · Compute engine heat load · Validate radiator performance via NTU-Effectiveness method</div>
+    </div>
+    <div class="masthead-meta">
+      <div class="meta-chip">Engine <span>KTM 390 RC</span></div>
+      <div class="meta-chip">Method <span>NTU-ε</span></div>
+      <div class="meta-chip">Event <span>FSAE Japan 2026</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     PAGE
+═══════════════════════════════════════════════ -->
+<div class="page">
+  <div class="grid-main">
+
+    <!-- ══ LEFT — INPUTS ══════════════════════════ -->
+    <div>
+
+      <!-- Dyno Data -->
+      <div class="sec-head">
+        <span class="sec-num">01</span>
+        <span class="sec-title">Dyno Data</span>
+        <div class="sec-rule"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Power & Torque Curve</span>
+        </div>
+        <div class="card-body">
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab('manual')">Manual</div>
+            <div class="tab" onclick="switchTab('paste')">Paste CSV</div>
+            <div class="tab" onclick="switchTab('sample')">Sample</div>
+          </div>
+
+          <div id="tab-manual">
+            <div class="hint"><strong>Format</strong> — Enter RPM, brake power in kW, and torque in Nm (optional). Minimum 2 points required.</div>
+            <div class="dyno-add-row">
+              <div><label>RPM</label><input type="number" id="inp-rpm" placeholder="9000" min="500" max="15000"></div>
+              <div><label>Power kW</label><input type="number" id="inp-pow" placeholder="32.0" step="0.1"></div>
+              <div><label>Torque Nm</label><input type="number" id="inp-trq" placeholder="opt." step="0.1"></div>
+              <button class="btn btn-primary" onclick="addRow()" style="white-space:nowrap">+ Add</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>#</th><th>RPM</th><th>Power (kW)</th><th>Torque (Nm)</th><th>Del</th></tr></thead>
+                <tbody id="dyno-tbody"></tbody>
+              </table>
+            </div>
+            <div class="btn-row" style="margin-top:10px">
+              <button class="btn btn-ghost" onclick="sortTable()" style="font-size:10px;padding:6px 12px">Sort RPM</button>
+              <button class="btn btn-danger-sm" onclick="clearTable()">Clear All</button>
+            </div>
+          </div>
+
+          <div id="tab-paste" style="display:none">
+            <div class="hint"><strong>CSV format</strong> — one row per line: <em>RPM, Power_kW, Torque_Nm</em>. Torque column is optional.</div>
+            <div class="field">
+              <label>Paste Data</label>
+              <textarea id="csv-inp" placeholder="5000, 16.5, 31.5&#10;7000, 24.9, 33.9&#10;9000, 31.2, 33.1&#10;11000, 29.5, 25.6"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="parseCsv()">Parse & Load</button>
+          </div>
+
+          <div id="tab-sample" style="display:none">
+            <div class="hint"><strong>Sample data</strong> — a typical KTM 390 RC dyno curve with 13 data points from 2,000 to 11,500 rpm. Load and edit as needed.</div>
+            <button class="btn btn-primary" onclick="loadSample()">Load KTM 390 RC Curve</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Parameters -->
+      <div class="sec-head" style="margin-top:1.5rem">
+        <span class="sec-num">02</span>
+        <span class="sec-title">System Parameters</span>
+        <div class="sec-rule"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-body" style="padding-top:6px">
+
+          <details open>
+            <summary>Radiator Geometry</summary>
+            <div class="detail-body">
+              <div class="field-row">
+                <div class="field"><label>Core Width mm</label><input type="number" id="p-W" value="280"></div>
+                <div class="field"><label>Core Height mm</label><input type="number" id="p-H" value="150"></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>Core Depth mm</label><input type="number" id="p-D" value="30"></div>
+                <div class="field"><label>Tube Pitch mm</label><input type="number" id="p-tp" value="8"></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>Tube Height mm</label><input type="number" id="p-th" value="1"></div>
+                <div class="field"><label>No. of Tubes</label><input type="number" id="p-nt" value="19"></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>Fin Gaps</label><input type="number" id="p-ng" value="20"></div>
+                <div class="field"><label>Fin Pitch mm</label><input type="number" id="p-fp" value="1.2"></div>
+              </div>
+
+              <div class="hint" style="margin-top:6px"><strong>Louver/Wave Pitch</strong> — Ismael et al. (2016) show the fine corrugation pitch inside each fin (distinct from Fin Pitch above) has a strong, independently-measured effect on heat rejection.</div>
+              <div class="field-row">
+                <div class="field"><label>Fin Wave Pitch mm</label><input type="number" id="p-wavep" value="2.5" min="1.5" max="4" step="0.05"></div>
+                <div class="field" style="display:flex;align-items:flex-end;padding-bottom:9px">
+                  <label style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;font-weight:400;font-family:var(--serif);font-style:italic;font-size:12px;color:var(--ink2)">
+                    <input type="checkbox" id="p-litcorr" style="width:auto;accent-color:var(--red)">
+                    Apply literature correction
+                  </label>
+                </div>
+              </div>
+              <div class="hint" style="margin-top:0">
+                When enabled, h_air is scaled by (wave pitch / 2.5)<sup>-0.63</sup> — an empirical exponent curve-fit (R&sup2;=0.89) from Tables 1&ndash;5 of Ismael, Yun &amp; Ulugbek (2016), <em>Radiator Heat Dissipation Performance</em>, J. Electronics Cooling &amp; Thermal Control 6, 88&ndash;96. Reference case: P = 2.5 mm.
+              </div>
+            </div>
+          </details>
+
+          <details open>
+            <summary>Operating Conditions</summary>
+            <div class="detail-body">
+              <div class="field-row">
+                <div class="field">
+                  <label>Max Safe Coolant Temp °C</label>
+                  <input type="number" id="p-Tcin" value="110" min="80" max="140" step="1">
+                </div>
+                <div class="field"><label>T Ambient °C</label><input type="number" id="p-Tamb" value="40"></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>Ram Blockage β</label><input type="number" id="p-beta" value="0.85" step="0.01"></div>
+                <div class="field"></div>
+              </div>
+              <div class="hint" style="margin-top:4px"><strong>Max Safe Coolant Temp</strong> — the solver upper bound and pass/fail threshold. KTM 390 limit = 110 °C.</div>
+            </div>
+          </details>
+
+          <details open>
+            <summary>Drivetrain — Speed from RPM</summary>
+            <div class="detail-body">
+              <div class="hint"><strong>Vehicle speed is calculated from RPM, gear ratios, and tyre diameter.</strong> Analysis runs across all gears at every RPM point.</div>
+
+              <div class="field-row">
+                <div class="field"><label>Front Sprocket (teeth)</label><input type="number" id="p-sprF" value="14" min="8" max="30" step="1"></div>
+                <div class="field"><label>Rear Sprocket (teeth)</label><input type="number" id="p-sprR" value="42" min="20" max="70" step="1"></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>Tyre Diameter (mm)</label><input type="number" id="p-tyreDia" value="520" min="300" max="700" step="1"></div>
+                <div class="field"><label>Primary Reduction</label><input type="number" id="p-primRed" value="3.071" min="1" max="6" step="0.001"></div>
+              </div>
+
+              <div style="margin-top:10px;margin-bottom:6px">
+                <label>Gear Ratios — KTM 390 RC Stock (editable)</label>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px">
+                <div><label style="font-size:9px">1st</label><input type="number" id="gr-1" value="2.846" step="0.001" style="font-size:12px;padding:5px"></div>
+                <div><label style="font-size:9px">2nd</label><input type="number" id="gr-2" value="2.000" step="0.001" style="font-size:12px;padding:5px"></div>
+                <div><label style="font-size:9px">3rd</label><input type="number" id="gr-3" value="1.550" step="0.001" style="font-size:12px;padding:5px"></div>
+                <div><label style="font-size:9px">4th</label><input type="number" id="gr-4" value="1.286" step="0.001" style="font-size:12px;padding:5px"></div>
+                <div><label style="font-size:9px">5th</label><input type="number" id="gr-5" value="1.095" step="0.001" style="font-size:12px;padding:5px"></div>
+                <div><label style="font-size:9px">6th</label><input type="number" id="gr-6" value="0.960" step="0.001" style="font-size:12px;padding:5px"></div>
+              </div>
+              <div id="speed-preview" style="font-family:var(--sans);font-size:11px;color:var(--ink3);background:var(--red-light);border:1px solid var(--red-soft);padding:8px 10px;border-radius:2px;line-height:1.8"></div>
+              <button class="btn btn-ghost" onclick="updateSpeedPreview()" style="margin-top:8px;font-size:10px;padding:5px 12px">Preview speeds at peak RPM</button>
+            </div>
+          </details>
+
+          <details open>
+            <summary>Fan Model</summary>
+            <div class="detail-body">
+              <div class="hint"><strong>On/Off thermostat control</strong> — fan is OFF below trigger temperature, ON at full CFM above it. This is the stock KTM behaviour.</div>
+              <div class="field-row">
+                <div class="field"><label>Fan Airflow (full speed) CFM</label><input type="number" id="p-fan" value="150" min="10" max="800"></div>
+                <div class="field"><label>Fan Trigger Temp °C</label><input type="number" id="p-ftrig" value="96" min="60" max="109" step="1"></div>
+              </div>
+              <div style="font-family:var(--serif);font-style:italic;font-size:11px;color:var(--ink3);line-height:1.6;border-left:2px solid var(--red-soft);padding:6px 10px;background:var(--red-light);margin-bottom:8px">
+                Fan state is solved automatically: if the no-fan steady-state temperature exceeds the trigger, the fan switches on and the system re-solves. Fan contributes to cooling only when actually needed.
+              </div>
+            </div>
+          </details>
+
+          <details open>
+            <summary>Pump Curve — Flow vs RPM</summary>
+            <div class="detail-body">
+              <div class="hint"><strong>Enter RPM and flow rate pairs</strong> — the pump flow at each engine RPM. Default is the standard KTM 390 estimate. Edit or add rows for other engines.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:flex-end;margin-bottom:8px">
+                <div><label>RPM</label><input type="number" id="pc-rpm" placeholder="e.g. 7000" min="500" max="15000"></div>
+                <div><label>Flow (LPM)</label><input type="number" id="pc-lpm" placeholder="e.g. 28.0" step="0.5" min="1"></div>
+                <button class="btn btn-outline" onclick="addPumpRow()" style="padding:8px 12px;font-size:10px">+ Add</button>
+              </div>
+              <div class="table-wrap" style="max-height:200px">
+                <table>
+                  <thead><tr><th>#</th><th>RPM</th><th>Flow (LPM)</th><th>Del</th></tr></thead>
+                  <tbody id="pump-tbody"></tbody>
+                </table>
+              </div>
+              <div class="btn-row" style="margin-top:8px">
+                <button class="btn btn-ghost" onclick="sortPumpTable()" style="font-size:10px;padding:6px 12px">Sort RPM</button>
+                <button class="btn btn-outline" onclick="loadKTMPump()" style="font-size:10px;padding:6px 12px">Reset to KTM 390</button>
+                <button class="btn btn-danger-sm" onclick="clearPumpTable()">Clear</button>
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>Heat Load Assumptions</summary>
+            <div class="detail-body">
+              <div class="field-row">
+                <div class="field"><label>Thermal Efficiency %</label><input type="number" id="p-eta" value="30"></div>
+                <div class="field"><label>Heat to Coolant %</label><input type="number" id="p-fc" value="50"></div>
+              </div>
+              <div class="hint" style="margin-bottom:0">Q = P_brake × (1/η − 1) × f<sub>coolant</sub></div>
+            </div>
+          </details>
+
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--rule)">
+            <button class="btn btn-primary" onclick="runAnalysis()" style="width:100%;padding:12px;font-size:12px;letter-spacing:0.14em">
+              ▶ &nbsp; Run Thermal Analysis
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ RIGHT — RESULTS ════════════════════════ -->
+    <div id="results-col">
+      <div class="sec-head">
+        <span class="sec-num">03</span>
+        <span class="sec-title">Analysis Results</span>
+        <div class="sec-rule"></div>
+      </div>
+
+      <div id="results-body">
+        <div style="background:var(--white);border:1px solid var(--rule);padding:0">
+          <div class="empty">
+            <div class="empty-icon">◈</div>
+            <p>Enter dyno data and system parameters,<br>then click <strong>Run Thermal Analysis</strong><br>to generate results.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer-strip" style="display:flex;align-items:center;justify-content:center;gap:12px">
+  <img id="logo-footer" class="logo-img-footer" alt="">
+  Military Institute of Science and Technology · MIST Blitz · Furiosa 2.0 · FSAE Japan 2026 · Cooling System Thermal Analysis
+  <img id="logo-footer2" class="logo-img-footer" alt="">
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════ -->
+<script>
+let dynoData = [];
+let charts   = {};
+
+// ── Pump curve data ───────────────────────────────────────────────────────────
+let pumpData = [
+  {rpm:1000, lpm:5.0},
+  {rpm:2000, lpm:10.0},
+  {rpm:3000, lpm:14.5},
+  {rpm:4000, lpm:18.5},
+  {rpm:5000, lpm:22.0},
+  {rpm:6000, lpm:26.0},
+  {rpm:7000, lpm:29.5},
+  {rpm:8000, lpm:33.0},
+  {rpm:9000, lpm:36.0},
+  {rpm:10000,lpm:38.5},
+  {rpm:11000,lpm:40.5},
+  {rpm:11500,lpm:41.5},
+];
+
+function renderPumpTable() {
+  const tb = document.getElementById('pump-tbody');
+  if(!tb) return;
+  tb.innerHTML = '';
+  pumpData.forEach((r,i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--ink3);font-size:10px">${i+1}</td>
+      <td><input type="number" value="${r.rpm}" onchange="pumpData[${i}].rpm=+this.value" style="width:70px"></td>
+      <td><input type="number" value="${r.lpm.toFixed(1)}" onchange="pumpData[${i}].lpm=+this.value" step="0.5" style="width:70px"></td>
+      <td><button onclick="pumpData.splice(${i},1);renderPumpTable()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;line-height:1">×</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function addPumpRow() {
+  const rpm = +document.getElementById('pc-rpm').value;
+  const lpm = +document.getElementById('pc-lpm').value;
+  if(!rpm || !lpm) { alert('RPM and Flow are required'); return; }
+  pumpData.push({rpm, lpm});
+  sortPumpTable();
+  document.getElementById('pc-rpm').value = '';
+  document.getElementById('pc-lpm').value = '';
+  document.getElementById('pc-rpm').focus();
+}
+
+function sortPumpTable() { pumpData.sort((a,b)=>a.rpm-b.rpm); renderPumpTable(); }
+function clearPumpTable() { if(pumpData.length && !confirm('Clear pump curve?')) return; pumpData=[]; renderPumpTable(); }
+function loadKTMPump() {
+  pumpData = [
+    {rpm:1000,lpm:5.0},{rpm:2000,lpm:10.0},{rpm:3000,lpm:14.5},
+    {rpm:4000,lpm:18.5},{rpm:5000,lpm:22.0},{rpm:6000,lpm:26.0},
+    {rpm:7000,lpm:29.5},{rpm:8000,lpm:33.0},{rpm:9000,lpm:36.0},
+    {rpm:10000,lpm:38.5},{rpm:11000,lpm:40.5},{rpm:11500,lpm:41.5},
+  ];
+  renderPumpTable();
+}
+
+// Helper: get pump flow at a given RPM via linear interpolation
+function getPumpFlow(rpm) {
+  if(!pumpData.length) return 20; // fallback
+  const rpms = pumpData.map(d=>d.rpm);
+  const lpms = pumpData.map(d=>d.lpm);
+  return lerp(rpm, rpms, lpms);
+}
+
+// ── Tabs ──────────────────────────────────────────
+function switchTab(tab) {
+  ['manual','paste','sample'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('active', ['manual','paste','sample'][i]===tab);
+  });
+}
+
+// ── Table management ──────────────────────────────
+function renderTable() {
+  const tb = document.getElementById('dyno-tbody');
+  tb.innerHTML = '';
+  dynoData.forEach((r,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--ink3);font-size:10px">${i+1}</td>
+      <td><input type="number" value="${r.rpm}" onchange="dynoData[${i}].rpm=+this.value" style="width:65px"></td>
+      <td><input type="number" value="${r.power.toFixed(2)}" onchange="dynoData[${i}].power=+this.value" step="0.1" style="width:65px"></td>
+      <td><input type="number" value="${r.torque??''}" onchange="dynoData[${i}].torque=this.value?+this.value:null" placeholder="—" step="0.1" style="width:65px"></td>
+      <td><button onclick="dynoData.splice(${i},1);renderTable()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;line-height:1">×</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function addRow() {
+  const rpm=+document.getElementById('inp-rpm').value;
+  const pow=+document.getElementById('inp-pow').value;
+  const trq=document.getElementById('inp-trq').value;
+  if(!rpm||!pow){alert('RPM and Power are required');return;}
+  dynoData.push({rpm,power:pow,torque:trq?+trq:null});
+  sortTable();
+  ['inp-rpm','inp-pow','inp-trq'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inp-rpm').focus();
+}
+
+function sortTable(){dynoData.sort((a,b)=>a.rpm-b.rpm);renderTable();}
+// ── Drivetrain speed calculator ───────────────────────────────────────────────
+// KTM 390 RC stock: primary reduction 3.071 (engine -> gearbox input)
+// v (km/h) = RPM / (gear_ratio × primary_reduction × final_drive) × tyre_circ × 60/1000
+// final_drive = rear_sprocket / front_sprocket
+
+function getGearRatios() {
+  return [1,2,3,4,5,6].map(g => +document.getElementById('gr-'+g).value).filter(v=>v>0);
+}
+
+function calcSpeed(rpm, gearRatio, primRed, sprF, sprR, tyreDiaMm) {
+  const finalDrive = sprR / sprF;
+  const totalRatio = gearRatio * primRed * finalDrive;
+  const tyreCircM  = Math.PI * (tyreDiaMm / 1000);  // metres
+  const speedMs    = (rpm / totalRatio) * tyreCircM / 60;
+  return speedMs * 3.6;  // km/h
+}
+
+function getGearSpeeds(rpm) {
+  const gears   = getGearRatios();
+  const primRed = +document.getElementById('p-primRed').value || 3.071;
+  const sprF    = +document.getElementById('p-sprF').value    || 14;
+  const sprR    = +document.getElementById('p-sprR').value    || 42;
+  const tyreDia = +document.getElementById('p-tyreDia').value || 520;
+  return gears.map((gr, i) => ({
+    gear: i + 1,
+    ratio: gr,
+    speed: calcSpeed(rpm, gr, primRed, sprF, sprR, tyreDia)
+  }));
+}
+
+function updateSpeedPreview() {
+  const rpms   = dynoData.map(d => d.rpm);
+  const powers = dynoData.map(d => d.power);
+  if (!rpms.length) { document.getElementById('speed-preview').textContent = 'Enter dyno data first.'; return; }
+  const peakRPM = rpms[powers.indexOf(Math.max(...powers))];
+  const speeds  = getGearSpeeds(peakRPM);
+  const el = document.getElementById('speed-preview');
+  el.innerHTML = '<strong style="color:var(--red-dark)">Speed at peak RPM (' + peakRPM.toLocaleString() + ' rpm):</strong><br>' +
+    speeds.map(s => 'Gear ' + s.gear + ': <strong>' + s.speed.toFixed(1) + ' km/h</strong>').join('&nbsp;&nbsp;|&nbsp;&nbsp;');
+}
+
+// ── DOM extras renderer: mini-kpi tiles + KPI card annotations ──────────────
+function renderDOMExtras(rad, P, peakRPM) {
+  // Mini KPI tiles
+  const grid = document.getElementById('mini-kpi-grid');
+  if(grid) {
+    const tiles = [
+      ['h_air',       rad.ha.toFixed(1),                    'W/m²K'],
+      ['Re',          Math.round(rad.Re).toLocaleString(),   rad.reg],
+      ['Pump flow',   rad.pumpLPM.toFixed(1) + ' LPM',      '@ peak RPM'],
+      ['Fan state',   rad.fanActivated ? P.fan + ' CFM' : 'OFF',
+                      rad.fanActivated ? 'active — above trigger' : 'below ' + P.fanTrig + '°C'],
+    ];
+    grid.innerHTML = '';
+    tiles.forEach(([l,v,u]) => {
+      const d = document.createElement('div');
+      d.className = 'mini-kpi';
+      d.innerHTML =
+        '<div class="mini-label">' + l + '</div>' +
+        '<div class="mini-value">' + v + '</div>' +
+        '<div class="mini-sub">'   + u + '</div>';
+      grid.appendChild(d);
+    });
+  }
+
+  // KPI card fan status annotation
+  const fanEl = document.getElementById('kpi-fan-status');
+  if(fanEl) {
+    fanEl.style.color = rad.fanActivated ? '#FCA5A5' : 'rgba(255,255,255,0.35)';
+    fanEl.textContent = rad.fanActivated
+      ? '▲ Fan ON — ' + P.fan + ' CFM active'
+      : '✓ Fan OFF — below ' + P.fanTrig + '°C trigger';
+  }
+
+  // KPI card pump status annotation
+  const pumpEl = document.getElementById('kpi-pump-status');
+  if(pumpEl) {
+    pumpEl.textContent = 'Pump: ' + rad.pumpLPM.toFixed(1) + ' LPM at ' + peakRPM.toLocaleString() + ' rpm';
+  }
+
+  // Literature correction callout (Ismael et al. 2016)
+  const litEl = document.getElementById('lit-corr-note');
+  if(litEl) {
+    if(P.litCorr) {
+      litEl.style.cssText = 'font-family:var(--serif);font-style:italic;font-size:12px;color:var(--ink2);background:var(--red-light);border:1px solid var(--red-soft);border-left:3px solid var(--red);padding:10px 14px;margin-bottom:1.2rem;line-height:1.7';
+      litEl.innerHTML =
+        '<strong style="font-family:var(--sans);font-style:normal;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--red-dark)">Literature correction active&nbsp;&nbsp;</strong>' +
+        'h_air scaled by (' + P.wavePitch + ' / 2.5)<sup>-0.63</sup> = <strong>' + rad.litFactor.toFixed(3) + '×</strong>, fitted from Ismael, Yun &amp; Ulugbek (2016), ' +
+        '<em>Radiator Heat Dissipation Performance</em>, J. Electronics Cooling &amp; Thermal Control 6, 88-96 (R&sup2; = 0.89, Tables 1-5).';
+    } else {
+      litEl.style.cssText = '';
+      litEl.innerHTML = '';
+    }
+  }
+}
+
+// ── Scenario table renderer (DOM-based, avoids nested template literals) ────
+function renderScenTable(scens, P) {
+  const GREEN = 'rgb(22,101,52)';
+  const AMBER = 'rgb(146,64,14)';
+  const RED   = 'rgb(185,28,28)';
+  const tbody = document.getElementById('scen-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  scens.forEach(s => {
+    const sTout   = s.ss.Tout;
+    const sMargin = ((s.maxSafeT||110) - sTout).toFixed(1);
+    const sCls    = sTout < (s.maxSafeT||110) ? 'cell-pass' : 'cell-fail';
+    const smCol   = +sMargin > 20 ? GREEN : +sMargin > 10 ? AMBER : RED;
+    const stCol   = sTout < 103  ? GREEN : sTout < 110    ? AMBER : RED;
+    const fanTxt  = s.ss.fanActivated ? P.fan + ' CFM' : 'OFF';
+    const fanCol  = s.ss.fanActivated ? AMBER : GREEN;
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' +
+        '<strong style="font-size:12px">' + s.n + '</strong><br>' +
+        '<span style="font-size:10px;color:var(--ink3);font-style:italic">' + s.d + '</span>' +
+      '</td>' +
+      '<td>' + (s.Q/1000).toFixed(1) + '</td>' +
+      '<td>' + (s.ss.Q_rad/1000).toFixed(2) + '</td>' +
+      '<td style="color:#92400E;font-weight:600">' + s.ss.pumpLPM.toFixed(1) + ' LPM</td>' +
+      '<td style="color:' + fanCol + ';font-weight:600">' + fanTxt + '</td>' +
+      '<td style="color:' + stCol  + ';font-weight:700">' + sTout.toFixed(2) + ' °C</td>' +
+      '<td style="color:' + smCol  + ';font-weight:700">' + sMargin + ' °C</td>' +
+      '<td class="' + sCls + '" style="font-size:13px;letter-spacing:0.06em">' +
+        (sTout < (s.maxSafeT||110) ? 'PASS' : 'FAIL') +
+      '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+renderTable();
+renderPumpTable();
+
+// ── Set logo src from embedded base64 ────────────────────────────────────────
+(function() {
+  const ids = ['logo-masthead', 'logo-footer', 'logo-footer2'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.src = LOGO_SRC;
+  });
+})();
+function clearTable(){if(dynoData.length&&!confirm('Clear all data?'))return;dynoData=[];renderTable();}
+
+function parseCsv(){
+  const lines=document.getElementById('csv-inp').value.trim().split('\n');
+  const out=[];
+  lines.forEach(l=>{
+    const p=l.split(',').map(s=>s.trim());
+    if(p.length>=2&&!isNaN(p[0])&&!isNaN(p[1]))
+      out.push({rpm:+p[0],power:+p[1],torque:p[2]?+p[2]:null});
+  });
+  if(!out.length){alert('No valid data. Format: RPM, Power_kW, Torque_Nm');return;}
+  dynoData=out.sort((a,b)=>a.rpm-b.rpm);
+  switchTab('manual');renderTable();
+}
+
+function loadSample(){
+  dynoData=[
+    {rpm:2000,power:4.2,torque:20.0},{rpm:3000,power:7.8,torque:24.8},
+    {rpm:4000,power:12.1,torque:28.9},{rpm:5000,power:16.5,torque:31.5},
+    {rpm:6000,power:20.8,torque:33.1},{rpm:7000,power:24.9,torque:33.9},
+    {rpm:8000,power:28.2,torque:33.7},{rpm:9000,power:31.2,torque:33.1},
+    {rpm:9500,power:32.0,torque:32.2},{rpm:10000,power:31.5,torque:30.1},
+    {rpm:10500,power:30.8,torque:28.0},{rpm:11000,power:29.5,torque:25.6},
+    {rpm:11500,power:27.2,torque:22.6},
+  ];
+  switchTab('manual');renderTable();
+}
+
+// ── Physics ───────────────────────────────────────
+function lerp(x,xs,ys){
+  if(x<=xs[0])return ys[0];
+  if(x>=xs[xs.length-1])return ys[ys.length-1];
+  for(let i=0;i<xs.length-1;i++){
+    if(x>=xs[i]&&x<=xs[i+1]){
+      const t=(x-xs[i])/(xs[i+1]-xs[i]);
+      return ys[i]+t*(ys[i+1]-ys[i]);
+    }
+  }
+  return ys[ys.length-1];
+}
+
+// ── Core radiator calc at a given Tcin ───────────────────────────────────
+function calcRad(P, Tcin_override, flow_override){
+  const Tcin = Tcin_override !== undefined ? Tcin_override : P.Tcin;
+  const fg=(P.tp-P.th)/1000, Af=P.W*P.H/1e6, Afr=P.ng*fg*(P.W/1000);
+  const Nf=P.ng*Math.round((P.D/1000)/(P.fp/1000));
+  const Afin=Nf*2*(P.D/1000)*(P.W/1000), Atube=P.nt*2*(P.D/1000)*(P.W/1000);
+  const Atot=Afin+Atube, Dh=2*fg*(P.D/1000)/(fg+P.D/1000);
+  const rho_c=961.5, Cp_c=4212, hc=3500;
+  const flowLPM = (flow_override !== undefined) ? flow_override : P.flow;
+  const mc=rho_c*(flowLPM/60000), Cc=mc*Cp_c, Rc=1/(hc*Atube);
+  const rho_a=1.127, Cp_a=1005, nu=1.691e-5, ka=0.02756, Pr=0.699;
+  const Vf=P.fan*0.000472, Vr=(P.vspd/3.6)*Af*P.beta, Vt=Vr+Vf;
+  const ma=rho_a*Vt, Ca=ma*Cp_a, vm=Vt/Afr, Re=vm*Dh/nu;
+  let ha, reg;
+  if(Re<2300){ha=4.44*ka/Dh; reg='Laminar';}
+  else if(Re<4000){
+    const hl=4.44*ka/Dh, jt=0.023*Re**-0.2, ht=jt*rho_a*vm*Cp_a/Pr**(2/3);
+    ha=hl+((Re-2300)/1700)*(ht-hl); reg='Transitional';
+  } else {
+    const j=0.023*Re**-0.2; ha=j*rho_a*vm*Cp_a/Pr**(2/3); reg='Turbulent';
+  }
+
+  // ── Literature correction — Ismael, Yun & Ulugbek (2016) ──────────────────
+  // Fitted from Tables 1-5 of the paper (Va=10 m/s, Gw≈166 L/min sweep):
+  //   Qn ∝ P_wave^(-0.63), R²=0.89, reference case P_wave = 2.5 mm
+  // Applied as a multiplicative correction on h_air for the fine louver/wave
+  // pitch inside the fin — a geometric feature not otherwise modelled here.
+  let litFactor = 1;
+  if (P.litCorr) {
+    const P_ref = 2.5, k_fit = -0.63;
+    litFactor = Math.pow((P.wavePitch || 2.5) / P_ref, k_fit);
+    ha *= litFactor;
+  }
+
+  const kf=205, tf=0.00008, mf=Math.sqrt(2*ha/(kf*tf)), mL=mf*fg/2;
+  const ef=Math.tanh(mL)/mL, eo=1-(Afin/Atot)*(1-ef);
+  const Ra=1/(eo*ha*Atot), Rt=Ra+Rc+5e-6, UA=1/Rt;
+  const Cmin=Math.min(Ca,Cc), Cmax=Math.max(Ca,Cc), Cs=Cmin/Cmax, NTU=UA/Cmin;
+  const eps=1-Math.exp((NTU**0.22/Cs)*(Math.exp(-Cs*NTU**0.78)-1));
+  const Qm=Cmin*(Tcin-P.Tamb), Qa=eps*Qm, Tout=Tcin-Qa/Cc;
+  return{UA,NTU,eps,Qa,Tout,Re,ha,reg,ef,Atot,Ca,Cc,Tcin,litFactor};
+}
+
+// ── Steady-state solver ───────────────────────────────────────────────────────
+// Finds Tcin (radiator inlet temp) where Q_rad == Q_engine.
+// Fan logic: OFF below trigger, ON at full CFM above.
+// Pump logic: flow interpolated from pump curve at given RPM.
+// rpm param: engine RPM at this operating point (for pump curve lookup)
+function solveSSTemp(P, Q_eng, rpm) {
+  const tol      = 0.5;    // W convergence tolerance
+  const maxIter  = 80;
+  const fanCFM   = P.fan;
+  const fanTrigT = P.fanTrig;
+  const upperBound = P.maxSafeT || P.Tcin || 150;  // use max safe temp as solver ceiling
+
+  // Get pump flow at this RPM from the pump curve
+  const pumpLPM = (rpm !== undefined) ? getPumpFlow(rpm) : P.flow;
+
+  function bisect(fanOn) {
+    const Vfan = fanOn ? fanCFM * 0.000472 : 0;
+    const Pp   = {...P, fan: fanCFM};  // keep fan CFM in P but control via Vfan override below
+    // We need to temporarily set fan in calcRad — easiest: pass a modified P
+    const Pm   = {...P, fan: fanOn ? fanCFM : 0};
+    let lo = P.Tamb + 1, hi = Math.max(upperBound + 5, 150);  // search up to 5°C above limit
+    const r_hi = calcRad(Pm, hi, pumpLPM);
+    if(r_hi.Qa < Q_eng) return { ...r_hi, Tcin:hi, Tout:r_hi.Tout, converged:false, Q_rad:r_hi.Qa, pumpLPM, fanOn };
+    for(let i=0; i<maxIter; i++){
+      const mid = (lo+hi)/2;
+      const r   = calcRad(Pm, mid, pumpLPM);
+      const err = r.Qa - Q_eng;
+      if(Math.abs(err) < tol) return { ...r, Tcin:mid, Tout:r.Tout, converged:true, Q_rad:r.Qa, pumpLPM, fanOn };
+      if(err < 0) lo = mid; else hi = mid;
+    }
+    const r = calcRad(Pm, (lo+hi)/2, pumpLPM);
+    return { ...r, Tcin:(lo+hi)/2, Tout:r.Tout, converged:true, Q_rad:r.Qa, pumpLPM, fanOn };
+  }
+
+  // Pass 1: solve with fan OFF
+  const noFan = bisect(false);
+
+  // Fan on/off decision: if T_out (= Tcin - small delta) > trigger → fan ON
+  // Use Tcin as proxy — if steady-state Tcin > fanTrigT, fan runs
+  if(noFan.Tcin > fanTrigT) {
+    // Pass 2: solve with fan ON
+    const withFan = bisect(true);
+    withFan.fanActivated = true;
+    return withFan;
+  }
+
+  noFan.fanActivated = false;
+  return noFan;
+}
+
+// ── Run analysis ──────────────────────────────────
+function runAnalysis(){
+  if(dynoData.length<2){alert('Please enter at least 2 dyno data points.');return;}
+
+  // Read drivetrain inputs
+  const gears    = getGearRatios();
+  const primRed  = +document.getElementById('p-primRed').value || 3.071;
+  const sprF     = +document.getElementById('p-sprF').value    || 14;
+  const sprR     = +document.getElementById('p-sprR').value    || 42;
+  const tyreDia  = +document.getElementById('p-tyreDia').value || 520;
+  const maxSafeT = +document.getElementById('p-Tcin').value    || 110;
+
+  const P={
+    W:+document.getElementById('p-W').value,
+    H:+document.getElementById('p-H').value,
+    D:+document.getElementById('p-D').value,
+    tp:+document.getElementById('p-tp').value,
+    th:+document.getElementById('p-th').value,
+    nt:+document.getElementById('p-nt').value,
+    ng:+document.getElementById('p-ng').value,
+    fp:+document.getElementById('p-fp').value,
+    wavePitch:+document.getElementById('p-wavep').value || 2.5,
+    litCorr: document.getElementById('p-litcorr').checked,
+    Tcin:  maxSafeT,           // upper bound for solver AND pass/fail threshold
+    maxSafeT: maxSafeT,
+    Tamb:+document.getElementById('p-Tamb').value,
+    flow:20,
+    fan:+document.getElementById('p-fan').value,
+    vspd: 60,                  // default fallback; overridden per-gear-per-RPM below
+    beta:+document.getElementById('p-beta').value,
+    fanTrig:+document.getElementById('p-ftrig').value||96,
+  };
+  const eta=+document.getElementById('p-eta').value/100;
+  const fc=+document.getElementById('p-fc').value/100;
+  const fanTrig = P.fanTrig;  // read from P object (already parsed above)
+
+  const rpms   = dynoData.map(d => d.rpm);
+  const powers  = dynoData.map(d => d.power * 1000); // W
+  const torques = dynoData.map(d => d.torque);
+  const hasTorque = torques.some(t => t !== null);
+
+  // ── Engine heat load across RPM range ──────────────────────────────────
+  const rpmRange = [];
+  for(let r = rpms[0]; r <= rpms[rpms.length-1]; r += 100) rpmRange.push(r);
+  const Qeng = rpmRange.map(r => lerp(r, rpms, powers) * (1/eta - 1) * fc);
+
+  // Now rpmRange is ready — build gear speed map
+  const topGearIdx    = gears.length - 1;
+  const allGearSpeeds = rpmRange.map(r =>
+    gears.map((gr, gi) => ({
+      gear: gi + 1,
+      speed: calcSpeed(r, gr, primRed, sprF, sprR, tyreDia)
+    }))
+  );
+
+  const Ppeak  = Math.max(...powers);
+  const peakRPM = rpms[powers.indexOf(Ppeak)];
+  const Qpeak  = Ppeak * (1/eta - 1) * fc;
+  const Qavg   = Qeng.reduce((a,b) => a+b, 0) / Qeng.length;
+
+  // ── STEADY-STATE SOLVE: T_out at each RPM at current vehicle speed ─────
+  // For each RPM, find Tcin where Q_rad == Q_engine via bisection
+  // ── Solve steady-state T_out for every gear × RPM combination ────────────
+  // For each RPM and each gear, vehicle speed differs => different ram air => different T_out
+  const ssByGear = gears.map((gr, gi) => {
+    return rpmRange.map((r, i) => {
+      const vSpd = calcSpeed(r, gr, primRed, sprF, sprR, tyreDia);
+      const Qe   = Qeng[i];
+      return solveSSTemp({...P, vspd: vSpd}, Qe, r);
+    });
+  });
+
+  // Best case per RPM = highest gear (most speed = most ram air = lowest T_out)
+  // Worst case per RPM = lowest gear (least speed = least ram air = highest T_out)
+  const ToutByGear = ssByGear.map(gearData => gearData.map(s => s.Tout));
+  const TcinByGear = ssByGear.map(gearData => gearData.map(s => s.Tcin));
+
+  // For backward compat with existing charts: use highest gear as "normal" case
+  // topGearIdx already declared above
+  const ssSolve = ssByGear[topGearIdx];
+  const ToutSS  = ToutByGear[topGearIdx];
+  const TcinSS  = TcinByGear[topGearIdx];
+  const QradSS  = ssSolve.map(s => s.Q_rad / 1000);
+
+  // Worst case (1st gear, lowest speed) and best case (top gear)
+  const ToutWorstGear = ToutByGear[0];
+  const ToutBestGear  = ToutByGear[topGearIdx];
+
+  // Speed arrays per gear at peak RPM (for table display)
+  const speedsAtPeak = gears.map((gr, gi) =>
+    calcSpeed(peakRPM, gr, primRed, sprF, sprR, tyreDia)
+  );
+
+  // ── Current operating point (at RPM where user speed is set) ───────────
+  // Use peak RPM as reference for the KPI cards
+  // Peak solve: use top gear speed at peak RPM (most realistic FSAE condition)
+  const peakSpeedTopGear = calcSpeed(peakRPM, gears[topGearIdx], primRed, sprF, sprR, tyreDia);
+  const radAtPeak = solveSSTemp({...P, vspd: peakSpeedTopGear}, Qpeak, peakRPM);
+  const radAtPeak1st = solveSSTemp({...P, vspd: calcSpeed(peakRPM, gears[0], primRed, sprF, sprR, tyreDia)}, Qpeak, peakRPM);
+  const rad = radAtPeak;
+
+  // ── Speed sweep: T_out vs vehicle speed at PEAK engine load ────────────
+  const vRange = [];
+  for(let v = 0; v <= 120; v += 5) vRange.push(v);
+  // Speed sweep — pure speed vs T_out at peak load (not gear-dependent here)
+  const ToutV = vRange.map(v => {
+    const sol = solveSSTemp({...P, vspd: v}, Qpeak, peakRPM);
+    return sol.Tout;
+  });
+  // Top gear speed range across RPM band
+  const vRangeTopGear = rpmRange.map(r => calcSpeed(r, gears[topGearIdx], primRed, sprF, sprR, tyreDia));
+  const QradV = vRange.map(v => calcRad({...P, vspd: v}, P.Tcin).Qa / 1000);
+
+  const margin=(110-rad.Tout).toFixed(1);
+  const mClass=+margin>20?'c-green':+margin>10?'c-amber':'c-red';
+  const tClass=rad.Tout<103?'c-green':rad.Tout<110?'c-amber':'c-red';
+  const passTag=rad.Tout<110?'<span class="kpi-tag tag-pass">PASS</span>':'<span class="kpi-tag tag-fail">FAIL</span>';
+
+  // Solve SS temp for each scenario independently
+  const midRPM  = rpms[Math.floor(rpms.length/2)];
+  const midSpeed = calcSpeed(midRPM, gears[topGearIdx], primRed, sprF, sprR, tyreDia);
+  const scenDefs = [
+    {n:'Worst case — peak RPM, 1st gear', d:`${peakRPM.toLocaleString()} rpm @ ${calcSpeed(peakRPM,gears[0],primRed,sprF,sprR,tyreDia).toFixed(1)} km/h`, Q:Qpeak, rpm:peakRPM, vspd:calcSpeed(peakRPM,gears[0],primRed,sprF,sprR,tyreDia)},
+    {n:'Peak RPM, top gear',              d:`${peakRPM.toLocaleString()} rpm @ ${peakSpeedTopGear.toFixed(1)} km/h`,                                       Q:Qpeak, rpm:peakRPM, vspd:peakSpeedTopGear},
+    {n:'Sustained endurance (avg load)',  d:`Mid RPM @ top gear — ${midSpeed.toFixed(1)} km/h`,                                                            Q:20000, rpm:midRPM,  vspd:midSpeed},
+  ];
+  const scens = scenDefs.map(s => {
+    const sol = solveSSTemp({...P, vspd: s.vspd}, s.Q, s.rpm);
+    return { ...s, ss: sol, maxSafeT: P.maxSafeT };
+  });
+
+  // colour helpers for chart
+  const RED='rgb(185,28,28)',RED_A='rgba(185,28,28,0.12)';
+  const INK='rgb(26,10,10)',RULE='rgb(231,213,213)';
+  const GREEN='rgb(22,101,52)',AMBER='rgb(146,64,14)';
+
+  const chartOpts={
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{
+      titleFont:{family:'Merriweather Sans',size:11},
+      bodyFont:{family:'Merriweather Sans',size:11},
+      backgroundColor:'rgba(26,10,10,0.92)',
+      titleColor:'rgba(255,255,255,0.9)',
+      bodyColor:'rgba(255,255,255,0.7)',
+      borderColor:RED,borderWidth:1,padding:10
+    }},
+    scales:{
+      x:{ticks:{color:'#78716C',font:{family:'Merriweather Sans',size:10}},grid:{color:'rgba(231,213,213,0.8)'},border:{color:RULE}},
+      y:{ticks:{color:'#78716C',font:{family:'Merriweather Sans',size:10}},grid:{color:'rgba(231,213,213,0.8)'},border:{color:RULE}}
+    }
+  };
+
+  document.getElementById('results-body').innerHTML = `
+
+    <div class="status-strip">
+      <div class="status-dot"></div>
+      Steady-state solve complete &nbsp;·&nbsp; ${P.vspd} km/h &nbsp;·&nbsp; Fan: ${rad.fanActivated?P.fan+' CFM ON':'OFF (below '+P.fanTrig+'°C)'} &nbsp;·&nbsp; Pump @ peak: ${rad.pumpLPM.toFixed(1)} LPM &nbsp;·&nbsp; T<sub>amb</sub> = ${P.Tamb}°C
+      ${P.litCorr ? '&nbsp;·&nbsp; Lit. correction: ' + (rad.litFactor>=1?'+':'') + ((rad.litFactor-1)*100).toFixed(1) + '% h_air' : ''}
+    </div>
+
+    <div id="lit-corr-note"></div>
+
+    <div class="kpi-grid">
+      <div class="kpi kpi-accent">
+        ${passTag}
+        <div class="kpi-label">Steady-state T_out (peak RPM)</div>
+        <div class="kpi-value">${rad.Tout.toFixed(2)}</div>
+        <div class="kpi-unit">°C (Q_rad = Q_eng at ${peakRPM.toLocaleString()} rpm) &nbsp;·&nbsp; limit ${P.maxSafeT}°C</div>
+        <div id="kpi-fan-status" style="font-family:var(--sans);font-size:10px;margin-top:6px"></div>
+        <div id="kpi-pump-status" style="font-family:var(--sans);font-size:10px;margin-top:2px;color:rgba(255,255,255,0.35)"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Safety margin</div>
+        <div class="kpi-value ${mClass}">${margin}</div>
+        <div class="kpi-unit">°C below 110 °C</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Q rejected</div>
+        <div class="kpi-value c-red">${(rad.Qa/1000).toFixed(2)}</div>
+        <div class="kpi-unit">kW &nbsp;·&nbsp; = engine load at peak RPM</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Peak engine Q load</div>
+        <div class="kpi-value c-amber">${(Qpeak/1000).toFixed(1)}</div>
+        <div class="kpi-unit">kW &nbsp;·&nbsp; from dyno data</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Overall conductance</div>
+        <div class="kpi-value">${rad.UA.toFixed(1)}</div>
+        <div class="kpi-unit">W/K</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Effectiveness</div>
+        <div class="kpi-value">${(rad.eps*100).toFixed(1)}</div>
+        <div class="kpi-unit">% &nbsp;·&nbsp; NTU = ${rad.NTU.toFixed(3)}</div>
+      </div>
+    </div>
+
+    <div class="mini-grid" id="mini-kpi-grid">
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-label">Power & Torque Curve <span>from dyno data</span></div>
+        <div class="chart-wrap"><canvas id="ch-dyno"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-label">Pump Flow vs RPM <span>coolant flow rate curve</span></div>
+        <div class="chart-wrap"><canvas id="ch-pump"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-label">Steady-state T_out vs RPM <span>solved: Q_rad = Q_engine, pump curve + fan logic active</span></div>
+        <div class="chart-wrap"><canvas id="ch-heat"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:1rem">
+      <div class="chart-label">Steady-state T_out vs Vehicle Speed <span>at peak engine load · solved Q_rad = Q_eng</span></div>
+      <div class="chart-wrap-lg"><canvas id="ch-tout"></canvas></div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:1rem">
+      <div class="chart-label">Radiator Heat Rejected vs Vehicle Speed <span>vs engine heat loads</span></div>
+      <div class="chart-wrap-lg"><canvas id="ch-qrad"></canvas></div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:1.5rem">
+      <div class="chart-label">Steady-state T_out vs RPM — All Gears <span>speed calculated from gear ratio + tyre diameter</span></div>
+      <div class="chart-wrap-lg"><canvas id="ch-gears"></canvas></div>
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem;border:1px solid var(--rule)">
+      <div class="card-head"><span class="card-title">Speed at Peak RPM — By Gear</span></div>
+      <div class="card-body" style="padding:14px">
+        <div id="gear-speed-table"></div>
+      </div>
+    </div>
+
+    <div class="sec-divider">
+      <div class="div-line"></div>
+      <div class="div-label">EDR Scenario Validation</div>
+      <div class="div-line"></div>
+    </div>
+
+    <table class="scenario-table">
+      <thead>
+        <tr>
+          <th style="text-align:left;min-width:160px">Scenario</th>
+          <th>Engine Q (kW)</th>
+          <th>Q_rad (kW)</th>
+          <th>Pump Flow</th>
+          <th>Fan State</th>
+          <th>T_out (°C)</th>
+          <th>Margin (°C)</th>
+          <th>Verdict</th>
+        </tr>
+      </thead>
+      <tbody id="scen-tbody"></tbody>
+    </table>
+
+    <div style="font-family:var(--serif);font-style:italic;font-size:11px;color:var(--ink3);margin-top:10px;line-height:1.8;padding:10px;border-left:2px solid var(--rule)">
+      T_out values are solved steady-state temperatures where Q_rad exactly equals Q_engine at each operating point (bisection method, tolerance 0.5 W).
+      These represent equilibrium temperatures the system would reach if held at constant speed and RPM.
+      Thermal efficiency η = ${(eta*100).toFixed(0)}% · Heat fraction to coolant f = ${(fc*100).toFixed(0)}%.
+    </div>
+  `;
+
+  // Render scenario table rows using DOM (avoids nested template literal issues)
+  renderScenTable(scens, P);
+  renderDOMExtras(rad, P, peakRPM);
+
+  // Draw charts after DOM renders
+  setTimeout(() => {
+  // destroy old charts
+  Object.values(charts).forEach(c=>c.destroy());
+  charts={};
+
+  // 1. Dyno curve
+  const dsSets=[{
+    label:'Power (kW)',data:powers.map(p=>p/1000),
+    borderColor:RED,backgroundColor:RED_A,borderWidth:2.5,
+    pointRadius:5,pointBackgroundColor:RED,pointBorderColor:'white',pointBorderWidth:1.5,
+    tension:0.35,fill:true
+  }];
+  if(hasTorque){
+    dsSets.push({
+      label:'Torque (Nm)',data:torques,
+      borderColor:'#92400E',backgroundColor:'transparent',borderWidth:1.5,
+      pointRadius:3,pointBackgroundColor:'#92400E',tension:0.35,fill:false,yAxisID:'y2'
+    });
+  }
+  charts.dyno=new Chart(document.getElementById('ch-dyno'),{
+    type:'line',data:{labels:rpms,datasets:dsSets},
+    options:{...chartOpts,
+      plugins:{...chartOpts.plugins,legend:{display:true,labels:{color:'#4B2020',font:{family:'Merriweather Sans',size:10},boxWidth:12}}},
+      scales:{...chartOpts.scales,
+        x:{...chartOpts.scales.x,title:{display:true,text:'Engine RPM',color:'#78716C',font:{family:'Merriweather Sans',size:10}}},
+        y:{...chartOpts.scales.y,title:{display:true,text:'Power (kW)',color:RED,font:{family:'Merriweather Sans',size:10}}},
+        ...(hasTorque?{y2:{position:'right',ticks:{color:'#92400E',font:{family:'Merriweather Sans',size:10}},grid:{drawOnChartArea:false},
+          title:{display:true,text:'Torque (Nm)',color:'#92400E',font:{family:'Merriweather Sans',size:10}}}}:{})
+      }
+    }
+  });
+
+  // 1b. Pump curve chart
+  charts.pump = new Chart(document.getElementById('ch-pump'), {
+    type: 'line',
+    data: {
+      labels: pumpData.map(d => d.rpm.toLocaleString()),
+      datasets: [{
+        label: 'Pump flow (LPM)',
+        data: pumpData.map(d => d.lpm),
+        borderColor: '#92400E', backgroundColor: 'rgba(146,64,14,0.12)',
+        borderWidth: 2.5, pointRadius: 5,
+        pointBackgroundColor: '#92400E', pointBorderColor: 'white', pointBorderWidth: 1.5,
+        tension: 0.35, fill: true
+      }]
+    },
+    options: { ...chartOpts,
+      plugins: { ...chartOpts.plugins,
+        legend: { display: false },
+        tooltip: { ...chartOpts.plugins.tooltip,
+          callbacks: { label: ctx => `${ctx.parsed.y.toFixed(1)} LPM at ${pumpData[ctx.dataIndex].rpm.toLocaleString()} rpm` }
+        }
+      },
+      scales: { ...chartOpts.scales,
+        x: { ...chartOpts.scales.x, title: { display:true, text:'Engine RPM', color:'#78716C', font:{family:'Merriweather Sans',size:10} } },
+        y: { ...chartOpts.scales.y, min: 0,
+          title: { display:true, text:'Flow rate (LPM)', color:'#92400E', font:{family:'Merriweather Sans',size:10} }
+        }
+      }
+    }
+  });
+
+  // 2. Steady-state T_out vs RPM
+  const tMin2 = Math.min(...ToutSS), tMax2 = Math.max(...ToutSS);
+  const yMin2 = Math.max(P.Tamb, Math.floor(tMin2 - 5));
+  const yMax2 = Math.min(160, Math.ceil(tMax2 + 10));
+  charts.heat=new Chart(document.getElementById('ch-heat'),{
+    type:'line',
+    data:{labels:rpmRange,datasets:[
+      {
+        label:'Steady-state T_out (°C)',
+        data:ToutSS,
+        borderColor:RED, backgroundColor:RED_A,
+        borderWidth:2.5, pointRadius:0, tension:0.4, fill:true
+      },
+      {
+        label:'Steady-state T_in to radiator (°C)',
+        data:TcinSS,
+        borderColor:'#92400E', backgroundColor:'transparent',
+        borderWidth:1.5, borderDash:[4,3], pointRadius:0, tension:0.4
+      },
+      {
+        label:'Fan ON points',
+        data: ssSolve.map((s,i) => s.fanActivated ? ToutSS[i] : null),
+        borderColor:'transparent', backgroundColor:'rgba(245,158,11,0.9)',
+        borderWidth:0, pointRadius:5, pointStyle:'triangle',
+        showLine:false,
+        pointBackgroundColor:'#F59E0B',
+      },
+      {
+        label:'110°C limit',
+        data:rpmRange.map(()=>P.maxSafeT),
+        borderColor:'#7F1D1D', backgroundColor:'transparent',
+        borderWidth:1, borderDash:[6,4], pointRadius:0
+      },
+      {
+        label:fanTrig+'°C fan trigger',
+        data:rpmRange.map(()=>fanTrig),
+        borderColor:AMBER, backgroundColor:'transparent',
+        borderWidth:1, borderDash:[3,3], pointRadius:0
+      }
+    ]},
+    options:{...chartOpts,
+      plugins:{...chartOpts.plugins,
+        legend:{display:true,labels:{color:'#4B2020',font:{family:'Merriweather Sans',size:10},boxWidth:12}}},
+      scales:{...chartOpts.scales,
+        x:{...chartOpts.scales.x,
+          title:{display:true,text:'Engine RPM',color:'#78716C',font:{family:'Merriweather Sans',size:10}}},
+        y:{...chartOpts.scales.y, min:yMin2, max:yMax2,
+          title:{display:true,text:'Coolant Temperature (°C)',color:'#78716C',font:{family:'Merriweather Sans',size:10}}}
+      }
+    }
+  });
+
+  // 3. T_out vs speed
+  const tMinV=Math.min(...ToutV),tMaxV=Math.max(...ToutV);
+  const yMinV=Math.max(P.Tamb,Math.floor(tMinV-5));
+  const yMaxV=Math.min(160,Math.ceil(Math.max(tMaxV,115)+5));
+  charts.tout=new Chart(document.getElementById('ch-tout'),{
+    type:'line',
+    data:{labels:vRange.map(v=>v+' km/h'),datasets:[
+      {label:'Steady-state T_out at peak load (°C)',data:ToutV,borderColor:RED,backgroundColor:RED_A,borderWidth:2.5,pointRadius:4,pointBackgroundColor:RED,pointBorderColor:'white',pointBorderWidth:1.5,tension:0.35,fill:true},
+      {label:'110°C KTM limit',data:vRange.map(()=>P.maxSafeT),borderColor:'#7F1D1D',backgroundColor:'transparent',borderWidth:1.5,borderDash:[6,4],pointRadius:0},
+      {label:fanTrig+'°C fan trigger',data:vRange.map(()=>fanTrig),borderColor:AMBER,backgroundColor:'transparent',borderWidth:1.2,borderDash:[3,3],pointRadius:0},
+    ]},
+    options:{...chartOpts,
+      plugins:{...chartOpts.plugins,legend:{display:true,labels:{color:'#4B2020',font:{family:'Merriweather Sans',size:10},boxWidth:12}}},
+      scales:{...chartOpts.scales,
+        y:{...chartOpts.scales.y,min:yMinV,max:yMaxV,title:{display:true,text:'Steady-state T_out (°C)',color:'#78716C',font:{family:'Merriweather Sans',size:10}}}
+      }
+    }
+  });
+
+  // 4. Q_rad vs speed
+  charts.qrad=new Chart(document.getElementById('ch-qrad'),{
+    type:'bar',
+    data:{labels:vRange.map(v=>v+' km/h'),datasets:[
+      {label:'Q rad rejected (kW)',data:QradV,backgroundColor:'rgba(185,28,28,0.15)',borderColor:RED,borderWidth:1},
+      {label:'Peak Q engine',data:vRange.map(()=>Qpeak/1000),type:'line',borderColor:'#7F1D1D',backgroundColor:'transparent',borderWidth:1.5,borderDash:[6,4],pointRadius:0},
+      {label:'Avg Q engine',data:vRange.map(()=>Qavg/1000),type:'line',borderColor:AMBER,backgroundColor:'transparent',borderWidth:1.2,borderDash:[3,3],pointRadius:0},
+    ]},
+    options:{...chartOpts,
+      plugins:{...chartOpts.plugins,legend:{display:true,labels:{color:'#4B2020',font:{family:'Merriweather Sans',size:10},boxWidth:12}}},
+      scales:{...chartOpts.scales,
+        y:{...chartOpts.scales.y,title:{display:true,text:'Heat (kW)',color:'#78716C',font:{family:'Merriweather Sans',size:10}}}
+      }
+    }
+  });
+
+  // 5. T_out vs RPM — all gears
+  const gearColors = ['#B91C1C','#C2410C','#B45309','#15803D','#0369A1','#6D28D9'];
+  if(document.getElementById('ch-gears')) {
+    const gearDatasets = ToutByGear.map((tArr, gi) => ({
+      label: 'Gear ' + (gi+1) + ' (' + gears[gi].toFixed(3) + ')',
+      data:  tArr,
+      borderColor:     gearColors[gi % gearColors.length],
+      backgroundColor: 'transparent',
+      borderWidth: gi === topGearIdx ? 2.5 : 1.5,
+      borderDash: gi === topGearIdx ? [] : [4,3],
+      pointRadius: 0,
+      tension: 0.35,
+    }));
+    gearDatasets.push(
+      { label: P.maxSafeT+'°C limit',      data: rpmRange.map(()=>P.maxSafeT), borderColor:'#7F1D1D', backgroundColor:'transparent', borderWidth:1.5, borderDash:[6,4], pointRadius:0 },
+      { label: P.fanTrig+'°C fan trigger', data: rpmRange.map(()=>P.fanTrig),  borderColor:'#F59E0B', backgroundColor:'transparent', borderWidth:1,   borderDash:[3,3], pointRadius:0 }
+    );
+    const tAllGears = ToutByGear.flat();
+    const yMinG = Math.max(P.Tamb, Math.floor(Math.min(...tAllGears) - 3));
+    const yMaxG = Math.ceil(Math.max(Math.max(...tAllGears), P.maxSafeT) + 8);
+    charts.gears = new Chart(document.getElementById('ch-gears'), {
+      type: 'line',
+      data: { labels: rpmRange, datasets: gearDatasets },
+      options: { ...chartOpts,
+        plugins: { ...chartOpts.plugins,
+          legend: { display:true, labels:{ color:'#4B2020', font:{family:'Merriweather Sans',size:10}, boxWidth:14 } }
+        },
+        scales: { ...chartOpts.scales,
+          x: { ...chartOpts.scales.x, title:{display:true, text:'Engine RPM', color:'#78716C', font:{family:'Merriweather Sans',size:10}} },
+          y: { ...chartOpts.scales.y, min:yMinG, max:yMaxG, title:{display:true, text:'Steady-state T_out (°C)', color:'#78716C', font:{family:'Merriweather Sans',size:10}} }
+        }
+      }
+    });
+  }
+
+  // 6. Gear speed table
+  const gst = document.getElementById('gear-speed-table');
+  if (gst) {
+    // gearColors already defined above
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--sans)">';
+    html += '<thead><tr style="background:var(--red-deep);color:white">';
+    ['Gear','Ratio','Speed at peak RPM','T_out at peak RPM','Pump Flow','Fan','Result'].forEach(h => {
+      html += '<th style="padding:7px 10px;text-align:center">' + h + '</th>';
+    });
+    html += '</tr></thead><tbody>';
+    gears.forEach((gr, gi) => {
+      const peakIdx = rpmRange.reduce((best,r,i) => Math.abs(r-peakRPM)<Math.abs(rpmRange[best]-peakRPM)?i:best, 0);
+      const solG    = ssByGear[gi][peakIdx];
+      const spd     = speedsAtPeak[gi];
+      const tg      = ToutByGear[gi][peakIdx];
+      const pass    = tg < P.maxSafeT;
+      const marg    = (P.maxSafeT - tg).toFixed(1);
+      const bg      = gi%2===0 ? 'background:var(--red-light)' : '';
+      html += '<tr style="' + bg + '">';
+      html += '<td style="padding:7px 10px;text-align:center;font-weight:700;color:' + gearColors[gi%6] + '">Gear ' + (gi+1) + '</td>';
+      html += '<td style="padding:7px 10px;text-align:center">' + gr.toFixed(3) + '</td>';
+      html += '<td style="padding:7px 10px;text-align:center;font-weight:600">' + spd.toFixed(1) + ' km/h</td>';
+      html += '<td style="padding:7px 10px;text-align:center;font-weight:700;color:' + (pass?'#166534':'#B91C1C') + '">' + tg.toFixed(1) + ' °C</td>';
+      html += '<td style="padding:7px 10px;text-align:center;color:#92400E">' + solG.pumpLPM.toFixed(1) + ' LPM</td>';
+      html += '<td style="padding:7px 10px;text-align:center;color:' + (solG.fanActivated?'#92400E':'#166534') + '">' + (solG.fanActivated?'ON':'OFF') + '</td>';
+      html += '<td style="padding:7px 10px;text-align:center;font-weight:700;color:' + (pass?'#166534':'#B91C1C') + '">' + (pass?'PASS (+'+marg+'°C)':'FAIL') + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    gst.innerHTML = html;
+  }
+
+  }, 0); // end setTimeout — DOM has now rendered
+}
+
+renderTable();
+</script>
+</body>
+</html>
