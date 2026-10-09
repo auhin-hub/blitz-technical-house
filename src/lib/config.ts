@@ -73,6 +73,7 @@ export const DISCIPLINES: Discipline[] = [
     title: 'Electronics',
     blurb: 'Power budget, wiring / harness list, DAQ & telemetry.',
     workbook: 'Blitz_Electronics_WorkingFile.xlsx',
+    built: true,
     tools: [
       { title: 'Power budget', anchor: 'power', blurb: 'Load currents vs stator output; margin.', spec: 'TOOL_SPECS §4a' },
       { title: 'Wiring / harness list', anchor: 'wiring', blurb: 'Connection table + colour-code guide (editable grid).', spec: 'TOOL_SPECS §4b' },
@@ -84,6 +85,7 @@ export const DISCIPLINES: Discipline[] = [
     title: 'Chassis',
     blurb: 'Tube stress & FoS, torsional stiffness, component-mass tracker.',
     workbook: 'Blitz_Chassis_WorkingFile.xlsx',
+    built: true,
     tools: [
       { title: 'Tube stress & FoS', anchor: 'tube', blurb: 'Section area, axial stress, factor of safety; torsional stiffness.', spec: 'TOOL_SPECS §2a' },
       { title: 'Component-mass tracker', anchor: 'mass', blurb: 'CAD vs measured per component → feeds MassBudget.', spec: 'TOOL_SPECS §2b' },
@@ -104,6 +106,7 @@ export const DISCIPLINES: Discipline[] = [
     title: 'Ergonomics',
     blurb: 'Driver fit + egress checklist.',
     workbook: 'Blitz_Ergonomics_WorkingFile.xlsx',
+    built: true,
     tools: [
       { title: 'Driver fit + egress', anchor: 'fit', blurb: '5th/95th-%ile fit, reach, egress < 5 s checklist.', spec: 'TOOL_SPECS §5' },
     ],

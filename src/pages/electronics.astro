@@ -1,0 +1,164 @@
+---
+import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
+import WorkbookDownload from '../components/WorkbookDownload.astro';
+import CalcTool from '../components/CalcTool.astro';
+import { url, DISCIPLINES } from '../lib/config';
+import { LOADS } from '../lib/calc/elec-power';
+import { DAQ_CHANNELS } from '../lib/calc/daq';
+
+const el = DISCIPLINES.find((d) => d.slug === 'electronics')!;
+
+const POWER_INPUTS = [
+  ...LOADS.map((l, i) => ({ key: l.key, label: l.label, unit: 'A', vals: [[3, 5, 8, 2, 2, 6][i]] })),
+  { key: 'stator', label: 'Stator output', unit: 'A', vals: [22.1] },
+  { key: 'mainFuse', label: 'Main fuse', unit: 'A', vals: [150] },
+  { key: 'batteryMass', label: 'Battery mass (→ MassBudget)', unit: 'kg', vals: [4] },
+];
+const POWER_OUTPUTS = [{ key: 'total', label: 'Total current = SUM(loads)', unit: 'A' }];
+
+const td = 'padding:0.4rem 0.55rem;';
+const th = 'padding:0.5rem 0.55rem;';
+const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
+---
+<Base title={el.title} description={el.blurb}>
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / {el.title}
+  </nav>
+  <header style="margin-bottom:1.25rem;">
+    <p class="annot annot-tick">Discipline</p>
+    <h1 style="margin-top:0.4rem;">{el.title}</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{el.blurb}</p>
+    <div style="margin-top:1rem;">{el.workbook && <WorkbookDownload file={el.workbook} />}</div>
+  </header>
+
+  <nav class="nav" aria-label="Electronics tools" style="gap:0.4rem;margin-bottom:1.25rem;">
+    <a href="#power">Power budget</a><a href="#wiring">Wiring / harness</a><a href="#daq">DAQ & Telemetry</a>
+  </nav>
+
+  <div class="notice" style="margin-bottom:1.5rem;">
+    <strong>Blue = your inputs (saved for the team); black = computed.</strong>
+  </div>
+  <LegendKey />
+
+  <CalcTool id="power" title="Power budget" spec="TOOL_SPECS §4a"
+    blurb="Load currents vs stator output; margin must stay positive."
+    inputs={POWER_INPUTS} outputs={POWER_OUTPUTS}
+    stats={[{ key: 'margin', label: 'Margin (stator − load)', unit: 'A' }]}
+    chartId="power-chart" chartTitle="Current draw by load (vs stator output)" chartHeight={260}
+    contribute contributeNote="Writes battery mass (→ MassBudget) and total current draw to the shared store." />
+
+  <!-- Wiring / harness list: an editable grid is a later enhancement (BRIEF §4b). -->
+  <section id="wiring" class="card" style="margin-top:1.25rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+      <h2 style="font-size:var(--fs-600);">Wiring / harness list</h2>
+      <span class="badge">TOOL_SPECS §4b</span>
+    </div>
+    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
+      One row per wire (source → destination, connector, pins, colour). This is a
+      shared editable data grid — a focused build after the calculators. The DIN
+      colour code guide (bl = black, br = brown, bu = blue, rd = red, …) ships with it.
+    </p>
+    <p class="annot" style="margin-top:0.8rem;">Editable grid — building next</p>
+  </section>
+
+  <!-- DAQ / Telemetry: custom channel table -->
+  <section id="daq" class="card" style="margin-top:1.25rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+      <h2 style="font-size:var(--fs-700);">DAQ & Telemetry</h2>
+      <span class="badge">TOOL_SPECS §3</span>
+    </div>
+    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
+      CAN bus load per channel (rate × bytes × 8) and total bus utilisation — keep under 60–70%.
+    </p>
+    <div style="overflow-x:auto;margin-top:0.8rem;">
+      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:520px;">
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+          <th style={th} class="annot">Channel</th>
+          <th style={th + 'text-align:right;'} class="annot">Rate (Hz)</th>
+          <th style={th + 'text-align:right;'} class="annot">Bytes</th>
+          <th style={th + 'text-align:right;'} class="annot">Bus load (bit/s)</th>
+        </tr></thead>
+        <tbody>
+          {DAQ_CHANNELS.map((c) => (
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style={td}>{c.label}</td>
+              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`rate_${c.key}`} value={c.rate} aria-label={`${c.label} rate`} /></td>
+              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`bytes_${c.key}`} value={c.bytes} aria-label={`${c.label} bytes`} /></td>
+              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`load_${c.key}`}>—</span></td>
+            </tr>
+          ))}
+          <tr style="border-top:2px solid var(--rule-strong);font-weight:600;">
+            <td style={td}>Total bus load</td><td style={td}></td><td style={td}></td>
+            <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out="totalBusLoad">—</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <table style="border-collapse:collapse;font-size:var(--fs-300);margin-top:0.8rem;">
+      <tbody><tr>
+        <td style={td}>CAN capacity</td>
+        <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in="capacity" value="500000" aria-label="CAN capacity" /></td>
+        <td style={td} class="mono">bit/s</td>
+      </tr></tbody>
+    </table>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));margin-top:1.25rem;">
+      <div class="card" style="background:var(--surface-2);">
+        <span class="annot">Bus utilisation (keep &lt; 60–70%)</span>
+        <p class="mono" style="font-size:var(--fs-700);margin-top:0.3rem;"><span data-out="utilisation">—</span>%</p>
+      </div>
+    </div>
+    <div style="margin-top:1rem;height:260px;position:relative;"><canvas id="daq-chart"></canvas></div>
+    <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Contribute to Master</h3>
+    <button class="btn btn-heritage" type="button" data-contribute style="margin-top:0.5rem;">Contribute results to Master</button>
+    <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+    <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </section>
+</Base>
+
+<script>
+  import { mountCalculator } from '../lib/calc/engine';
+  import { powerCompute, LOADS } from '../lib/calc/elec-power';
+  import { daqCompute, DAQ_CHANNELS } from '../lib/calc/daq';
+
+  const noOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } } };
+
+  mountCalculator({
+    root: 'power', tool: 'elec_power', compute: powerCompute, defaultDigits: 2,
+    charts: [{
+      canvasId: 'power-chart',
+      build: ({ inp, pal }) => ({
+        type: 'bar',
+        data: {
+          labels: LOADS.map((l) => l.label),
+          datasets: [
+            { label: 'Load current (A)', data: LOADS.map((l) => inp[l.key]), backgroundColor: pal.sky },
+            { label: 'Stator output (A)', type: 'line', data: LOADS.map(() => inp.stator), borderColor: pal.maroon, borderDash: [6, 4], pointRadius: 0 },
+          ],
+        },
+        options: { ...noOpts, scales: { y: { title: { display: true, text: 'A' } } } },
+      }),
+    }],
+    toMaster: [
+      { key: 'battery_mass', label: 'Battery mass', unit: 'kg', from: 'batteryMass' },
+      { key: 'total_current_draw', label: 'Total current draw', unit: 'A', from: 'total' },
+    ],
+  });
+
+  mountCalculator({
+    root: 'daq', tool: 'daq', compute: daqCompute, defaultDigits: 0,
+    digits: { utilisation: 1 },
+    charts: [{
+      canvasId: 'daq-chart',
+      build: ({ out, pal }) => ({
+        type: 'bar',
+        data: {
+          labels: DAQ_CHANNELS.map((c) => c.label),
+          datasets: [{ label: 'Bus load (bit/s)', data: DAQ_CHANNELS.map((c) => out[`load_${c.key}`]), backgroundColor: pal.sky }],
+        },
+        options: { ...noOpts, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: 'bit/s' } } } },
+      }),
+    }],
+    toMaster: [{ key: 'bus_utilisation', label: 'CAN bus utilisation', unit: '%', from: 'utilisation' }],
+  });
+</script>

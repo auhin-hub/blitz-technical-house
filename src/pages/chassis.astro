@@ -1,0 +1,117 @@
+---
+import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
+import WorkbookDownload from '../components/WorkbookDownload.astro';
+import CalcTool from '../components/CalcTool.astro';
+import { url, DISCIPLINES } from '../lib/config';
+import { MASS_COMPONENTS } from '../lib/calc/chassis-mass';
+
+const ch = DISCIPLINES.find((d) => d.slug === 'chassis')!;
+const TUBE_INPUTS = [
+  { key: 'memberForce', label: 'Design member force (from LoadCases)', unit: 'N', vals: [1455] },
+  { key: 'tubeOd', label: 'Tube OD', unit: 'mm', vals: [25] },
+  { key: 'tubeWall', label: 'Tube wall', unit: 'mm', vals: [2] },
+  { key: 'yield', label: 'Material yield', unit: 'MPa', vals: [435] },
+  { key: 'torsionTarget', label: 'Torsional stiffness target', unit: 'N·m/deg', vals: [1600] },
+  { key: 'torsionMeasured', label: 'Torsional stiffness measured (twist test)', unit: 'N·m/deg', vals: [0] },
+];
+const TUBE_OUTPUTS = [
+  { key: 'sectionArea', label: 'Section area = π/4·(OD²−(OD−2·wall)²)', unit: 'mm²' },
+  { key: 'axialStress', label: 'Axial stress = force / area', unit: 'MPa' },
+];
+const td = 'padding:0.4rem 0.55rem;';
+const th = 'padding:0.5rem 0.55rem;';
+const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
+---
+<Base title={ch.title} description={ch.blurb}>
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / {ch.title}
+  </nav>
+  <header style="margin-bottom:1.25rem;">
+    <p class="annot annot-tick">Discipline</p>
+    <h1 style="margin-top:0.4rem;">{ch.title}</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{ch.blurb}</p>
+    <div style="margin-top:1rem;">{ch.workbook && <WorkbookDownload file={ch.workbook} />}</div>
+  </header>
+
+  <nav class="nav" aria-label="Chassis tools" style="gap:0.4rem;margin-bottom:1.25rem;">
+    <a href="#tube">Tube stress & FoS</a><a href="#mass">Component-mass tracker</a>
+  </nav>
+
+  <div class="notice" style="margin-bottom:1.5rem;">
+    <strong>Blue = your inputs (saved for the team); black = computed.</strong>
+    Ported from the workbook — see each tool's spec tag.
+  </div>
+  <LegendKey />
+
+  <CalcTool id="tube" title="Tube stress & factor of safety" spec="TOOL_SPECS §2a"
+    blurb="Axial stress and FoS for a round tube, plus the torsional-stiffness target vs measured twist test."
+    inputs={TUBE_INPUTS} outputs={TUBE_OUTPUTS}
+    stats={[{ key: 'fos', label: 'Factor of safety (target ≥ 1.5)' }]}
+    contribute contributeNote="Writes measured torsional stiffness to the shared store (ToMaster)." />
+
+  <!-- Component-mass tracker: custom grid -->
+  <section id="mass" class="card" style="margin-top:1.25rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+      <h2 style="font-size:var(--fs-700);">Component-mass tracker</h2>
+      <span class="badge">TOOL_SPECS §2b</span>
+    </div>
+    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
+      CAD estimate vs measured per component. CAD total = unit × qty; Δ = measured − CAD.
+      Feeds the MassBudget (chassis mass as built). Saved for the whole team.
+    </p>
+    <div style="overflow-x:auto;margin-top:0.8rem;">
+      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:600px;">
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+          <th style={th} class="annot">Component</th>
+          <th style={th + 'text-align:right;'} class="annot">CAD unit (kg)</th>
+          <th style={th + 'text-align:right;'} class="annot">Qty</th>
+          <th style={th + 'text-align:right;'} class="annot">CAD total</th>
+          <th style={th + 'text-align:right;'} class="annot">Measured total</th>
+          <th style={th + 'text-align:right;'} class="annot">Δ (meas−CAD)</th>
+        </tr></thead>
+        <tbody>
+          {MASS_COMPONENTS.map((c) => (
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style={td}>{c.label}</td>
+              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`unit_${c.key}`} value="0" aria-label={`${c.label} CAD unit`} /></td>
+              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`qty_${c.key}`} value="0" aria-label={`${c.label} qty`} /></td>
+              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`cad_${c.key}`}>—</span></td>
+              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`meas_${c.key}`} value="0" aria-label={`${c.label} measured`} /></td>
+              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`delta_${c.key}`}>—</span></td>
+            </tr>
+          ))}
+          <tr style="border-top:2px solid var(--rule-strong);font-weight:600;">
+            <td style={td}>TOTAL</td>
+            <td style={td}></td>
+            <td style={td}></td>
+            <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out="totalCad">—</span></td>
+            <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out="totalMeas">—</span></td>
+            <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out="totalDelta">—</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Contribute to Master</h3>
+    <p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.3rem;">Writes chassis mass (as built = measured total) to the shared store (ToMaster → MassBudget).</p>
+    <button class="btn btn-heritage" type="button" data-contribute style="margin-top:0.75rem;">Contribute results to Master</button>
+    <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+    <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </section>
+</Base>
+
+<script>
+  import { mountCalculator } from '../lib/calc/engine';
+  import { tubeCompute } from '../lib/calc/chassis-tube';
+  import { massCompute } from '../lib/calc/chassis-mass';
+
+  mountCalculator({
+    root: 'tube', tool: 'chassis_tube', compute: tubeCompute, defaultDigits: 2,
+    toMaster: [{ key: 'torsional_stiffness', label: 'Torsional stiffness (measured)', unit: 'N·m/deg', from: 'torsionMeasured' }],
+  });
+
+  mountCalculator({
+    root: 'mass', tool: 'chassis_mass', compute: massCompute, defaultDigits: 2,
+    toMaster: [{ key: 'chassis_mass_built', label: 'Chassis mass (as built)', unit: 'kg', from: 'totalMeas' }],
+  });
+</script>

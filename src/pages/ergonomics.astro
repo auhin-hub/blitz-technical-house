@@ -1,0 +1,103 @@
+---
+import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
+import WorkbookDownload from '../components/WorkbookDownload.astro';
+import CalcTool from '../components/CalcTool.astro';
+import { url, DISCIPLINES } from '../lib/config';
+import { PARAM_SEED } from '../lib/master';
+
+const erg = DISCIPLINES.find((d) => d.slug === 'ergonomics')!;
+const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
+
+const LINKED = [{ mkey: 'wheelbase', label: 'Wheelbase', sym: 'L', unit: 'mm' }];
+const INPUTS = [
+  { key: 'driverHeight5', label: 'Driver height (5th %ile)', unit: 'mm', vals: [1600] },
+  { key: 'driverHeight95', label: 'Driver height (95th %ile)', unit: 'mm', vals: [1870] },
+  { key: 'driverMass', label: 'Driver mass (strapped)', unit: 'kg', vals: [75] },
+  { key: 'driverCog', label: 'Driver CoG height', unit: 'mm', vals: [300] },
+  { key: 'seatAngle', label: 'Seat-back angle', unit: 'deg', vals: [45] },
+  { key: 'pedalRange', label: 'Pedal-box adjustment range', unit: 'mm', vals: [275] },
+  { key: 'steeringReach', label: 'Steering reach', unit: 'mm', vals: [360] },
+  { key: 'helmetMargin', label: 'Helmet top to roll-hoop line', unit: 'mm', vals: [60], note: 'keep positive' },
+];
+const CHECKLIST = [
+  { key: 'fit95', label: '95th-percentile driver fits with helmet' },
+  { key: 'reach5', label: '5th-percentile reaches all controls' },
+  { key: 'egress', label: 'Egress < 5 s (timed)' },
+  { key: 'view', label: 'Clear view of track & marshals' },
+  { key: 'belts', label: 'Belts anchored per rules' },
+];
+---
+<Base title={erg.title} description={erg.blurb}>
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / {erg.title}
+  </nav>
+  <header style="margin-bottom:1.25rem;">
+    <p class="annot annot-tick">Discipline</p>
+    <h1 style="margin-top:0.4rem;">{erg.title}</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{erg.blurb}</p>
+    <div style="margin-top:1rem;">{erg.workbook && <WorkbookDownload file={erg.workbook} />}</div>
+  </header>
+
+  <div class="notice" style="margin-bottom:1.5rem;">
+    <strong>Green = read from Master; blue = your inputs (saved for the team).</strong>
+  </div>
+  <LegendKey />
+
+  <CalcTool id="fit" title="Driver fit" spec="TOOL_SPECS §5"
+    blurb="Driver envelope and cockpit dimensions. Keep the helmet-to-roll-hoop margin positive."
+    linked={LINKED} seed={seed} inputs={INPUTS}
+    contribute contributeNote="Writes driver mass (strapped), driver CoG height and seat-back angle to the shared store (ToMaster → MassBudget)." />
+
+  <!-- Egress / fit checklist -->
+  <section id="checklist" class="card" style="margin-top:1.25rem;">
+    <h2 style="font-size:var(--fs-600);">Checklist</h2>
+    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">Shared across the team; saved as you tick.</p>
+    <ul style="list-style:none;margin-top:0.8rem;display:flex;flex-direction:column;gap:0.6rem;">
+      {CHECKLIST.map((c) => (
+        <li>
+          <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;">
+            <input type="checkbox" data-check={c.key} style="width:18px;height:18px;accent-color:var(--state-linked);" />
+            <span>{c.label}</span>
+          </label>
+        </li>
+      ))}
+    </ul>
+    <p class="mono" data-check-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </section>
+</Base>
+
+<script>
+  import { mountCalculator } from '../lib/calc/engine';
+  import { loadToolState, saveToolState, debounce } from '../lib/store';
+
+  // Driver fit: no formulas — echo the three ToMaster values for contribution.
+  mountCalculator({
+    root: 'fit', tool: 'erg_fit', defaultDigits: 1,
+    compute: (inp) => ({ driverMass: inp.driverMass, driverCog: inp.driverCog, seatAngle: inp.seatAngle }),
+    toMaster: [
+      { key: 'driver_mass', label: 'Driver mass (strapped)', unit: 'kg', from: 'driverMass' },
+      { key: 'driver_cog_height', label: 'Driver CoG height', unit: 'mm', from: 'driverCog' },
+      { key: 'seat_back_angle', label: 'Seat-back angle', unit: 'deg', from: 'seatAngle' },
+    ],
+  });
+
+  // Checklist: shared Y/N state (stored as 1/0) in its own tool row.
+  (async () => {
+    const boxes = Array.from(document.querySelectorAll<HTMLInputElement>('[data-check]'));
+    const status = document.querySelector<HTMLElement>('[data-check-status]');
+    const defaults: Record<string, number> = {};
+    boxes.forEach((b) => (defaults[b.dataset.check!] = 0));
+    const state = await loadToolState('erg_checklist', defaults);
+    boxes.forEach((b) => (b.checked = state[b.dataset.check!] === 1));
+
+    const save = debounce(async () => {
+      const data: Record<string, number> = {};
+      boxes.forEach((b) => (data[b.dataset.check!] = b.checked ? 1 : 0));
+      if (status) status.textContent = 'Saving…';
+      const err = await saveToolState('erg_checklist', data);
+      if (status) { status.textContent = err ? 'Save failed: ' + err : 'Saved ✓'; status.style.color = err ? 'var(--heritage)' : 'var(--state-linked)'; }
+    }, 300);
+    boxes.forEach((b) => b.addEventListener('change', save));
+  })();
+</script>
