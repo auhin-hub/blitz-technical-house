@@ -1,0 +1,241 @@
+---
+import Base from '../layouts/Base.astro';
+import ToolTabs from '../components/ToolTabs.astro';
+import { url } from '../lib/config';
+import { MC_PRESETS, CALIPER_PRESETS } from '../lib/calc/brakes';
+
+const LINKED = [
+  { k: 'mass_total', l: 'Mass', s: 'm', u: 'kg' },
+  { k: 'mass_frac_front', l: 'Front fraction', s: 'ff', u: '-' },
+  { k: 'cog_height', l: 'CoG height', s: 'h', u: 'mm' },
+  { k: 'wheelbase', l: 'Wheelbase', s: 'L', u: 'mm' },
+  { k: 'mu_lat_peak', l: 'Peak μ', s: 'μ', u: '-' },
+  { k: 'rolling_radius', l: 'Rolling radius', s: 'Re', u: 'mm' },
+];
+const INPUTS = [
+  { key: 'pedalForce', label: 'Pedal force', unit: 'N', f: 400, r: 400 },
+  { key: 'pedalRatio', label: 'Pedal ratio', unit: '-', f: 5, r: 5 },
+  { key: 'mcBore', label: 'Master-cyl bore', unit: 'mm', f: 15.875, r: 15.875 },
+  { key: 'circuits', label: 'Circuits fed', unit: '-', f: 2, r: 2 },
+  { key: 'caliperBore', label: 'Caliper piston bore', unit: 'mm', f: 25, r: 25 },
+  { key: 'pistons', label: 'Pistons per side', unit: '-', f: 2, r: 1 },
+  { key: 'padMu', label: 'Pad friction μ', unit: '-', f: 0.45, r: 0.45 },
+  { key: 'rotorOd', label: 'Rotor outer dia', unit: 'mm', f: 180, r: 180 },
+  { key: 'padDepth', label: 'Pad radial depth', unit: 'mm', f: 27, r: 27 },
+];
+const OUTPUTS = [
+  { key: 'pushrodForce', label: 'Pushrod force', unit: 'N' },
+  { key: 'linePressureKpa', label: 'Line pressure', unit: 'kPa' },
+  { key: 'clamp', label: 'Clamp force', unit: 'N' },
+  { key: 'friction', label: 'Friction force', unit: 'N' },
+  { key: 'effRadius', label: 'Effective radius', unit: 'm' },
+  { key: 'brakeTorque', label: 'Brake torque / wheel', unit: 'N·m' },
+];
+const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
+const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);padding:0.25rem 0.4rem;';
+---
+<Base title="Brake System">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('vehicle-dynamics')} style="color:inherit;">VD Workspace</a> / Brake System
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Pedal → master cylinder → caliper → rotor</p>
+    <h1 style="margin-top:0.4rem;">Brake System</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
+      Size the hydraulics, then check achieved vs Olley-optimum bias across a
+      deceleration sweep. Shared inputs come from the Master. Advanced (Magic-
+      Formula + rolling/skidding + thermal) lands in a follow-up.
+    </p>
+  </header>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <span class="annot">From Master</span>
+    <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:0.4rem;font-size:var(--fs-300);">
+      {LINKED.map((l) => (
+        <span>{l.l} <span class="mono" style="color:var(--ink-3)">({l.s})</span>
+          <span class="field field-linked mono" data-master={l.k} style="margin-left:0.35rem;">—</span> {l.u}</span>
+      ))}
+    </div>
+  </div>
+
+  <div class="card">
+    <ToolTabs tabs={[{ id: 'sizing', label: 'Sizing' }, { id: 'bias', label: 'Bias sweep' }, { id: 'adv', label: 'Advanced' }]}>
+      <!-- SIZING -->
+      <div data-tab-panel="sizing">
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:0.6rem;">
+          <label style="font-size:var(--fs-300);">Target decel (g)
+            <input type="number" step="any" id="target-decel" value="1.2" style={ni + 'display:block;margin-top:0.2rem;'} /></label>
+          <label style="font-size:var(--fs-300);">MC preset
+            <select id="mc-preset" style={sel + 'display:block;margin-top:0.2rem;'}>
+              <option value="">— custom —</option>
+              {Object.keys(MC_PRESETS).map((n) => <option value={n}>{n}</option>)}
+            </select></label>
+          <label style="font-size:var(--fs-300);">Caliper preset
+            <select id="cal-preset" style={sel + 'display:block;margin-top:0.2rem;'}>
+              <option value="">— custom —</option>
+              {Object.keys(CALIPER_PRESETS).map((n) => <option value={n}>{n}</option>)}
+            </select></label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem 1.5rem;align-items:start;" class="ct-body">
+          <div>
+            <h3 class="ct-h3">Inputs</h3>
+            <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Parameter</th><th class="ct-num">Front</th><th class="ct-num">Rear</th><th>Unit</th></tr></thead>
+              <tbody>{INPUTS.map((i) => (
+                <tr><td>{i.label}</td>
+                  <td class="ct-num"><input type="number" step="any" style={ni} data-in={`f_${i.key}`} value={i.f} aria-label={`${i.label} front`} /></td>
+                  <td class="ct-num"><input type="number" step="any" style={ni} data-in={`r_${i.key}`} value={i.r} aria-label={`${i.label} rear`} /></td>
+                  <td class="ct-unit">{i.unit}</td></tr>
+              ))}</tbody></table></div>
+          </div>
+          <div>
+            <div class="ct-stats">
+              <div class="ct-stat"><span class="annot">Achieved front bias</span><div class="val"><span data-out="achievedFrontBias">—</span></div></div>
+              <div class="ct-stat"><span class="annot">Optimal @ target</span><div class="val"><span data-out="optimalBiasTarget">—</span></div></div>
+              <div class="ct-stat"><span class="annot">Recommended front MC Ø</span><div class="val"><span data-out="recommendedMcDia">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div><span class="ct-ref">sizing aid</span></div>
+              <div class="ct-stat"><span class="annot">Dyn load F / R</span><div class="val" style="font-size:var(--fs-500)"><span data-out="dynFront">—</span> / <span data-out="dynRear">—</span></div></div>
+            </div>
+            <h3 class="ct-h3">Outputs</h3>
+            <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Result</th><th class="ct-num">Front</th><th class="ct-num">Rear</th><th>Unit</th></tr></thead>
+              <tbody>{OUTPUTS.map((o) => (
+                <tr><td>{o.label}</td>
+                  <td class="ct-num"><span class="field field-computed mono" data-out={`f_${o.key}`}>—</span></td>
+                  <td class="ct-num"><span class="field field-computed mono" data-out={`r_${o.key}`}>—</span></td>
+                  <td class="ct-unit">{o.unit}</td></tr>
+              ))}</tbody></table></div>
+            <p style="margin-top:0.7rem;"><button class="btn btn-heritage" type="button" id="brk-contribute">Contribute to Master</button>
+              <span class="mono" id="brk-contribute-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BIAS SWEEP -->
+      <div data-tab-panel="bias" hidden>
+        <h3 class="ct-h3">Achieved vs optimal front bias — deceleration sweep</h3>
+        <p style="color:var(--ink-2);font-size:var(--fs-300);">Optimal = ff + a·h/L per the Master; achieved is the hardware torque ratio (fixed here). A proportioning valve's high-decel effect comes with the Advanced tab.</p>
+        <div style="height:300px;position:relative;margin-top:0.5rem;"><canvas id="bias-chart"></canvas></div>
+      </div>
+
+      <!-- ADVANCED -->
+      <div data-tab-panel="adv" hidden>
+        <h3 class="ct-h3">Advanced — Magic Formula, rolling/skidding, thermal</h3>
+        <p style="color:var(--ink-2);font-size:var(--fs-300);max-width:66ch;">
+          Longitudinal Magic Formula (Fx–slip), the iterative rolling-or-skidding
+          solver and the thermal add-on (energy/stop, rotor temp rise, fade margin)
+          — ported from <span class="mono">Braking Calculation.xlsm</span> in the next commit.
+        </p>
+        <p class="annot" style="margin-top:0.8rem;">Building next</p>
+      </div>
+    </ToolTabs>
+    <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </div>
+</Base>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { computeBrakeSystem, biasSweep, MC_PRESETS, CALIPER_PRESETS, type BrakeSystemMaster } from '../lib/calc/brakes';
+  import type { BrakeSide } from '../lib/calc/vd-brakes';
+  import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+
+  const TOOL = 'brakes';
+  const saveStatus = document.querySelector('[data-save-status]') as HTMLElement;
+  let master: Record<string, number> = {};
+  let chart: Chart | null = null;
+  let last: any = {};
+
+  const side = (p: string): BrakeSide => {
+    const g = (f: string) => Number((document.querySelector(`[data-in="${p}_${f}"]`) as HTMLInputElement)?.value);
+    return { pedalForce: g('pedalForce'), pedalRatio: g('pedalRatio'), mcBore: g('mcBore'), circuits: g('circuits'), caliperBore: g('caliperBore'), pistons: g('pistons'), padMu: g('padMu'), rotorOd: g('rotorOd'), padDepth: g('padDepth') };
+  };
+  const put = (k: string, v: number, d = 2) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = v === null || !Number.isFinite(v) ? '—' : fmt(v, d); };
+
+  function recompute() {
+    const targetDecel = Number((document.getElementById('target-decel') as HTMLInputElement).value) || 1;
+    const m: BrakeSystemMaster = {
+      ff: master.mass_frac_front, h: master.cog_height, L: master.wheelbase,
+      mu: master.mu_lat_peak, tyreRadius: master.rolling_radius, mass: master.mass_total,
+    };
+    const r = computeBrakeSystem(side('f'), side('r'), m, targetDecel);
+    last = r;
+    (['pushrodForce', 'linePressureKpa', 'clamp', 'friction', 'effRadius', 'brakeTorque'] as const).forEach((k) => {
+      put(`f_${k}`, r[`f_${k}`] as number, k === 'effRadius' ? 4 : 2);
+      put(`r_${k}`, r[`r_${k}`] as number, k === 'effRadius' ? 4 : 2);
+    });
+    put('achievedFrontBias', r.achievedFrontBias as number, 3);
+    put('optimalBiasTarget', r.optimalBiasTarget as number, 3);
+    put('recommendedMcDia', r.recommendedMcDia as number, 1);
+    put('dynFront', r.dynFront as number, 0);
+    put('dynRear', r.dynRear as number, 0);
+    renderChart(m, r.achievedFrontBias as number);
+  }
+
+  function renderChart(m: BrakeSystemMaster, achieved: number) {
+    const p = palette();
+    const sweep = biasSweep(achieved, m);
+    const cfg: any = {
+      type: 'line',
+      data: { labels: sweep.map((s) => s.g.toFixed(1)), datasets: [
+        { label: 'Optimal front bias', data: sweep.map((s) => Number.isFinite(s.optimal) ? +s.optimal.toFixed(4) : null), borderColor: p.sky, backgroundColor: p.sky, tension: 0.2, pointRadius: 3 },
+        { label: 'Achieved front bias', data: sweep.map((s) => Number.isFinite(s.achieved) ? +s.achieved.toFixed(4) : null), borderColor: p.amber, backgroundColor: p.amber, borderDash: [6, 4], pointRadius: 0 },
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } },
+        scales: { x: { title: { display: true, text: 'deceleration (g)' } }, y: { title: { display: true, text: 'front brake bias' } } } },
+    };
+    if (chart) { chart.data = cfg.data; chart.update(); }
+    else { const cv = document.getElementById('bias-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
+  }
+
+  const persist = debounce(async () => {
+    const data: Record<string, number> = { targetDecel: Number((document.getElementById('target-decel') as HTMLInputElement).value) };
+    document.querySelectorAll('[data-in]').forEach((el) => { data[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
+    saveStatus.textContent = 'Saving…';
+    const err = await saveToolJson(TOOL, data);
+    saveStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    saveStatus.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  (async () => {
+    applyChartDefaults();
+    master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => [k, Number((v as any).value)]));
+    for (const el of document.querySelectorAll<HTMLElement>('[data-master]')) {
+      const k = el.dataset.master!; if (Number.isFinite(master[k])) el.textContent = fmt(master[k]);
+    }
+    const saved = await loadToolJson<Record<string, number>>(TOOL, {});
+    for (const [k, v] of Object.entries(saved)) {
+      if (k === 'targetDecel') { (document.getElementById('target-decel') as HTMLInputElement).value = String(v); continue; }
+      const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v);
+    }
+
+    recompute();
+    document.querySelectorAll('[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
+    document.getElementById('target-decel')!.addEventListener('input', () => { recompute(); persist(); });
+
+    // Hardware presets fill both sides' bore then recompute.
+    document.getElementById('mc-preset')!.addEventListener('change', (e) => {
+      const v = MC_PRESETS[(e.target as HTMLSelectElement).value]; if (!v) return;
+      (document.querySelector('[data-in="f_mcBore"]') as HTMLInputElement).value = String(v);
+      (document.querySelector('[data-in="r_mcBore"]') as HTMLInputElement).value = String(v);
+      recompute(); persist();
+    });
+    document.getElementById('cal-preset')!.addEventListener('change', (e) => {
+      const v = CALIPER_PRESETS[(e.target as HTMLSelectElement).value]; if (!v) return;
+      (document.querySelector('[data-in="f_caliperBore"]') as HTMLInputElement).value = String(v);
+      (document.querySelector('[data-in="r_caliperBore"]') as HTMLInputElement).value = String(v);
+      recompute(); persist();
+    });
+
+    document.getElementById('brk-contribute')!.addEventListener('click', async () => {
+      const st = document.getElementById('brk-contribute-status')!;
+      st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
+      const err = await saveToolOutputs(TOOL, [
+        { key: 'brake_torque_front', label: 'Front brake torque / wheel', value: Number.isFinite(last.f_brakeTorque) ? +last.f_brakeTorque.toFixed(2) : null, unit: 'N·m' },
+        { key: 'brake_torque_rear', label: 'Rear brake torque / wheel', value: Number.isFinite(last.r_brakeTorque) ? +last.r_brakeTorque.toFixed(2) : null, unit: 'N·m' },
+        { key: 'achieved_front_bias', label: 'Achieved front brake bias', value: Number.isFinite(last.achievedFrontBias) ? +last.achievedFrontBias.toFixed(4) : null, unit: '-' },
+      ]);
+      st.textContent = err ? 'Failed: ' + err : 'Contributed ✓';
+      st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+    });
+
+    watchTheme(() => { applyChartDefaults(); recompute(); });
+  })();
+</script>
