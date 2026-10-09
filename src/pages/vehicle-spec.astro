@@ -28,7 +28,12 @@ const stateClass = {
     the schema to see the live shared values. Editing is added in the next step.
   </div>
 
-  <LegendKey />
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+    <LegendKey />
+    <a class="btn btn-halftone" href={url('workbooks/MIST_Blitz_FS_Master_Workbook.xlsx')} download>
+      Download master workbook (.xlsx)
+    </a>
+  </div>
 
   <div style="overflow-x:auto;margin-top:1.25rem;">
     <table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);min-width:640px;">
