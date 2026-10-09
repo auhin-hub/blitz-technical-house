@@ -20,7 +20,7 @@ interface Props {
   blurb?: string;
   cols?: Col[];
   linked?: LinkedDef[];
-  seed?: Record<string, number>;
+  seed?: Record<string, number | null>;
   inputs: InputDef[];
   outputs?: OutputDef[];
   stats?: StatDef[];

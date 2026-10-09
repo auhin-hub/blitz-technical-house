@@ -3,24 +3,29 @@ import Base from '../layouts/Base.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import { PARAM_SEED, fieldState } from '../lib/master';
+import { url } from '../lib/config';
 
 const stateClass = { input: 'field-input', linked: 'field-linked', computed: 'field-computed' } as const;
-const rows = PARAM_SEED.map((p) => ({ ...p, state: fieldState(p.source) }));
+const rows = PARAM_SEED.map((p) => ({ ...p, state: fieldState(p) }));
 const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
+const td = 'padding:0.45rem 0.7rem;';
 ---
 <Base title="Vehicle Spec">
   <p class="annot annot-tick">Cross-cutting · the Master store</p>
   <h1 style="margin-top:0.4rem;">Vehicle Spec</h1>
-  <p style="color:var(--ink-2);margin-top:0.5rem;max-width:70ch;">
-    The one live set of car parameters. Enter a number once here and every tool
-    reads it. Edits save for the whole team; axle loads are computed from mass and
-    mass fraction. Freeze a parameter at a gate to lock it — a later change then
-    needs a reason and is recorded in the <a href={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/change-log`}>Change Log</a>.
+  <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">
+    The one live set of car parameters. It <strong>ships blank</strong> — fill in
+    the new car and every tool reads it. Edits save for the whole team. Weight,
+    average track and axle loads are computed from the others; mass, front
+    fraction, CoG and yaw inertia come from MassBudget. Freeze a parameter at a
+    gate to lock it — a later change needs a reason and is recorded in the
+    <a href={url('change-log')}>Change Log</a>. The <em>typical</em> column is a
+    rough FS reference, not a target.
   </p>
 
   <div class="notice" style="margin:1.25rem 0;" data-source-note>
-    Showing <strong>workbook defaults</strong> (TOOL_SPECS §0). Sign in to load
-    and edit the live shared values.
+    Showing the <strong>blank parameter set</strong>. Sign in to load and edit the
+    live shared values.
   </div>
 
   <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;justify-content:space-between;">
@@ -28,7 +33,6 @@ const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
     <WorkbookDownload file="MIST_Blitz_FS_Master_Workbook.xlsx" label="Download master workbook (.xlsx)" />
   </div>
   <p class="mono" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
-    <span>Green values will be computed by their sub-tool (MassBudget, Tyre) once built — editable here meanwhile.</span>
     <label style="display:inline-flex;gap:0.4rem;align-items:center;">Freeze at
       <select id="freeze-gate" style="font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);padding:0.2rem 0.4rem;">
         {GATES.map((g) => <option value={g} selected={g === 'G3'}>{g}</option>)}
@@ -38,36 +42,38 @@ const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
   </p>
 
   <div style="overflow-x:auto;margin-top:1rem;">
-    <table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);min-width:720px;">
+    <table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);min-width:760px;">
       <thead>
         <tr style="text-align:left;border-bottom:1px solid var(--rule-strong);">
-          <th style="padding:0.6rem 0.75rem;" class="annot">Parameter</th>
-          <th style="padding:0.6rem 0.75rem;" class="annot">Sym</th>
-          <th style="padding:0.6rem 0.75rem;text-align:right;min-width:120px;" class="annot">Value</th>
-          <th style="padding:0.6rem 0.75rem;" class="annot">Unit</th>
-          <th style="padding:0.6rem 0.75rem;" class="annot">Source</th>
-          <th style="padding:0.6rem 0.75rem;" class="annot">State</th>
-          <th style="padding:0.6rem 0.75rem;" class="annot">Freeze</th>
+          <th style={td} class="annot">Parameter</th>
+          <th style={td} class="annot">Sym</th>
+          <th style={td + 'text-align:right;min-width:110px;'} class="annot">Value</th>
+          <th style={td} class="annot">Unit</th>
+          <th style={td} class="annot">Typical</th>
+          <th style={td} class="annot">Source</th>
+          <th style={td} class="annot">State</th>
+          <th style={td} class="annot">Freeze</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((p) => (
           <tr data-key={p.key} data-state={p.state} style="border-bottom:1px solid var(--rule);">
-            <td style="padding:0.5rem 0.75rem;">{p.label}</td>
-            <td style="padding:0.5rem 0.75rem;" class="mono">{p.symbol}</td>
-            <td style="padding:0.5rem 0.75rem;text-align:right;" class="mono">
+            <td style={td}>{p.label}</td>
+            <td style={td} class="mono">{p.symbol}</td>
+            <td style={td + 'text-align:right;'} class="mono">
               {p.state === 'computed' ? (
-                <span class={`field ${stateClass[p.state]}`} data-value>{p.value}</span>
+                <span class={`field ${stateClass[p.state]}`} data-value>—</span>
               ) : (
-                <input type="number" step="any" data-input value={p.value}
+                <input type="number" step="any" data-input value={p.value ?? ''} placeholder={p.ref?.typ ?? ''}
                   class={`field ${stateClass[p.state]}`} aria-label={p.label}
-                  style="width:110px;text-align:right;font-family:var(--font-mono);" />
+                  style="width:104px;text-align:right;font-family:var(--font-mono);" />
               )}
             </td>
-            <td style="padding:0.5rem 0.75rem;" class="mono">{p.unit}</td>
-            <td style="padding:0.5rem 0.75rem;color:var(--ink-3);" class="mono">{p.source}</td>
-            <td style="padding:0.5rem 0.75rem;"><span data-badges><span class="badge badge-est">Est</span></span></td>
-            <td style="padding:0.5rem 0.75rem;">
+            <td style={td} class="mono">{p.unit}</td>
+            <td style={td}>{p.ref && <span class="ct-ref" title={p.ref.src ?? ''}>{p.ref.typ}</span>}</td>
+            <td style={td + 'color:var(--ink-3);'} class="mono">{p.source}</td>
+            <td style={td}><span data-badges><span class="badge badge-est">Est</span></span></td>
+            <td style={td}>
               {p.state !== 'computed' && (
                 <input type="checkbox" data-freeze aria-label={`Freeze ${p.label}`} style="width:16px;height:16px;accent-color:var(--sky);" />
               )}
@@ -79,7 +85,8 @@ const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
   </div>
 
   <p class="mono" style="margin-top:1.5rem;font-size:var(--fs-200);color:var(--ink-3);">
-    The original Excel Master stays the authoritative archive (BRIEF §C).
+    The original Excel Master stays the authoritative archive. Typical-value
+    sources: Team Blitz VD Handbook · common FSAE ranges (orientation only).
   </p>
 </Base>
 
@@ -94,7 +101,14 @@ const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
 
   function setStatus(text: string, color = 'var(--ink-3)') { if (status) { status.textContent = text; status.style.color = color; } }
   const cell = (key: string) => document.querySelector(`tr[data-key="${key}"]`);
-  function setComputed(key: string, v: number) { const el = cell(key)?.querySelector('[data-value]'); if (el) el.textContent = fmt(v); }
+  function setComputed(key: string, v: number | null) {
+    const el = cell(key)?.querySelector('[data-value]');
+    if (el) el.textContent = v === null || !Number.isFinite(v) ? '—' : fmt(v);
+  }
+  function inputVal(key: string): number {
+    const el = cell(key)?.querySelector('[data-input]') as HTMLInputElement | null;
+    return el && el.value.trim() !== '' ? Number(el.value) : NaN;
+  }
 
   function renderBadges(tr: Element, frozen: boolean, gate: string | null, conf: string) {
     const badges = tr.querySelector('[data-badges]');
@@ -104,11 +118,20 @@ const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
     badges.innerHTML = c + f;
   }
 
-  async function recomputeAxleLoads(mass: number, ff: number) {
-    const front = mass * G * ff, rear = mass * G * (1 - ff);
-    setComputed('axle_load_front', front); setComputed('axle_load_rear', rear);
-    // Ignore errors (e.g. if an axle load is itself frozen).
-    await Promise.all([setMasterValue('axle_load_front', front), setMasterValue('axle_load_rear', rear)]);
+  // weight = m·g · avg_track = (tf+tr)/2 · axle_load_front = W·ff · rear = W·(1−ff)
+  async function recomputeDerived() {
+    const m = inputVal('mass_total'), ff = inputVal('mass_frac_front');
+    const tf = inputVal('track_front'), tr = inputVal('track_rear');
+    const updates: [string, number][] = [];
+    if (Number.isFinite(tf) && Number.isFinite(tr)) { const v = (tf + tr) / 2; setComputed('avg_track', v); updates.push(['avg_track', v]); }
+    let W = NaN;
+    if (Number.isFinite(m)) { W = m * G; setComputed('weight', W); updates.push(['weight', W]); }
+    if (Number.isFinite(W) && Number.isFinite(ff)) {
+      const af = W * ff, ar = W * (1 - ff);
+      setComputed('axle_load_front', af); setComputed('axle_load_rear', ar);
+      updates.push(['axle_load_front', af], ['axle_load_rear', ar]);
+    }
+    await Promise.all(updates.map(([k, v]) => setMasterValue(k, v)));
   }
 
   (async () => {
@@ -119,8 +142,8 @@ const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
       const row = master[key]; const tr = cell(key); if (!tr) continue;
       frozenState[key] = row.frozen;
       const input = tr.querySelector('[data-input]') as HTMLInputElement | null;
-      if (input) input.value = String(row.value ?? '');
-      else setComputed(key, row.value as number);
+      if (input) input.value = row.value === null || row.value === undefined ? '' : String(row.value);
+      else setComputed(key, row.value as number | null);
       const fz = tr.querySelector('[data-freeze]') as HTMLInputElement | null;
       if (fz) fz.checked = row.frozen;
       renderBadges(tr, row.frozen, row.frozen_gate, row.confidence);
@@ -131,21 +154,17 @@ const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
       setStatus('Saving…');
       const err = await setMasterValue(key, value);
       if (err) return setStatus('Save failed: ' + err, 'var(--heritage)');
-      if (key === 'mass_total' || key === 'mass_frac_front') {
-        const mass = Number((cell('mass_total')?.querySelector('[data-input]') as HTMLInputElement)?.value);
-        const ff = Number((cell('mass_frac_front')?.querySelector('[data-input]') as HTMLInputElement)?.value);
-        if (Number.isFinite(mass) && Number.isFinite(ff)) await recomputeAxleLoads(mass, ff);
-      }
+      await recomputeDerived();
       setStatus('Saved ✓', 'var(--state-linked)');
     }, 500);
 
-    // Frozen edits: confirm a reason, go through the enforced edit_param path.
     async function saveFrozen(key: string, value: number) {
       const reason = window.prompt(`"${key}" is frozen. Enter a reason for this change (recorded in the Change Log):`);
       if (reason === null || reason.trim() === '') { setStatus('Frozen edit cancelled — a reason is required.', 'var(--heritage)'); return false; }
       setStatus('Saving…');
       const err = await editFrozenParam(key, value, reason.trim());
       if (err) { setStatus('Save failed: ' + err, 'var(--heritage)'); return false; }
+      await recomputeDerived();
       setStatus('Saved & logged ✓', 'var(--state-linked)');
       return true;
     }
@@ -154,23 +173,22 @@ const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
       const input = el as HTMLInputElement;
       const key = input.closest('tr')?.getAttribute('data-key'); if (!key) return;
       if (frozenState[key]) {
-        // Frozen: edit on change (after a reason), not keystroke-by-keystroke.
         input.addEventListener('change', async () => {
           const v = Number(input.value);
-          if (!Number.isFinite(v)) return;
+          if (input.value.trim() === '' || !Number.isFinite(v)) return;
           const ok = await saveFrozen(key, v);
-          if (!ok) { const m = await loadMaster(); if (m[key]) input.value = String(m[key].value); }
+          if (!ok) { const m = await loadMaster(); if (m[key]) input.value = m[key].value === null ? '' : String(m[key].value); }
         });
       } else {
         input.addEventListener('input', () => {
+          if (input.value.trim() === '') { setStatus('Cleared — enter a number to save.', 'var(--ink-3)'); return; }
           const v = Number(input.value);
-          if (input.value.trim() === '' || !Number.isFinite(v)) return setStatus('Enter a number', 'var(--heritage)');
+          if (!Number.isFinite(v)) return setStatus('Enter a number', 'var(--heritage)');
           saveNormal(key, v);
         });
       }
     });
 
-    // Freeze / unfreeze toggles.
     document.querySelectorAll('[data-freeze]').forEach((el) => {
       const box = el as HTMLInputElement;
       const tr = box.closest('tr')!; const key = tr.getAttribute('data-key')!;
@@ -183,9 +201,6 @@ const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
         const conf = tr.querySelector('.badge-live') ? 'Live' : 'Est';
         renderBadges(tr, box.checked, gate, conf);
         setStatus(box.checked ? `Frozen at ${gate} ✓` : 'Unfrozen ✓', 'var(--state-linked)');
-        // Rebind the value input to the right handler by reloading the page's logic is overkill;
-        // the next edit will use the current frozenState via the closures above only if reloaded.
-        // Simplest correctness: reload so handlers match the new frozen state.
         setTimeout(() => window.location.reload(), 600);
       });
     });
