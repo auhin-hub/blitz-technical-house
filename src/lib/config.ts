@@ -152,7 +152,7 @@ export const VD_STAGES: VdStage[] = [
     produces: 'Target lateral g, braking g, event focus → Master targets',
     feeds: 'Everything downstream',
     guidance: 'Decide what the car must do and defend it in the design event — these set everything below.' },
-  { n: 2, name: 'Fix mass targets', gate: 'G0', tool: 'MassBudget', pending: true,
+  { n: 2, name: 'Fix mass targets', gate: 'G0', tool: 'MassBudget', href: 'massbudget',
     prerequisites: 'Targets set',
     produces: 'Mass, front fraction, CoG height, yaw inertia (Izz)',
     feeds: 'Every load-transfer & balance calculation',
