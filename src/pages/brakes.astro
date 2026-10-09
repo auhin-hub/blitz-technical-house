@@ -117,13 +117,61 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
 
       <!-- ADVANCED -->
       <div data-tab-panel="adv" hidden>
-        <h3 class="ct-h3">Advanced — Magic Formula, rolling/skidding, thermal</h3>
-        <p style="color:var(--ink-2);font-size:var(--fs-300);max-width:66ch;">
-          Longitudinal Magic Formula (Fx–slip), the iterative rolling-or-skidding
-          solver and the thermal add-on (energy/stop, rotor temp rise, fade margin)
-          — ported from <span class="mono">Braking Calculation.xlsm</span> in the next commit.
-        </p>
-        <p class="annot" style="margin-top:0.8rem;">Building next</p>
+        <div class="notice" style="margin-bottom:1rem;">
+          <strong>What this tab is for.</strong> Sizing and Bias use one peak-grip
+          number (μ) — all that brake sizing needs, and it matches the team's brake
+          workbooks. This tab adds what a constant-μ model can't: using the
+          longitudinal tyre curve (the Magic Formula) it shows <em>whether a wheel
+          locks and which axle locks first</em>, and estimates rotor heat. It is
+          optional — skip it and you lose nothing for sizing. It only means
+          something with <strong>your own longitudinal tyre coefficients from the
+          TTC fit</strong>; the defaults below are placeholders, not real numbers.
+        </div>
+
+        <div class="ct-body">
+          <div class="ct-col">
+            <h3 class="ct-h3">Longitudinal tyre (Magic Formula)</h3>
+            <p style="color:var(--ink-2);font-size:var(--fs-300);">Fx vs slip ratio κ (−1 = locked → 0 = rolling). Grip peaks near κ ≈ −0.1 then falls toward lock. Enter B, C, peak μx and E from your TTC longitudinal fit; Fz is the wheel's vertical load.</p>
+            <div class="ct-wrap"><table class="ct-table"><tbody>
+              <tr><td>Stiffness B</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_B" value="10" /></td><td class="ct-ref" title="longitudinal TTC fit">your fit</td></tr>
+              <tr><td>Shape C</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_C" value="1.6" /></td><td class="ct-ref">1.5–1.8</td></tr>
+              <tr><td>Peak μx (D = μx·Fz)</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_muX" value="1.5" /></td><td class="ct-ref">1.4–1.6 (belt)</td></tr>
+              <tr><td>Curvature E</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_E" value="0.95" /></td><td class="ct-ref">~1.0</td></tr>
+              <tr><td>Wheel vertical load Fz</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_Fz" value="1500" /></td><td class="ct-unit">N</td></tr>
+            </tbody></table></div>
+
+            <h3 class="ct-h3">Thermal — one stop</h3>
+            <p style="color:var(--ink-2);font-size:var(--fs-300);">KE lost → rotor heat. ΔT = energy ÷ (rotor mass × specific heat). Keep peak temp below the pad/rotor fade limit.</p>
+            <div class="ct-wrap"><table class="ct-table"><tbody>
+              <tr><td>Speed before / after</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_v1" value="100" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_v2" value="30" /></td><td class="ct-unit">km/h</td></tr>
+              <tr><td>Rotors</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_nRotors" value="4" /></td><td></td><td class="ct-unit">-</td></tr>
+              <tr><td>Rotor mass (each)</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_rotorMass" value="0.8" /></td><td></td><td class="ct-unit">kg</td></tr>
+              <tr><td>Specific heat cp</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_cp" value="460" /></td><td class="ct-ref">steel ~460</td><td class="ct-unit">J/kg·K</td></tr>
+              <tr><td>Ambient / fade limit</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_ambient" value="40" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_maxTemp" value="600" /></td><td class="ct-unit">°C</td></tr>
+            </tbody></table></div>
+          </div>
+
+          <div class="ct-col">
+            <h3 class="ct-h3">Fx vs slip</h3>
+            <div style="height:200px;position:relative;"><canvas id="fx-chart"></canvas></div>
+
+            <h3 class="ct-h3">Lock-up</h3>
+            <p style="color:var(--ink-2);font-size:var(--fs-300);">With your achieved bias (from Sizing) and peak μx, the axle whose grip is exceeded first caps deceleration. Rear-first → unstable (ease front bias); front-first → grip left unused. ABS/bias-bar shifts this.</p>
+            <div class="ct-stats">
+              <div class="ct-stat"><span class="annot">Achievable decel</span><div class="val"><span data-out="adv_achievable">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> g</span></div></div>
+              <div class="ct-stat"><span class="annot">First to lock</span><div class="val" style="font-size:var(--fs-500)"><span data-out="adv_first">—</span></div></div>
+              <div class="ct-stat"><span class="annot">Front / rear lock @</span><div class="val" style="font-size:var(--fs-500)"><span data-out="adv_aFront">—</span> / <span data-out="adv_aRear">—</span> g</div></div>
+            </div>
+
+            <h3 class="ct-h3">Rotor heat</h3>
+            <div class="ct-stats">
+              <div class="ct-stat"><span class="annot">Energy / stop</span><div class="val"><span data-out="adv_energy">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> J</span></div></div>
+              <div class="ct-stat"><span class="annot">Rotor ΔT</span><div class="val"><span data-out="adv_deltaT">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> K</span></div></div>
+              <div class="ct-stat"><span class="annot">Peak temp</span><div class="val"><span data-out="adv_peakTemp">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> °C</span></div></div>
+              <div class="ct-stat"><span class="annot">Fade margin</span><div class="val"><span data-out="adv_fade">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> K</span></div></div>
+            </div>
+          </div>
+        </div>
       </div>
     </ToolTabs>
     <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
@@ -132,7 +180,7 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
 
 <script>
   import Chart from 'chart.js/auto';
-  import { computeBrakeSystem, biasSweep, MC_PRESETS, CALIPER_PRESETS, type BrakeSystemMaster } from '../lib/calc/brakes';
+  import { computeBrakeSystem, biasSweep, fxCurve, lockupDecel, brakeThermal, MC_PRESETS, CALIPER_PRESETS, type BrakeSystemMaster } from '../lib/calc/brakes';
   import type { BrakeSide } from '../lib/calc/vd-brakes';
   import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
@@ -141,7 +189,10 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
   const saveStatus = document.querySelector('[data-save-status]') as HTMLElement;
   let master: Record<string, number> = {};
   let chart: Chart | null = null;
+  let fxChart: Chart | null = null;
   let last: any = {};
+  const gi = (k: string) => Number((document.querySelector(`[data-in="${k}"]`) as HTMLInputElement)?.value);
+  const setText = (k: string, s: string) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = s; };
 
   const side = (p: string): BrakeSide => {
     const g = (f: string) => Number((document.querySelector(`[data-in="${p}_${f}"]`) as HTMLInputElement)?.value);
@@ -185,6 +236,32 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
     else { const cv = document.getElementById('bias-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
   }
 
+  function recomputeAdvanced() {
+    const coef = { B: gi('adv_B'), C: gi('adv_C'), muX: gi('adv_muX'), E: gi('adv_E') };
+    const Fz = gi('adv_Fz');
+    // Fx vs slip curve
+    const p = palette();
+    const pts = fxCurve(coef, Fz);
+    const cfg: any = {
+      type: 'line',
+      data: { labels: pts.map((q) => q.kappa.toFixed(2)), datasets: [{ label: 'Fx (N)', data: pts.map((q) => +q.fx.toFixed(1)), borderColor: p.sky, backgroundColor: p.sky, pointRadius: 0, tension: 0.2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: { title: { display: true, text: 'slip ratio κ (−1 locked → 0)' } }, y: { title: { display: true, text: 'Fx (N)' } } } },
+    };
+    if (fxChart) { fxChart.data = cfg.data; fxChart.update(); }
+    else { const cv = document.getElementById('fx-chart') as HTMLCanvasElement | null; if (cv) fxChart = new Chart(cv, cfg); }
+
+    // Lock-up (uses the achieved bias from Sizing + Master geometry + peak μx)
+    const bias = Number(last.achievedFrontBias);
+    const lk = lockupDecel(Number.isFinite(bias) ? bias : NaN, master.mass_frac_front, master.cog_height, master.wheelbase, coef.muX);
+    put('adv_achievable', lk.achievable, 2); put('adv_aFront', lk.aFrontLock, 2); put('adv_aRear', lk.aRearLock, 2);
+    setText('adv_first', Number.isFinite(lk.achievable) ? lk.firstToLock : '—');
+
+    // Thermal (km/h → m/s)
+    const t = brakeThermal({ mass: master.mass_total, v1: gi('adv_v1') / 3.6, v2: gi('adv_v2') / 3.6, nRotors: gi('adv_nRotors'), rotorMass: gi('adv_rotorMass'), cp: gi('adv_cp'), maxTemp: gi('adv_maxTemp'), ambient: gi('adv_ambient') });
+    put('adv_energy', t.energy, 0); put('adv_deltaT', t.deltaT, 1); put('adv_peakTemp', t.peakTemp, 1); put('adv_fade', t.fadeMargin, 1);
+  }
+
   const persist = debounce(async () => {
     const data: Record<string, number> = { targetDecel: Number((document.getElementById('target-decel') as HTMLInputElement).value) };
     document.querySelectorAll('[data-in]').forEach((el) => { data[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
@@ -207,8 +284,9 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
     }
 
     recompute();
-    document.querySelectorAll('[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
-    document.getElementById('target-decel')!.addEventListener('input', () => { recompute(); persist(); });
+    recomputeAdvanced();
+    document.querySelectorAll('[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); recomputeAdvanced(); persist(); }));
+    document.getElementById('target-decel')!.addEventListener('input', () => { recompute(); recomputeAdvanced(); persist(); });
 
     // Hardware presets fill both sides' bore then recompute.
     document.getElementById('mc-preset')!.addEventListener('change', (e) => {
@@ -236,6 +314,6 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
       st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
     });
 
-    watchTheme(() => { applyChartDefaults(); recompute(); });
+    watchTheme(() => { applyChartDefaults(); recompute(); recomputeAdvanced(); });
   })();
 </script>

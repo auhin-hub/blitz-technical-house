@@ -79,3 +79,59 @@ export function biasSweep(achievedFrontBias: number, m: BrakeSystemMaster) {
     achieved: achievedFrontBias,
   }));
 }
+
+// ============================================================================
+// Advanced — longitudinal Magic Formula + lock-up + thermal (§6.6, optional).
+// Sizing never needs these; this is the realism layer for lock-up behaviour and
+// it only means anything with REAL longitudinal tyre coefficients (TTC fit).
+// ============================================================================
+
+/** Longitudinal Pacejka coefficients (one operating condition). */
+export interface PacejkaX { B: number; C: number; muX: number; E: number; }
+
+/** Fx = D·sin(C·atan(Bκ − E·(Bκ − atan Bκ))), D = μx·Fz. κ = slip ratio. */
+export function magicFormulaFx(kappa: number, c: PacejkaX, Fz: number): number {
+  const D = c.muX * Fz;
+  const Bk = c.B * kappa;
+  return D * Math.sin(c.C * Math.atan(Bk - c.E * (Bk - Math.atan(Bk))));
+}
+
+/** Fx vs braking slip (κ from −1 = locked to 0 = rolling). */
+export function fxCurve(c: PacejkaX, Fz: number, n = 41): { kappa: number; fx: number }[] {
+  const pts: { kappa: number; fx: number }[] = [];
+  for (let i = 0; i <= n; i++) {
+    const kappa = -1 + i / n; // −1 … 0
+    pts.push({ kappa, fx: magicFormulaFx(kappa, c, Fz) });
+  }
+  return pts;
+}
+
+export interface Lockup { aFrontLock: number; aRearLock: number; achievable: number; firstToLock: 'front' | 'rear'; }
+
+/**
+ * Which axle locks first, and the decel it caps at. Loads shift linearly with
+ * decel a (front +W·a·h/L, rear −), so the lock decels are analytic:
+ *   front: a·biasF = μx·(ff + a·h/L)  → a = μx·ff / (biasF − μx·h/L)
+ *   rear:  a·(1−biasF) = μx·(1−ff − a·h/L) → a = μx·(1−ff) / ((1−biasF) + μx·h/L)
+ * A denominator ≤ 0 means that axle never locks first (→ ∞).
+ */
+export function lockupDecel(biasF: number, ff: number, h: number, L: number, muX: number): Lockup {
+  const hL = h / L;
+  const fDen = biasF - muX * hL;
+  const aFrontLock = fDen > 0 ? (muX * ff) / fDen : Infinity;
+  const aRearLock = (muX * (1 - ff)) / ((1 - biasF) + muX * hL);
+  const achievable = Math.min(aFrontLock, aRearLock);
+  return { aFrontLock, aRearLock, achievable, firstToLock: aFrontLock <= aRearLock ? 'front' : 'rear' };
+}
+
+export interface ThermalIn { mass: number; v1: number; v2: number; nRotors: number; rotorMass: number; cp: number; maxTemp: number; ambient: number; }
+export interface ThermalOut { energy: number; perRotor: number; deltaT: number; peakTemp: number; fadeMargin: number; }
+
+/** One stop: KE lost → heat per rotor → temp rise → fade margin. v in m/s. */
+export function brakeThermal(i: ThermalIn): ThermalOut {
+  const energy = 0.5 * i.mass * (i.v1 * i.v1 - i.v2 * i.v2);
+  const perRotor = energy / i.nRotors;
+  const deltaT = perRotor / (i.rotorMass * i.cp);
+  const peakTemp = i.ambient + deltaT;
+  return { energy, perRotor, deltaT, peakTemp, fadeMargin: i.maxTemp - peakTemp };
+}
