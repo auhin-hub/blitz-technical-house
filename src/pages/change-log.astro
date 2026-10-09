@@ -1,11 +1,56 @@
 ---
 import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
 ---
 <Base title="Change Log">
-  <p class="annot annot-tick">Cross-cutting</p>
+  <p class="annot annot-tick">Cross-cutting · governance</p>
   <h1 style="margin-top:0.4rem;">Change Log</h1>
-  <p style="color:var(--ink-2);margin-top:0.5rem;">
-    Every edit to a frozen number — who, what, old → new, and when. Attributed to
-    the signed-in member and append-only. Built in a later step (BRIEF §E5).
+  <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">
+    Every edit to a frozen number and every freeze/unfreeze — who, what, old → new,
+    and when. Append-only and attributed to the signed-in member. Written
+    automatically when a frozen parameter is changed in
+    <a href={url('vehicle-spec')}>Vehicle Spec</a>.
   </p>
+
+  <div class="notice" style="margin:1.25rem 0;" data-note>Sign in to load the change log.</div>
+
+  <div id="log" style="overflow-x:auto;">
+    <p class="mono" style="color:var(--ink-3);">Loading…</p>
+  </div>
 </Base>
+
+<script>
+  import { loadChangeLog } from '../lib/store';
+
+  const note = document.querySelector('[data-note]') as HTMLElement;
+  const el = document.getElementById('log')!;
+
+  const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
+
+  (async () => {
+    const rows = await loadChangeLog();
+    note.innerHTML = 'Append-only record, newest first.';
+    if (!rows.length) {
+      el.innerHTML = '<p class="mono" style="color:var(--ink-3);">No changes logged yet. Freeze a parameter, then edit it, to see an entry here.</p>';
+      return;
+    }
+    const body = rows.map((r) => `
+      <tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.5rem 0.75rem;white-space:nowrap;" class="mono">${new Date(r.changed_at).toLocaleString()}</td>
+        <td style="padding:0.5rem 0.75rem;">${esc(r.actor_email ?? '—')}</td>
+        <td style="padding:0.5rem 0.75rem;" class="mono">${esc(r.param_key ?? '—')}</td>
+        <td style="padding:0.5rem 0.75rem;" class="mono">${esc(r.field)}</td>
+        <td style="padding:0.5rem 0.75rem;text-align:right;" class="mono">${esc(r.old_value ?? '—')} → <strong>${esc(r.new_value ?? '—')}</strong></td>
+        <td style="padding:0.5rem 0.75rem;">${esc(r.reason ?? '—')}</td>
+      </tr>`).join('');
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);min-width:720px;">
+      <thead><tr style="text-align:left;border-bottom:1px solid var(--rule-strong);">
+        <th style="padding:0.6rem 0.75rem;" class="annot">When</th>
+        <th style="padding:0.6rem 0.75rem;" class="annot">Who</th>
+        <th style="padding:0.6rem 0.75rem;" class="annot">Parameter</th>
+        <th style="padding:0.6rem 0.75rem;" class="annot">Field</th>
+        <th style="padding:0.6rem 0.75rem;text-align:right;" class="annot">Old → New</th>
+        <th style="padding:0.6rem 0.75rem;" class="annot">Reason</th>
+      </tr></thead><tbody>${body}</tbody></table>`;
+  })();
+</script>

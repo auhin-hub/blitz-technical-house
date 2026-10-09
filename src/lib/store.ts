@@ -55,6 +55,58 @@ export async function saveToolState(
   return error ? error.message : null;
 }
 
+/** Change a FROZEN parameter through the enforced, change-logged path (BRIEF §E5). */
+export async function editFrozenParam(key: string, value: number, reason: string): Promise<string | null> {
+  const { error } = await supabase.rpc('edit_param', { p_key: key, p_value: value, p_reason: reason });
+  return error ? error.message : null;
+}
+
+/** Freeze / unfreeze a parameter at a gate (logged by trigger). */
+export async function setFrozen(key: string, frozen: boolean, gate: string | null): Promise<string | null> {
+  const { error } = await supabase
+    .from('vehicle_spec')
+    .update({ frozen, frozen_gate: frozen ? gate : null })
+    .eq('key', key);
+  return error ? error.message : null;
+}
+
+export interface Gate {
+  id: string; name: string; status: 'open' | 'in_review' | 'signed_off';
+  signed_off_by: string | null; signed_off_email: string | null;
+  signed_off_at: string | null; notes: string | null; display_order: number;
+}
+
+export async function loadGates(): Promise<Gate[]> {
+  const { data, error } = await supabase.from('gates').select('*').order('display_order', { ascending: true });
+  return error || !data ? [] : (data as Gate[]);
+}
+
+export async function setGateStatus(id: string, status: Gate['status']): Promise<string | null> {
+  const { data: u } = await supabase.auth.getUser();
+  const patch: Record<string, unknown> = { status };
+  if (status === 'signed_off') {
+    patch.signed_off_by = u.user?.id ?? null;
+    patch.signed_off_email = u.user?.email ?? null;
+    patch.signed_off_at = new Date().toISOString();
+  } else {
+    patch.signed_off_by = null; patch.signed_off_email = null; patch.signed_off_at = null;
+  }
+  const { error } = await supabase.from('gates').update(patch).eq('id', id);
+  return error ? error.message : null;
+}
+
+export interface ChangeLogRow {
+  id: number; param_key: string | null; field: string;
+  old_value: string | null; new_value: string | null; reason: string | null;
+  actor_email: string | null; changed_at: string;
+}
+
+export async function loadChangeLog(limit = 200): Promise<ChangeLogRow[]> {
+  const { data, error } = await supabase
+    .from('change_log').select('*').order('changed_at', { ascending: false }).limit(limit);
+  return error || !data ? [] : (data as ChangeLogRow[]);
+}
+
 export interface ToolOutput { key: string; label: string; value: number | null; unit: string; }
 
 /** Upsert the ToMaster outputs a tool contributes. */

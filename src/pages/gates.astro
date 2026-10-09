@@ -1,12 +1,102 @@
 ---
 import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
 ---
 <Base title="Gates / Phases">
-  <p class="annot annot-tick">Cross-cutting</p>
+  <p class="annot annot-tick">Cross-cutting · governance</p>
   <h1 style="margin-top:0.4rem;">Gates / Phases</h1>
-  <p style="color:var(--ink-2);margin-top:0.5rem;">
-    G0–G9 status, sign-off, and the freeze-list. Freezing a parameter at a gate
-    locks it in Vehicle Spec; later edits require a Change Log entry — enforced,
-    not convention. Built in a later step (BRIEF §E5).
+  <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">
+    G0–G9 phase status and sign-off. Freezing a parameter at a gate locks it in
+    <a href={url('vehicle-spec')}>Vehicle Spec</a>; any later change needs a reason
+    and is recorded in the <a href={url('change-log')}>Change Log</a> — enforced in
+    the database, not just by convention.
   </p>
+
+  <div class="notice" style="margin:1.25rem 0;" data-note>Sign in to load live gate status.</div>
+
+  <section>
+    <div class="annot-dim" style="margin-bottom:1rem;">Gates</div>
+    <div class="grid" id="gate-grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));">
+      <p class="mono" style="color:var(--ink-3);">Loading…</p>
+    </div>
+  </section>
+
+  <section style="margin-top:2.5rem;">
+    <div class="annot-dim" style="margin-bottom:1rem;">Freeze-list — parameters locked at a gate</div>
+    <div id="freeze-list"><p class="mono" style="color:var(--ink-3);">Loading…</p></div>
+  </section>
 </Base>
+
+<script>
+  import { loadGates, setGateStatus, loadMaster, fmt, type Gate } from '../lib/store';
+
+  const note = document.querySelector('[data-note]') as HTMLElement;
+  const grid = document.getElementById('gate-grid')!;
+  const freezeList = document.getElementById('freeze-list')!;
+
+  const STATUS_LABEL: Record<Gate['status'], string> = { open: 'Open', in_review: 'In review', signed_off: 'Signed off' };
+  const STATUS_BADGE: Record<Gate['status'], string> = { open: 'badge', in_review: 'badge badge-est', signed_off: 'badge badge-live' };
+
+  function gateCard(g: Gate): string {
+    const signed = g.status === 'signed_off';
+    const meta = signed && g.signed_off_email
+      ? `<p class="mono" style="font-size:var(--fs-200);color:var(--ink-3);margin-top:0.5rem;">by ${g.signed_off_email}<br>${g.signed_off_at ? new Date(g.signed_off_at).toLocaleString() : ''}</p>`
+      : '';
+    return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;">
+          <span class="annot">${g.id}</span>
+          <span class="${STATUS_BADGE[g.status]}">${STATUS_LABEL[g.status]}</span>
+        </div>
+        <h3 style="font-size:var(--fs-500);margin-top:0.4rem;">${g.name}</h3>
+        ${meta}
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.9rem;">
+          ${g.status !== 'signed_off' ? `<button class="btn btn-heritage" data-act="sign" data-id="${g.id}">Sign off</button>` : `<button class="btn btn-ghost" data-act="reopen" data-id="${g.id}">Reopen</button>`}
+          ${g.status === 'open' ? `<button class="btn btn-ghost" data-act="review" data-id="${g.id}">Mark in review</button>` : ''}
+        </div>
+      </div>`;
+  }
+
+  async function renderGates() {
+    const gates = await loadGates();
+    if (!gates.length) return;
+    note.innerHTML = 'Live gate status. Sign-off is attributed to you and timestamped.';
+    grid.innerHTML = gates.map(gateCard).join('');
+    grid.querySelectorAll<HTMLButtonElement>('[data-act]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id!;
+        const act = btn.dataset.act!;
+        btn.disabled = true;
+        const status = act === 'sign' ? 'signed_off' : act === 'review' ? 'in_review' : 'open';
+        const err = await setGateStatus(id, status as Gate['status']);
+        if (err) { alert('Failed: ' + err); btn.disabled = false; return; }
+        renderGates();
+      });
+    });
+  }
+
+  async function renderFreezeList() {
+    const master = await loadMaster();
+    const frozen = Object.values(master).filter((r) => r.frozen);
+    if (!Object.keys(master).length) return;
+    if (!frozen.length) {
+      freezeList.innerHTML = '<p class="mono" style="color:var(--ink-3);">No parameters frozen yet. Freeze them in Vehicle Spec.</p>';
+      return;
+    }
+    const rows = frozen.map((r) => `
+      <tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.5rem 0.75rem;">${r.label}</td>
+        <td style="padding:0.5rem 0.75rem;text-align:right;" class="mono">${fmt(r.value as number)} ${r.unit}</td>
+        <td style="padding:0.5rem 0.75rem;"><span class="badge badge-frozen">${r.frozen_gate ?? '—'}</span></td>
+      </tr>`).join('');
+    freezeList.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);">
+      <thead><tr style="text-align:left;border-bottom:1px solid var(--rule-strong);">
+        <th style="padding:0.6rem 0.75rem;" class="annot">Parameter</th>
+        <th style="padding:0.6rem 0.75rem;text-align:right;" class="annot">Value</th>
+        <th style="padding:0.6rem 0.75rem;" class="annot">Frozen at</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  renderGates();
+  renderFreezeList();
+</script>

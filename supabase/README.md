@@ -9,15 +9,20 @@ security comes from **row-level security**, never key secrecy (BRIEF §J). The
 Project URL: `https://sfunpylcbaorbmgvlxpz.supabase.co`
 
 ## 1. Create the tables (one time)
-Dashboard → **SQL Editor** → **New query** → paste the whole of
-`supabase/migrations/0001_master_store.sql` → **Run**, then do the same with
-`supabase/migrations/0002_storage_workbooks.sql`.
+Dashboard → **SQL Editor** → **New query** → paste and **Run** each migration in
+order: `0001_master_store.sql`, `0002_storage_workbooks.sql`,
+`0003_tool_state.sql`, `0004_freeze_and_log.sql`.
 
 - `0001` creates `vehicle_spec`, `change_log`, `gates`, `tyre_results`, turns on
   RLS for all four, adds member-only policies, and seeds the 14 TOOL_SPECS §0
   parameters and the G0–G9 gates. Re-running is safe — the seed upserts.
 - `0002` creates the **private `workbooks` storage bucket** and a members-only
   read policy.
+- `0003` creates `tool_state` (each tool's shared inputs) and `tool_outputs`
+  (ToMaster contributions) with member RLS.
+- `0004` adds **freeze-and-log enforcement**: `edit_param()` (the only way to
+  change a frozen parameter — requires a reason and writes a change_log row), a
+  guard trigger that blocks any other frozen edit, and a freeze/unfreeze logger.
 
 Verify: **Table editor → vehicle_spec** shows 14 rows; **gates** shows 10;
 **Storage** lists a `workbooks` bucket marked *private*.
