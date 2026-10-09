@@ -1,0 +1,90 @@
+/* ============================================================================
+   Compact "cockpit" layout (MASTER_BUILD_PLAN §2)
+   - Two-pane discipline view: a slim tool rail + a single-viewport tool.
+   - CalcTool (.ct*) renders inputs (left) beside outputs + chart (right) so a
+     core calculator fits ~one 1080p screen with no scroll.
+   - Spacing is driven by --ct-* tokens; the .cockpit scope tightens them.
+   - Reference-value annotations (.ct-ref): the typical FS-car value per field.
+   ========================================================================== */
+
+:root {
+  --ct-row-pad: 0.42rem 0.6rem;
+  --ct-th-pad: 0.5rem 0.6rem;
+  --ct-gap: 0.9rem;
+  --ct-h3-mt: 1.1rem;
+  --ct-input-w: 90px;
+}
+/* Compact variant — only inside a .cockpit tool view. */
+.cockpit {
+  --ct-row-pad: 0.26rem 0.5rem;
+  --ct-th-pad: 0.34rem 0.5rem;
+  --ct-gap: 0.55rem;
+  --ct-h3-mt: 0.75rem;
+  --ct-input-w: 82px;
+}
+
+/* ---- Two-pane shell ------------------------------------------------------ */
+.cockpit-shell { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+.cockpit-rail {
+  display: flex; flex-direction: column; gap: 0.25rem;
+  position: sticky; top: 76px; align-self: start;
+}
+.cockpit-rail .rail-label { font-family: var(--font-mono); font-size: var(--fs-200); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); padding: 0.2rem 0.5rem 0.4rem; }
+.cockpit-toolbtn {
+  text-align: left; font-family: var(--font-mono); font-size: var(--fs-300);
+  color: var(--ink-2); background: transparent; border: 1px solid transparent;
+  border-radius: var(--radius); padding: 0.5em 0.7em; cursor: pointer;
+}
+.cockpit-toolbtn:hover { background: var(--surface-2); color: var(--ink); }
+.cockpit-toolbtn[aria-current='true'] {
+  background: var(--surface-2); color: var(--ink);
+  border-color: var(--rule); box-shadow: inset 0 0 0 1px var(--rule), -2px 0 0 0 var(--amber);
+}
+.cockpit-view { min-width: 0; }
+.cockpit-view > [hidden] { display: none !important; }
+
+/* ---- CalcTool ------------------------------------------------------------ */
+.ct { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 1rem 1.1rem; }
+.ct + .ct { margin-top: 1.25rem; }
+.cockpit-view > .ct { margin-top: 0; }
+.ct-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.ct-head h2 { font-size: var(--fs-700); }
+.ct-sub { color: var(--ink-2); margin-top: 0.3rem; font-size: var(--fs-300); max-width: 70ch; }
+.ct-h3 { font-size: var(--fs-500); margin-top: var(--ct-h3-mt); }
+
+/* Inputs (left) · outputs+chart (right). One column when narrow. */
+.ct-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1.5rem; align-items: start; margin-top: 0.4rem; }
+.ct-col { min-width: 0; }
+
+.ct-wrap { overflow-x: auto; }
+.ct-table { border-collapse: collapse; font-size: var(--fs-300); width: 100%; }
+.ct-table th { padding: var(--ct-th-pad); text-align: left; }
+.ct-table td { padding: var(--ct-row-pad); border-bottom: 1px solid var(--rule); }
+.ct-table thead tr { border-bottom: 1px solid var(--rule-strong); }
+.ct-num { text-align: right; font-family: var(--font-mono); }
+.ct-unit { font-family: var(--font-mono); color: var(--ink-3); }
+.ct-input { width: var(--ct-input-w); text-align: right; font-family: var(--font-mono); }
+
+/* Reference "typical" annotation — muted, mono; source in the title tooltip. */
+.ct-ref { font-family: var(--font-mono); font-size: var(--fs-200); color: var(--ink-3); white-space: nowrap; cursor: help; }
+.ct-ref::before { content: 'typ '; opacity: 0.7; }
+
+/* Key-output summary tiles at the top of the right column. */
+.ct-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 0.5rem; margin-bottom: 0.6rem; }
+.ct-stat { background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius); padding: 0.5rem 0.65rem; }
+.ct-stat .annot { display: block; }
+.ct-stat .val { font-family: var(--font-mono); font-size: var(--fs-600); margin-top: 0.15rem; }
+
+.ct-chart { margin-top: 0.6rem; position: relative; }
+.ct-foot { margin-top: 0.7rem; font-family: var(--font-mono); font-size: var(--fs-200); color: var(--ink-3); }
+.ct-srcs { margin-top: 0.3rem; }
+
+/* ---- Mobile: rail → top chip strip; single column ------------------------ */
+@media (max-width: 860px) {
+  .cockpit-shell { grid-template-columns: 1fr; }
+  .cockpit-rail { position: static; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: 0.35rem; padding-bottom: 0.3rem; }
+  .cockpit-rail .rail-label { display: none; }
+  .cockpit-toolbtn { white-space: nowrap; flex: none; }
+  .cockpit-toolbtn[aria-current='true'] { box-shadow: inset 0 0 0 1px var(--rule), 0 2px 0 0 var(--amber); }
+  .ct-body { grid-template-columns: 1fr; }
+}
