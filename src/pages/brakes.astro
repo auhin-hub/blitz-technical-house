@@ -273,7 +273,12 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
 
   (async () => {
     applyChartDefaults();
-    master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => [k, Number((v as any).value)]));
+    // Blank Master values (null) stay NaN so dependent outputs honestly show "—"
+    // rather than computing from a silent 0.
+    master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => {
+      const val = (v as any).value;
+      return [k, val === null || val === undefined ? NaN : Number(val)];
+    }));
     for (const el of document.querySelectorAll<HTMLElement>('[data-master]')) {
       const k = el.dataset.master!; if (Number.isFinite(master[k])) el.textContent = fmt(master[k]);
     }
