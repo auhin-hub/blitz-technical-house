@@ -2,31 +2,158 @@
 import Base from '../layouts/Base.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
+import CalcTool from '../components/CalcTool.astro';
 import { url, DISCIPLINES } from '../lib/config';
 import { PARAM_SEED } from '../lib/master';
 
 const vd = DISCIPLINES.find((d) => d.slug === 'vehicle-dynamics')!;
 const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
+const FR = [{ prefix: 'f', label: 'Front' }, { prefix: 'r', label: 'Rear' }];
 
-// Brakes field metadata (ported from the Brakes sheet; see lib/calc/vd-brakes.ts).
-const BRAKE_LINKED = [
+// ---- Setup (targets; no computed outputs) --------------------------------
+const SETUP_LINKED = [
+  { mkey: 'track_front', label: 'Front track', unit: 'mm' },
+  { mkey: 'track_rear', label: 'Rear track', unit: 'mm' },
+  { mkey: 'wheelbase', label: 'Wheelbase', unit: 'mm' },
+  { mkey: 'mu_lat_peak', label: 'Peak lateral μ', unit: '-' },
+];
+const SETUP_INPUTS = [
+  { key: 'staticCamberF', label: 'Static camber front', unit: 'deg', vals: [-2] },
+  { key: 'staticCamberR', label: 'Static camber rear', unit: 'deg', vals: [-1] },
+  { key: 'dynCamberMaxRoll', label: 'Dynamic camber at max roll', unit: 'deg', vals: [-0.8] },
+  { key: 'rcHeightF', label: 'Roll-centre height front', unit: 'mm', vals: [30] },
+  { key: 'rcHeightR', label: 'Roll-centre height rear', unit: 'mm', vals: [45] },
+  { key: 'bumpSteer', label: 'Bump steer (target ≈ 0)', unit: 'deg', vals: [0] },
+  { key: 'caster', label: 'Caster', unit: 'deg', vals: [5] },
+  { key: 'toeF', label: 'Toe front', unit: 'deg', vals: [0] },
+  { key: 'toeR', label: 'Toe rear', unit: 'deg', vals: [0.1] },
+];
+
+// ---- Suspension geometry -------------------------------------------------
+const GEOM_INPUTS = [
+  { key: 'rcHeight', label: 'Roll-centre height from ground', unit: 'mm', vals: [50] },
+  { key: 'vsal', label: 'Virtual swing-arm length (VSAL)', unit: 'mm', vals: [3000] },
+  { key: 'scrub', label: 'Scrub radius', unit: 'mm', vals: [20] },
+  { key: 'kpi', label: 'Kingpin inclination (KPI)', unit: 'deg', vals: [6] },
+  { key: 'caster', label: 'Caster angle', unit: 'deg', vals: [5] },
+  { key: 'trail', label: 'Mechanical trail', unit: 'mm', vals: [25] },
+  { key: 'lbjHeight', label: 'Lower outer ball-joint height', unit: 'mm', vals: [135] },
+  { key: 'ubjHeight', label: 'Upper outer ball-joint height', unit: 'mm', vals: [365] },
+  { key: 'lowerArm', label: 'Lower arm length', unit: 'mm', vals: [493] },
+  { key: 'upperArm', label: 'Upper arm length', unit: 'mm', vals: [360] },
+];
+const GEOM_OUTPUTS = [
+  { key: 'casterRad', label: 'Caster (rad, for geometry)', unit: 'rad' },
+  { key: 'kpiRad', label: 'KPI (rad, for geometry)', unit: 'rad' },
+];
+
+// ---- Hardpoint coordinates (freeze at G3) --------------------------------
+const HP_COLS = [{ prefix: 'x', label: 'x (mm)' }, { prefix: 'y', label: 'y (mm)' }, { prefix: 'z', label: 'z (mm)' }];
+const HP_POINTS = [
+  'lowerArmFront', 'lowerArmRear', 'lowerOuterBJ', 'upperArmFront', 'upperArmRear',
+  'upperOuterBJ', 'tieRodInner', 'tieRodOuter', 'pushrodInner', 'pushrodOuter',
+  'bellcrankPivot', 'damperInboard', 'damperOutboard', 'wheelCentre', 'contactPatch',
+];
+const HP_LABELS: Record<string, string> = {
+  lowerArmFront: 'Lower arm front pivot', lowerArmRear: 'Lower arm rear pivot',
+  lowerOuterBJ: 'Lower outer ball joint', upperArmFront: 'Upper arm front pivot',
+  upperArmRear: 'Upper arm rear pivot', upperOuterBJ: 'Upper outer ball joint',
+  tieRodInner: 'Tie-rod inner', tieRodOuter: 'Tie-rod outer',
+  pushrodInner: 'Pushrod inner', pushrodOuter: 'Pushrod outer',
+  bellcrankPivot: 'Bell-crank pivot', damperInboard: 'Damper inboard',
+  damperOutboard: 'Damper outboard', wheelCentre: 'Wheel centre', contactPatch: 'Contact patch',
+};
+const HP_INPUTS = HP_POINTS.map((k) => ({ key: k, label: HP_LABELS[k], unit: 'mm', vals: [0, 0, 0] }));
+
+// ---- Springs & dampers ---------------------------------------------------
+const SPRINGS_LINKED = [
+  { mkey: 'mass_total', label: 'Total mass', sym: 'm', unit: 'kg' },
+  { mkey: 'mass_frac_front', label: 'Front mass fraction', sym: 'ff', unit: '-' },
+];
+const SPRINGS_INPUTS = [
+  { key: 'motionRatio', label: 'Motion ratio (wheel→spring)', unit: '-', vals: [0.7, 0.7] },
+  { key: 'unsprung', label: 'Unsprung mass per corner', unit: 'kg', vals: [12, 12] },
+  { key: 'targetFreq', label: 'Target ride frequency', unit: 'Hz', vals: [2.8, 3] },
+  { key: 'chosenRate', label: 'Chosen spring rate (0 = none yet)', unit: 'N/mm', vals: [0, 0] },
+  { key: 'bump', label: 'Target wheel travel (bump)', unit: 'mm', vals: [30, 25] },
+  { key: 'droop', label: 'Target wheel travel (droop)', unit: 'mm', vals: [25, 25] },
+  { key: 'dampingRatio', label: 'Target damping ratio', unit: '-', vals: [0.65, 0.65] },
+];
+const SPRINGS_OUTPUTS = [
+  { key: 'sprungCorner', label: 'Sprung corner mass', unit: 'kg' },
+  { key: 'wheelRate', label: 'Wheel rate = (2πf)²·m', unit: 'N/mm' },
+  { key: 'springRate', label: 'Spring rate = wheel rate / MR²', unit: 'N/mm' },
+  { key: 'recheckFreq', label: 'Re-check frequency with chosen', unit: 'Hz' },
+  { key: 'springTravel', label: 'Spring travel (wheel × MR)', unit: 'mm' },
+  { key: 'criticalDamping', label: 'Critical damping = 2√(k·m)', unit: 'N·s/m' },
+  { key: 'damperRate', label: 'Damper rate = ζ·Cc', unit: 'N·s/m' },
+];
+
+// ---- Suspension loads ----------------------------------------------------
+const LOADS_LINKED = [
+  { mkey: 'mass_total', label: 'Total mass', sym: 'm', unit: 'kg' },
+  { mkey: 'mass_frac_front', label: 'Front mass fraction', sym: 'ff', unit: '-' },
+  { mkey: 'wheelbase', label: 'Wheelbase', sym: 'L', unit: 'mm' },
+  { mkey: 'cog_height', label: 'CoG height', sym: 'h', unit: 'mm' },
+];
+const LOADS_INPUTS = [
+  { key: 'dmf', label: 'Dynamic magnification factor (vertical)', unit: '-', vals: [3, 3] },
+  { key: 'downforce', label: 'Aero downforce per axle', unit: 'N', vals: [50, 50] },
+  { key: 'pushrodAngle', label: 'Pushrod angle to horizontal', unit: 'deg', vals: [45, 45] },
+  { key: 'svsaAngle', label: 'Side-view swing-arm angle θ', unit: 'deg', vals: [8, 6] },
+  { key: 'share', label: 'Brake bias / drive share on axle', unit: '-', vals: [0.65, 1] },
+];
+const LOADS_OUTPUTS = [
+  { key: 'staticCorner', label: 'Static corner vertical load', unit: 'N' },
+  { key: 'maxVertical', label: 'Max vertical case = static·DMF + DF', unit: 'N' },
+  { key: 'pushrodForce', label: 'Pushrod force = vertical / sin θ', unit: 'N' },
+  { key: 'antiPct', label: '% anti-dive (F) / anti-squat (R)', unit: 'fraction' },
+];
+
+// ---- Steering ------------------------------------------------------------
+const STEER_LINKED = [
+  { mkey: 'wheelbase', label: 'Wheelbase', sym: 'L', unit: 'mm' },
+  { mkey: 'track_front', label: 'Front track', sym: 't', unit: 'mm' },
+];
+const STEER_INPUTS = [
+  { key: 'turningRadius', label: 'Target turning radius', unit: 'm', vals: [3.5] },
+  { key: 'kingpinDist', label: 'Kingpin-to-kingpin distance', unit: 'mm', vals: [1100] },
+  { key: 'steeringArm', label: 'Steering-arm length', unit: 'mm', vals: [90] },
+  { key: 'rackTravel', label: 'Rack travel (lock-to-lock)', unit: 'mm', vals: [120] },
+  { key: 'swTurns', label: 'Steering-wheel turns (lock-to-lock)', unit: '-', vals: [1.5] },
+  { key: 'pinionPitchDia', label: 'Pinion pitch diameter', unit: 'mm', vals: [50] },
+  { key: 'teeth', label: 'Number of teeth', unit: '-', vals: [18] },
+];
+const STEER_OUTPUTS = [
+  { key: 'ackermannSplit', label: 'Ackermann split δin−δout', unit: 'deg' },
+  { key: 'module', label: 'Module m = d / N', unit: 'mm' },
+  { key: 'circularPitch', label: 'Circular pitch = π·m', unit: 'mm' },
+  { key: 'baseDia', label: 'Base circle dia = PCD·cos20°', unit: 'mm' },
+  { key: 'addendum', label: 'Addendum = 0.8·m', unit: 'mm' },
+  { key: 'dedendum', label: 'Dedendum = 1.0·m', unit: 'mm' },
+  { key: 'toothThickness', label: 'Tooth thickness = 1.5708·m', unit: 'mm' },
+  { key: 'rackTravelPerRev', label: 'Rack travel per pinion rev = π·d', unit: 'mm/rev' },
+];
+
+// ---- Brakes --------------------------------------------------------------
+const BRAKES_LINKED = [
   { mkey: 'mass_frac_front', label: 'Static front mass fraction', sym: 'ff', unit: '-' },
   { mkey: 'cog_height', label: 'CoG height', sym: 'h', unit: 'mm' },
   { mkey: 'wheelbase', label: 'Wheelbase', sym: 'L', unit: 'mm' },
   { mkey: 'mu_lat_peak', label: 'Tyre–road μ', sym: 'μ', unit: '-' },
 ];
-const BRAKE_INPUTS = [
-  { key: 'pedalForce', label: 'Pedal force (one hard push)', unit: 'N', f: 400, r: 400 },
-  { key: 'pedalRatio', label: 'Pedal ratio', unit: '-', f: 5, r: 5 },
-  { key: 'mcBore', label: 'Master-cylinder bore', unit: 'mm', f: 15.875, r: 15.875 },
-  { key: 'circuits', label: 'Circuits fed (1 or 2)', unit: '-', f: 2, r: 2 },
-  { key: 'caliperBore', label: 'Caliper piston bore', unit: 'mm', f: 25, r: 25 },
-  { key: 'pistons', label: 'Pistons per side', unit: '-', f: 2, r: 1 },
-  { key: 'padMu', label: 'Pad friction μ', unit: '-', f: 0.45, r: 0.45 },
-  { key: 'rotorOd', label: 'Rotor outer diameter', unit: 'mm', f: 180, r: 180 },
-  { key: 'padDepth', label: 'Pad radial depth', unit: 'mm', f: 27, r: 27 },
+const BRAKES_INPUTS = [
+  { key: 'pedalForce', label: 'Pedal force (one hard push)', unit: 'N', vals: [400, 400] },
+  { key: 'pedalRatio', label: 'Pedal ratio', unit: '-', vals: [5, 5] },
+  { key: 'mcBore', label: 'Master-cylinder bore', unit: 'mm', vals: [15.875, 15.875] },
+  { key: 'circuits', label: 'Circuits fed (1 or 2)', unit: '-', vals: [2, 2] },
+  { key: 'caliperBore', label: 'Caliper piston bore', unit: 'mm', vals: [25, 25] },
+  { key: 'pistons', label: 'Pistons per side', unit: '-', vals: [2, 1] },
+  { key: 'padMu', label: 'Pad friction μ', unit: '-', vals: [0.45, 0.45] },
+  { key: 'rotorOd', label: 'Rotor outer diameter', unit: 'mm', vals: [180, 180] },
+  { key: 'padDepth', label: 'Pad radial depth', unit: 'mm', vals: [27, 27] },
 ];
-const BRAKE_OUTPUTS = [
+const BRAKES_OUTPUTS = [
   { key: 'pushrodForce', label: 'Pushrod force = pedal × ratio', unit: 'N' },
   { key: 'linePressureKpa', label: 'Line pressure', unit: 'kPa' },
   { key: 'clamp', label: 'Clamp force = P × area × pistons', unit: 'N' },
@@ -34,13 +161,6 @@ const BRAKE_OUTPUTS = [
   { key: 'effRadius', label: 'Effective radius', unit: 'm' },
   { key: 'brakeTorque', label: 'Brake torque / wheel', unit: 'N·m' },
 ];
-
-const td = 'padding:0.45rem 0.6rem;';
-const th = 'padding:0.5rem 0.6rem;text-align:left;';
-const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
-
-// Tool list for the in-page nav + stub sections.
-const TOOLS = vd.tools;
 ---
 <Base title={vd.title} description={vd.blurb}>
   <nav class="annot" style="margin-bottom:0.75rem;">
@@ -50,266 +170,140 @@ const TOOLS = vd.tools;
     <p class="annot annot-tick">Discipline</p>
     <h1 style="margin-top:0.4rem;">{vd.title}</h1>
     <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{vd.blurb}</p>
-    <div style="margin-top:1rem;">
-      {vd.workbook && <WorkbookDownload file={vd.workbook} />}
-    </div>
+    <div style="margin-top:1rem;">{vd.workbook && <WorkbookDownload file={vd.workbook} />}</div>
   </header>
 
-  <!-- In-page tool nav -->
   <nav class="nav" aria-label="Vehicle Dynamics tools" style="gap:0.4rem;margin-bottom:1.25rem;">
-    {TOOLS.map((t) => <a href={`#${t.anchor}`}>{t.title}</a>)}
+    <a href="#setup">Setup</a><a href="#geometry">Geometry</a><a href="#springs">Springs & dampers</a>
+    <a href="#loads">Suspension loads</a><a href="#steering">Steering</a><a href="#brakes">Brakes</a>
   </nav>
 
   <div class="notice" style="margin-bottom:1.5rem;">
-    <strong>Shared numbers come from Vehicle Spec.</strong> Green fields are read
-    from the Master (edit them in <a href={url('vehicle-spec')}>Vehicle Spec</a>);
-    blue fields are this tool's own inputs and save for the whole team; black
-    fields are computed. Ported from the workbook — see each tool's spec tag.
+    <strong>Shared numbers come from Vehicle Spec.</strong> Green = read from the
+    Master (edit in <a href={url('vehicle-spec')}>Vehicle Spec</a>); blue = this
+    tool's own inputs, saved for the whole team; black = computed. Ported from the
+    workbook — see each tool's spec tag.
   </div>
   <LegendKey />
 
-  <!-- ===================== BRAKES (full) ===================== -->
-  <section id="brakes" class="card" style="margin-top:1.5rem;">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
-      <h2>Brakes</h2>
-      <span class="badge">TOOL_SPECS §7b</span>
-    </div>
-    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
-      Pedal → master cylinder → caliper → rotor, then achieved vs Olley-optimum
-      front bias across a deceleration sweep.
-    </p>
+  <CalcTool id="setup" title="Setup / kinematics" spec="TOOL_SPECS §7a"
+    blurb="Kinematic targets; platform values pulled from Master. A target sheet — no computed outputs."
+    linked={SETUP_LINKED} seed={seed} inputs={SETUP_INPUTS} />
 
-    <!-- Linked from Master -->
-    <h3 style="font-size:var(--fs-500);margin-top:1.1rem;">From Master</h3>
-    <div style="overflow-x:auto;">
-      <table style="border-collapse:collapse;font-size:var(--fs-300);margin-top:0.4rem;">
-        <tbody>
-          {BRAKE_LINKED.map((l) => (
-            <tr>
-              <td style={td}>{l.label} <span class="mono" style="color:var(--ink-3);">({l.sym})</span></td>
-              <td style={td + 'text-align:right;'}>
-                <span class="field field-linked mono" data-master={l.mkey} data-seed={seed[l.mkey]}>{seed[l.mkey]}</span>
-              </td>
-              <td style={td} class="mono">{l.unit}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+  <CalcTool id="geometry" title="Suspension geometry" spec="TOOL_SPECS §7c"
+    blurb="Front-view geometry and the derived caster/KPI angles."
+    inputs={GEOM_INPUTS} outputs={GEOM_OUTPUTS} />
 
-    <!-- Inputs F/R -->
-    <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Inputs</h3>
-    <div style="overflow-x:auto;">
-      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:520px;margin-top:0.4rem;">
-        <thead><tr style="border-bottom:1px solid var(--rule-strong);">
-          <th style={th} class="annot">Parameter</th>
-          <th style={th + 'text-align:right;'} class="annot">Front</th>
-          <th style={th + 'text-align:right;'} class="annot">Rear</th>
-          <th style={th} class="annot">Unit</th>
-        </tr></thead>
-        <tbody>
-          {BRAKE_INPUTS.map((i) => (
-            <tr style="border-bottom:1px solid var(--rule);">
-              <td style={td}>{i.label}</td>
-              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`f_${i.key}`} value={i.f} aria-label={`${i.label} front`} /></td>
-              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`r_${i.key}`} value={i.r} aria-label={`${i.label} rear`} /></td>
-              <td style={td} class="mono">{i.unit}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+  <CalcTool id="hardpoints" title="Hardpoint coordinates" spec="TOOL_SPECS §7c"
+    blurb="One corner's hardpoints (x, y, z). Data entry — freeze at G3. Saved for the whole team."
+    cols={HP_COLS} inputs={HP_INPUTS} />
 
-    <!-- Outputs F/R -->
-    <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Outputs</h3>
-    <div style="overflow-x:auto;">
-      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:520px;margin-top:0.4rem;">
-        <thead><tr style="border-bottom:1px solid var(--rule-strong);">
-          <th style={th} class="annot">Result</th>
-          <th style={th + 'text-align:right;'} class="annot">Front</th>
-          <th style={th + 'text-align:right;'} class="annot">Rear</th>
-          <th style={th} class="annot">Unit</th>
-        </tr></thead>
-        <tbody>
-          {BRAKE_OUTPUTS.map((o) => (
-            <tr style="border-bottom:1px solid var(--rule);">
-              <td style={td}>{o.label}</td>
-              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`f_${o.key}`}>—</span></td>
-              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`r_${o.key}`}>—</span></td>
-              <td style={td} class="mono">{o.unit}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+  <CalcTool id="springs" title="Springs & dampers" spec="TOOL_SPECS §7d"
+    blurb="Ride-frequency sizing: wheel rate, spring rate, travel and damping."
+    cols={FR} linked={SPRINGS_LINKED} seed={seed} inputs={SPRINGS_INPUTS} outputs={SPRINGS_OUTPUTS}
+    chartId="springs-chart" chartTitle="Wheel & spring rate (front / rear)" chartHeight={260}
+    contribute contributeNote="Writes front/rear spring rate to the shared store (ToMaster → Springs tab)." />
 
-    <!-- Bias summary -->
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));margin-top:1.25rem;">
-      <div class="card" style="background:var(--surface-2);">
-        <span class="annot">Achieved front bias</span>
-        <p class="mono" style="font-size:var(--fs-700);margin-top:0.3rem;"><span data-out="achievedFrontBias">—</span></p>
-      </div>
-      <div class="card" style="background:var(--surface-2);">
-        <span class="annot">Olley optimum (ff + μ·h/L)</span>
-        <p class="mono" style="font-size:var(--fs-700);margin-top:0.3rem;"><span data-out="olleyOptimum">—</span></p>
-      </div>
-    </div>
+  <CalcTool id="loads" title="Suspension loads" spec="TOOL_SPECS §7e"
+    blurb="Vertical / braking / cornering cases → pushrod & wishbone loads, anti-dive/anti-squat."
+    cols={FR} linked={LOADS_LINKED} seed={seed} inputs={LOADS_INPUTS} outputs={LOADS_OUTPUTS}
+    chartId="loads-chart" chartTitle="Pushrod force & max vertical (front / rear)" chartHeight={260} />
 
-    <h3 style="font-size:var(--fs-500);margin-top:1.5rem;">Achieved vs optimum bias — deceleration sweep</h3>
-    <div style="margin-top:0.5rem;height:300px;position:relative;"><canvas id="brakes-chart"></canvas></div>
+  <CalcTool id="steering" title="Steering" spec="TOOL_SPECS §7f"
+    blurb="Ackermann split (uses the target turning radius) + rack & pinion gear geometry."
+    linked={STEER_LINKED} seed={seed} inputs={STEER_INPUTS} outputs={STEER_OUTPUTS} />
 
-    <!-- ToMaster -->
-    <h3 style="font-size:var(--fs-500);margin-top:1.5rem;">Contribute to Master</h3>
-    <p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.3rem;">
-      Writes front/rear brake-torque target and achieved front bias to the shared
-      store (ToMaster). Governed destinations (Brakes hand-off) are wired with Gates.
-    </p>
-    <button class="btn btn-heritage" type="button" id="brakes-contribute" style="margin-top:0.75rem;">
-      Contribute results to Master
-    </button>
-    <span class="mono" id="brakes-contribute-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
-    <p class="mono" id="brakes-save-status" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
-  </section>
-
-  <!-- ===================== OTHER VD TOOLS (building next) ===================== -->
-  {TOOLS.filter((t) => t.anchor !== 'brakes').map((t) => (
-    <section id={t.anchor} class="card" style="margin-top:1.25rem;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
-        <h2 style="font-size:var(--fs-600);">{t.title}</h2>
-        <span class="badge">{t.spec}</span>
-      </div>
-      <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">{t.blurb}</p>
-      <p class="annot" style="margin-top:0.8rem;">Calculator — building next</p>
-    </section>
-  ))}
+  <CalcTool id="brakes" title="Brakes" spec="TOOL_SPECS §7b"
+    blurb="Pedal → master cylinder → caliper → rotor, then achieved vs Olley-optimum front bias across a deceleration sweep."
+    cols={FR} linked={BRAKES_LINKED} seed={seed} inputs={BRAKES_INPUTS} outputs={BRAKES_OUTPUTS}
+    stats={[{ key: 'achievedFrontBias', label: 'Achieved front bias' }, { key: 'olleyOptimum', label: 'Olley optimum (ff + μ·h/L)' }]}
+    chartId="brakes-chart" chartTitle="Achieved vs optimum bias — deceleration sweep"
+    contribute contributeNote="Writes front/rear brake torque + achieved front bias to the shared store (ToMaster → Brakes hand-off)." />
 </Base>
 
 <script>
-  import Chart from 'chart.js/auto';
-  import { computeBrakes, type BrakeSide } from '../lib/calc/vd-brakes';
-  import { loadMaster, loadToolState, saveToolState, saveToolOutputs, fmt, debounce } from '../lib/store';
-  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+  import { mountCalculator } from '../lib/calc/engine';
+  import { brakesCompute } from '../lib/calc/vd-brakes';
+  import { springsCompute } from '../lib/calc/vd-springs';
+  import { loadsCompute } from '../lib/calc/vd-loads';
+  import { steeringCompute } from '../lib/calc/vd-steering';
+  import { geometryCompute } from '../lib/calc/vd-geometry';
 
-  const TOOL = 'vd_brakes';
-  const saveStatus = document.getElementById('brakes-save-status')!;
-  const linkedSeed: Record<string, number> = {};
-  let masterVals: Record<string, number> = {};
+  const DECEL = [0.4, 0.6, 0.8, 1.0, 1.2, 1.4];
+  const noOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } } };
 
-  // Read Front/Rear inputs from the DOM into the compute shape.
-  function readSides(): { front: BrakeSide; rear: BrakeSide } {
-    const front: any = {}, rear: any = {};
-    document.querySelectorAll('[data-in]').forEach((el) => {
-      const input = el as HTMLInputElement;
-      const [col, ...rest] = input.dataset.in!.split('_');
-      const prop = rest.join('_');
-      (col === 'f' ? front : rear)[prop] = Number(input.value);
-    });
-    return { front, rear };
-  }
+  mountCalculator({ root: 'setup', tool: 'vd_setup', compute: () => ({}) });
 
-  function masterVal(mkey: string): number {
-    return masterVals[mkey] ?? linkedSeed[mkey];
-  }
+  mountCalculator({
+    root: 'geometry', tool: 'vd_geometry', compute: geometryCompute,
+    digits: { casterRad: 4, kpiRad: 4 },
+  });
 
-  let chart: Chart | null = null;
-  function renderChart(sweep: { g: number; optimumFrontBias: number }[], achieved: number) {
-    const p = palette();
-    const labels = sweep.map((s) => s.g.toFixed(1));
-    const optimum = sweep.map((s) => +(s.optimumFrontBias).toFixed(4));
-    const achievedLine = sweep.map(() => +achieved.toFixed(4));
-    const data = {
-      labels,
-      datasets: [
-        { label: 'Optimum front bias', data: optimum, borderColor: p.sky, backgroundColor: p.sky, tension: 0.2, pointRadius: 3 },
-        { label: 'Achieved front bias', data: achievedLine, borderColor: p.amber, backgroundColor: p.amber, borderDash: [6, 4], pointRadius: 0 },
-      ],
-    };
-    const opts: any = {
-      responsive: true, maintainAspectRatio: false,
-      scales: {
-        x: { title: { display: true, text: 'deceleration (g)' } },
-        y: { title: { display: true, text: 'front brake bias' } },
+  mountCalculator({ root: 'hardpoints', tool: 'vd_hardpoints', compute: () => ({}), defaultDigits: 1 });
+
+  mountCalculator({
+    root: 'springs', tool: 'vd_springs', compute: springsCompute, defaultDigits: 2,
+    charts: [{
+      canvasId: 'springs-chart',
+      build: ({ out, pal }) => ({
+        type: 'bar',
+        data: { labels: ['Front', 'Rear'], datasets: [
+          { label: 'Wheel rate (N/mm)', data: [out.f_wheelRate, out.r_wheelRate], backgroundColor: pal.sky },
+          { label: 'Spring rate (N/mm)', data: [out.f_springRate, out.r_springRate], backgroundColor: pal.amber },
+        ] },
+        options: { ...noOpts, scales: { y: { title: { display: true, text: 'N/mm' } } } },
+      }),
+    }],
+    toMaster: [
+      { key: 'spring_rate_front', label: 'Front spring rate', unit: 'N/mm', from: 'f_springRate' },
+      { key: 'spring_rate_rear', label: 'Rear spring rate', unit: 'N/mm', from: 'r_springRate' },
+    ],
+  });
+
+  mountCalculator({
+    root: 'loads', tool: 'vd_loads', compute: loadsCompute, defaultDigits: 2,
+    digits: { f_antiPct: 3, r_antiPct: 3 },
+    charts: [{
+      canvasId: 'loads-chart',
+      build: ({ out, pal }) => ({
+        type: 'bar',
+        data: { labels: ['Front', 'Rear'], datasets: [
+          { label: 'Pushrod force (N)', data: [out.f_pushrodForce, out.r_pushrodForce], backgroundColor: pal.sky },
+          { label: 'Max vertical (N)', data: [out.f_maxVertical, out.r_maxVertical], backgroundColor: pal.amber },
+        ] },
+        options: { ...noOpts, scales: { y: { title: { display: true, text: 'N' } } } },
+      }),
+    }],
+  });
+
+  mountCalculator({
+    root: 'steering', tool: 'vd_steering', compute: steeringCompute, defaultDigits: 3,
+    digits: { baseDia: 2, rackTravelPerRev: 2 },
+  });
+
+  mountCalculator({
+    root: 'brakes', tool: 'vd_brakes', compute: brakesCompute, defaultDigits: 2,
+    digits: { f_effRadius: 4, r_effRadius: 4, achievedFrontBias: 3, olleyOptimum: 3 },
+    charts: [{
+      canvasId: 'brakes-chart',
+      build: ({ out, master, pal }) => {
+        const hL = master.cog_height / master.wheelbase;
+        const optimum = DECEL.map((g) => +(master.mass_frac_front + g * hL).toFixed(4));
+        const achieved = DECEL.map(() => +out.achievedFrontBias.toFixed(4));
+        return {
+          type: 'line',
+          data: { labels: DECEL.map((g) => g.toFixed(1)), datasets: [
+            { label: 'Optimum front bias', data: optimum, borderColor: pal.sky, backgroundColor: pal.sky, tension: 0.2, pointRadius: 3 },
+            { label: 'Achieved front bias', data: achieved, borderColor: pal.amber, backgroundColor: pal.amber, borderDash: [6, 4], pointRadius: 0 },
+          ] },
+          options: { ...noOpts, scales: { x: { title: { display: true, text: 'deceleration (g)' } }, y: { title: { display: true, text: 'front brake bias' } } } },
+        };
       },
-      plugins: { legend: { labels: { usePointStyle: true } } },
-    };
-    if (chart) { chart.data = data as any; chart.update(); }
-    else { chart = new Chart(document.getElementById('brakes-chart') as HTMLCanvasElement, { type: 'line', data: data as any, options: opts }); }
-  }
-
-  function recompute() {
-    const { front, rear } = readSides();
-    const res = computeBrakes(front, rear, {
-      ff: masterVal('mass_frac_front'), h: masterVal('cog_height'),
-      L: masterVal('wheelbase'), mu: masterVal('mu_lat_peak'),
-    });
-    const put = (sel: string, v: number) => {
-      const el = document.querySelector(`[data-out="${sel}"]`);
-      if (el) el.textContent = fmt(v, sel.includes('effRadius') ? 4 : 2);
-    };
-    (['pushrodForce', 'linePressureKpa', 'clamp', 'friction', 'effRadius', 'brakeTorque'] as const).forEach((k) => {
-      put(`f_${k}`, (res.front as any)[k]); put(`r_${k}`, (res.rear as any)[k]);
-    });
-    document.querySelector('[data-out="achievedFrontBias"]')!.textContent = fmt(res.achievedFrontBias, 3);
-    document.querySelector('[data-out="olleyOptimum"]')!.textContent = fmt(res.olleyOptimum, 3);
-    renderChart(res.sweep, res.achievedFrontBias);
-    return res;
-  }
-
-  const persist = debounce(async () => {
-    const { front, rear } = readSides();
-    const flat: Record<string, number> = {};
-    for (const [k, v] of Object.entries(front)) flat[`f_${k}`] = v as number;
-    for (const [k, v] of Object.entries(rear)) flat[`r_${k}`] = v as number;
-    saveStatus.textContent = 'Saving…';
-    const err = await saveToolState(TOOL, flat);
-    saveStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
-    saveStatus.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
-  }, 600);
-
-  (async () => {
-    applyChartDefaults();
-    // seed fallbacks from the rendered linked cells
-    document.querySelectorAll('[data-master]').forEach((el) => {
-      const k = (el as HTMLElement).dataset.master!;
-      linkedSeed[k] = Number((el as HTMLElement).dataset.seed);
-    });
-
-    const master = await loadMaster();
-    if (Object.keys(master).length) {
-      for (const el of document.querySelectorAll('[data-master]')) {
-        const k = (el as HTMLElement).dataset.master!;
-        if (master[k]) { (el as HTMLElement).textContent = fmt(master[k].value as number); masterVals[k] = master[k].value as number; }
-      }
-    }
-
-    // Load shared inputs, apply to the DOM.
-    const defaults: Record<string, number> = {};
-    document.querySelectorAll('[data-in]').forEach((el) => { defaults[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
-    const state = await loadToolState(TOOL, defaults);
-    document.querySelectorAll('[data-in]').forEach((el) => {
-      const input = el as HTMLInputElement;
-      if (state[input.dataset.in!] !== undefined) input.value = String(state[input.dataset.in!]);
-    });
-
-    recompute();
-
-    document.querySelectorAll('[data-in]').forEach((el) => {
-      el.addEventListener('input', () => { recompute(); persist(); });
-    });
-
-    document.getElementById('brakes-contribute')!.addEventListener('click', async () => {
-      const res = recompute();
-      const status = document.getElementById('brakes-contribute-status')!;
-      status.textContent = 'Saving…';
-      const err = await saveToolOutputs(TOOL, [
-        { key: 'brake_torque_front', label: 'Front brake torque / wheel', value: +res.front.brakeTorque.toFixed(2), unit: 'N·m' },
-        { key: 'brake_torque_rear', label: 'Rear brake torque / wheel', value: +res.rear.brakeTorque.toFixed(2), unit: 'N·m' },
-        { key: 'achieved_front_bias', label: 'Achieved front brake bias', value: +res.achievedFrontBias.toFixed(4), unit: '-' },
-      ]);
-      status.textContent = err ? 'Failed: ' + err : 'Contributed ✓';
-      status.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
-    });
-
-    watchTheme(() => { applyChartDefaults(); recompute(); });
-  })();
+    }],
+    toMaster: [
+      { key: 'brake_torque_front', label: 'Front brake torque / wheel', unit: 'N·m', from: 'f_brakeTorque' },
+      { key: 'brake_torque_rear', label: 'Rear brake torque / wheel', unit: 'N·m', from: 'r_brakeTorque' },
+      { key: 'achieved_front_bias', label: 'Achieved front brake bias', unit: '-', from: 'achievedFrontBias' },
+    ],
+  });
 </script>

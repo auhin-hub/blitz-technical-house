@@ -78,6 +78,25 @@ export function computeBrakes(front: BrakeSide, rear: BrakeSide, m: BrakeMaster)
   return { front: f, rear: r, achievedFrontBias, olleyOptimum, sweep };
 }
 
+/** Flat adapter for the calculator engine (f_/r_ input keys, master by key). */
+export function brakesCompute(inp: Record<string, number>, m: Record<string, number>): Record<string, number> {
+  const side = (p: string): BrakeSide => ({
+    pedalForce: inp[`${p}_pedalForce`], pedalRatio: inp[`${p}_pedalRatio`],
+    mcBore: inp[`${p}_mcBore`], circuits: inp[`${p}_circuits`],
+    caliperBore: inp[`${p}_caliperBore`], pistons: inp[`${p}_pistons`],
+    padMu: inp[`${p}_padMu`], rotorOd: inp[`${p}_rotorOd`], padDepth: inp[`${p}_padDepth`],
+  });
+  const r = computeBrakes(side('f'), side('r'), {
+    ff: m.mass_frac_front, h: m.cog_height, L: m.wheelbase, mu: m.mu_lat_peak,
+  });
+  const out: Record<string, number> = { achievedFrontBias: r.achievedFrontBias, olleyOptimum: r.olleyOptimum };
+  (['pushrodForce', 'linePressureKpa', 'clamp', 'friction', 'effRadius', 'brakeTorque'] as const).forEach((k) => {
+    out[`f_${k}`] = (r.front as any)[k];
+    out[`r_${k}`] = (r.rear as any)[k];
+  });
+  return out;
+}
+
 export const BRAKE_DEFAULTS: { front: BrakeSide; rear: BrakeSide } = {
   front: { pedalForce: 400, pedalRatio: 5, mcBore: 15.875, circuits: 2, caliperBore: 25, pistons: 2, padMu: 0.45, rotorOd: 180, padDepth: 27 },
   rear:  { pedalForce: 400, pedalRatio: 5, mcBore: 15.875, circuits: 2, caliperBore: 25, pistons: 1, padMu: 0.45, rotorOd: 180, padDepth: 27 },
