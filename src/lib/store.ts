@@ -157,6 +157,59 @@ export async function signedUrl(bucket: string, path: string, seconds = 300): Pr
   return data?.signedUrl ?? null;
 }
 
+// ---- Resources (BRIEF §E6) -------------------------------------------------
+export interface ResourceFolder { id: string; name: string; created_at: string; }
+export interface ResourceItem {
+  id: string; folder_id: string; title: string; kind: 'file' | 'link';
+  path: string | null; url: string | null; notes: string | null;
+  uploaded_email: string | null; created_at: string;
+}
+
+export async function loadFolders(): Promise<ResourceFolder[]> {
+  const { data, error } = await supabase.from('resource_folders').select('*').order('name');
+  return error || !data ? [] : (data as ResourceFolder[]);
+}
+export async function createFolder(name: string): Promise<string | null> {
+  const { data: u } = await supabase.auth.getUser();
+  const { error } = await supabase.from('resource_folders').insert({ name, created_email: u.user?.email ?? null });
+  return error ? error.message : null;
+}
+export async function deleteFolder(id: string): Promise<string | null> {
+  const { error } = await supabase.from('resource_folders').delete().eq('id', id);
+  return error ? error.message : null;
+}
+export async function loadResources(folderId: string): Promise<ResourceItem[]> {
+  const { data, error } = await supabase.from('resources').select('*').eq('folder_id', folderId).order('created_at', { ascending: false });
+  return error || !data ? [] : (data as ResourceItem[]);
+}
+export async function addResource(rec: Partial<ResourceItem>): Promise<string | null> {
+  const { data: u } = await supabase.auth.getUser();
+  const { error } = await supabase.from('resources').insert({ ...rec, uploaded_email: u.user?.email ?? null });
+  return error ? error.message : null;
+}
+export async function deleteResource(id: string): Promise<string | null> {
+  const { error } = await supabase.from('resources').delete().eq('id', id);
+  return error ? error.message : null;
+}
+export async function uploadResourceFile(file: File): Promise<{ path: string | null; error: string | null }> {
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${crypto.randomUUID()}-${safe}`;
+  const { error } = await supabase.storage.from('resources').upload(path, file, { upsert: false });
+  return { path: error ? null : path, error: error ? error.message : null };
+}
+
+// ---- Generic JSON tool state (for non-numeric grids, e.g. wiring list) -----
+export async function loadToolJson<T>(tool: string, fallback: T): Promise<T> {
+  const { data, error } = await supabase.from('tool_state').select('data').eq('tool', tool).maybeSingle();
+  if (error || !data || data.data == null) return fallback;
+  return data.data as T;
+}
+export async function saveToolJson(tool: string, data: unknown): Promise<string | null> {
+  const { data: u } = await supabase.auth.getUser();
+  const { error } = await supabase.from('tool_state').upsert({ tool, data, updated_by: u.user?.id ?? null }, { onConflict: 'tool' });
+  return error ? error.message : null;
+}
+
 /** Format a number for display: trim noise, keep sensible precision. */
 export function fmt(v: number | null | undefined, digits = 3): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—';

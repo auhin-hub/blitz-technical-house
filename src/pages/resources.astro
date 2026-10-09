@@ -1,11 +1,188 @@
 ---
 import Base from '../layouts/Base.astro';
+
+const fieldCss = 'width:100%;margin-top:0.3rem;padding:0.5rem 0.6rem;background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);font-family:var(--font-mono);font-size:var(--fs-300);';
 ---
 <Base title="Resources">
   <p class="annot annot-tick">Cross-cutting</p>
   <h1 style="margin-top:0.4rem;">Resources</h1>
-  <p style="color:var(--ink-2);margin-top:0.5rem;">
-    Reference PDFs and instructions — readable here, members upload their own
-    (≤50 MB) to private Supabase storage. Built in a later step (BRIEF §E6).
+  <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">
+    Reference docs organised by system. Each folder holds uploaded documents
+    (private storage, behind login) or just links to books / external resources —
+    links store no file, to save free-tier space. Members read and add.
   </p>
+
+  <div class="notice" style="margin:1.25rem 0;" data-note>Sign in to load resources.</div>
+
+  <!-- Folders -->
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+    <div id="folder-chips" style="display:flex;gap:0.5rem;flex-wrap:wrap;"></div>
+    <button class="btn btn-ghost" id="new-folder" type="button">+ New folder</button>
+  </div>
+
+  <!-- Selected folder panel -->
+  <section id="folder-panel" style="margin-top:1.5rem;"></section>
+
+  <!-- Add-resource form (hidden until a folder is selected) -->
+  <section id="add-panel" class="card" style="margin-top:1.25rem;display:none;">
+    <h2 style="font-size:var(--fs-600);">Add to <span id="add-folder-name" class="mono"></span></h2>
+    <form id="res-form" style="margin-top:0.9rem;max-width:620px;">
+      <label style="display:block;font-size:var(--fs-300);color:var(--ink-2);">Title <span style="color:var(--heritage);">*</span>
+        <input name="title" type="text" required placeholder="e.g. Milliken — Race Car Vehicle Dynamics" style={fieldCss} />
+      </label>
+      <fieldset style="margin-top:0.75rem;border:0;padding:0;">
+        <legend class="annot">Type</legend>
+        <label style="margin-right:1rem;font-size:var(--fs-300);"><input type="radio" name="kind" value="link" checked /> Link (saves space)</label>
+        <label style="font-size:var(--fs-300);"><input type="radio" name="kind" value="file" /> Upload file (≤50 MB)</label>
+      </fieldset>
+      <label id="url-field" style="display:block;margin-top:0.6rem;font-size:var(--fs-300);color:var(--ink-2);">URL
+        <input name="url" type="url" placeholder="https://…" style={fieldCss} />
+      </label>
+      <label id="file-field" style="display:none;margin-top:0.6rem;font-size:var(--fs-300);color:var(--ink-2);">File
+        <input name="file" type="file" style={fieldCss + 'font-family:var(--font-body);'} />
+      </label>
+      <label style="display:block;margin-top:0.6rem;font-size:var(--fs-300);color:var(--ink-2);">Notes
+        <textarea name="notes" rows="2" style={fieldCss}></textarea>
+      </label>
+      <button class="btn btn-halftone" type="submit" style="margin-top:0.9rem;">Add resource</button>
+      <span class="mono" id="res-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+    </form>
+  </section>
 </Base>
+
+<script>
+  import {
+    loadFolders, createFolder, deleteFolder, loadResources, addResource,
+    deleteResource, uploadResourceFile, signedUrl,
+    type ResourceFolder, type ResourceItem,
+  } from '../lib/store';
+
+  const note = document.querySelector('[data-note]') as HTMLElement;
+  const chips = document.getElementById('folder-chips')!;
+  const panel = document.getElementById('folder-panel')!;
+  const addPanel = document.getElementById('add-panel') as HTMLElement;
+  const addName = document.getElementById('add-folder-name')!;
+  const form = document.getElementById('res-form') as HTMLFormElement;
+  const status = document.getElementById('res-status')!;
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+  let folders: ResourceFolder[] = [];
+  let current: ResourceFolder | null = null;
+
+  function renderChips() {
+    chips.innerHTML = folders.map((f) =>
+      `<button class="btn ${current?.id === f.id ? 'btn-halftone' : 'btn-ghost'}" data-folder="${f.id}">${esc(f.name)}</button>`
+    ).join('');
+    chips.querySelectorAll<HTMLButtonElement>('[data-folder]').forEach((b) =>
+      b.addEventListener('click', () => select(folders.find((f) => f.id === b.dataset.folder)!)));
+  }
+
+  async function renderResources() {
+    if (!current) { panel.innerHTML = ''; return; }
+    const items = await loadResources(current.id);
+    const rows = await Promise.all(items.map(resourceRow));
+    panel.innerHTML = `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+          <h2 style="font-size:var(--fs-700);">${esc(current.name)}</h2>
+          <button class="btn btn-ghost" id="del-folder" style="font-size:var(--fs-200);">Delete folder</button>
+        </div>
+        ${items.length ? `<div style="margin-top:1rem;display:flex;flex-direction:column;gap:0.6rem;">${rows.join('')}</div>`
+          : '<p class="mono" style="color:var(--ink-3);margin-top:1rem;">Empty — add a doc or link below.</p>'}
+      </div>`;
+    document.getElementById('del-folder')?.addEventListener('click', async () => {
+      if (!confirm(`Delete folder "${current!.name}" and all its entries?`)) return;
+      await deleteFolder(current!.id);
+      current = null; addPanel.style.display = 'none';
+      await refresh();
+    });
+    panel.querySelectorAll<HTMLButtonElement>('[data-del]').forEach((b) =>
+      b.addEventListener('click', async () => { await deleteResource(b.dataset.del!); renderResources(); }));
+    panel.querySelectorAll<HTMLButtonElement>('[data-dl]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        const u = await signedUrl('resources', b.dataset.dl!, 60);
+        if (u) { const a = document.createElement('a'); a.href = u; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+        else alert('Could not prepare the download.');
+      }));
+  }
+
+  async function resourceRow(r: ResourceItem): Promise<string> {
+    const action = r.kind === 'link'
+      ? `<a href="${esc(r.url ?? '#')}" target="_blank" rel="noopener">Open link ↗</a>`
+      : `<button class="btn btn-ghost" data-dl="${esc(r.path ?? '')}" style="font-size:var(--fs-200);">Download</button>`;
+    return `<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;border-bottom:1px solid var(--rule);padding-bottom:0.6rem;flex-wrap:wrap;">
+      <div>
+        <span class="badge ${r.kind === 'link' ? '' : 'badge-live'}">${r.kind}</span>
+        <strong style="margin-left:0.5rem;">${esc(r.title)}</strong>
+        ${r.notes ? `<p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.2rem;">${esc(r.notes)}</p>` : ''}
+        <p class="mono" style="font-size:var(--fs-200);color:var(--ink-3);margin-top:0.2rem;">${r.uploaded_email ? esc(r.uploaded_email) + ' · ' : ''}${new Date(r.created_at).toLocaleDateString()}</p>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:center;white-space:nowrap;">${action}
+        <button class="btn btn-ghost" data-del="${r.id}" style="font-size:var(--fs-200);">✕</button>
+      </div>
+    </div>`;
+  }
+
+  function select(f: ResourceFolder) {
+    current = f;
+    renderChips();
+    renderResources();
+    addPanel.style.display = '';
+    addName.textContent = f.name;
+  }
+
+  async function refresh() {
+    folders = await loadFolders();
+    note.innerHTML = 'Organised by system. Add a folder, then upload docs or paste links.';
+    renderChips();
+    if (current) renderResources();
+  }
+
+  document.getElementById('new-folder')!.addEventListener('click', async () => {
+    const name = prompt('New folder name (system):');
+    if (!name || !name.trim()) return;
+    const err = await createFolder(name.trim());
+    if (err) { alert('Failed: ' + err); return; }
+    await refresh();
+  });
+
+  // Toggle URL vs file inputs.
+  form.querySelectorAll<HTMLInputElement>('input[name="kind"]').forEach((r) =>
+    r.addEventListener('change', () => {
+      const file = (form.querySelector('input[name="kind"][value="file"]') as HTMLInputElement).checked;
+      (document.getElementById('file-field') as HTMLElement).style.display = file ? '' : 'none';
+      (document.getElementById('url-field') as HTMLElement).style.display = file ? 'none' : '';
+    }));
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!current) return;
+    const fd = new FormData(form);
+    const title = (fd.get('title') ?? '').toString().trim();
+    const kind = (fd.get('kind') ?? 'link').toString() as 'file' | 'link';
+    if (!title) { status.textContent = 'Title is required.'; return; }
+    status.textContent = 'Saving…'; status.style.color = 'var(--ink-3)';
+
+    let path: string | null = null, url: string | null = null;
+    if (kind === 'file') {
+      const file = fd.get('file') as File | null;
+      if (!file || file.size === 0) { status.textContent = 'Choose a file.'; status.style.color = 'var(--heritage)'; return; }
+      if (file.size > 50 * 1024 * 1024) { status.textContent = 'File exceeds 50 MB.'; status.style.color = 'var(--heritage)'; return; }
+      const up = await uploadResourceFile(file);
+      if (up.error) { status.textContent = 'Upload failed: ' + up.error; status.style.color = 'var(--heritage)'; return; }
+      path = up.path;
+    } else {
+      url = (fd.get('url') ?? '').toString().trim();
+      if (!url) { status.textContent = 'Enter a URL.'; status.style.color = 'var(--heritage)'; return; }
+    }
+    const err = await addResource({ folder_id: current.id, title, kind, path, url, notes: (fd.get('notes') ?? '').toString() || null });
+    if (err) { status.textContent = 'Save failed: ' + err; status.style.color = 'var(--heritage)'; return; }
+    status.textContent = 'Added ✓'; status.style.color = 'var(--state-linked)';
+    form.reset();
+    (document.getElementById('file-field') as HTMLElement).style.display = 'none';
+    (document.getElementById('url-field') as HTMLElement).style.display = '';
+    renderResources();
+  });
+
+  refresh();
+</script>

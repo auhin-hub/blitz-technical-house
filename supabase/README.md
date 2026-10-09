@@ -11,7 +11,8 @@ Project URL: `https://sfunpylcbaorbmgvlxpz.supabase.co`
 ## 1. Create the tables (one time)
 Dashboard → **SQL Editor** → **New query** → paste and **Run** each migration in
 order: `0001_master_store.sql`, `0002_storage_workbooks.sql`,
-`0003_tool_state.sql`, `0004_freeze_and_log.sql`, `0005_tyre_storage.sql`.
+`0003_tool_state.sql`, `0004_freeze_and_log.sql`, `0005_tyre_storage.sql`,
+`0006_resources.sql`.
 
 - `0001` creates `vehicle_spec`, `change_log`, `gates`, `tyre_results`, turns on
   RLS for all four, adds member-only policies, and seeds the 14 TOOL_SPECS §0
@@ -27,6 +28,9 @@ order: `0001_master_store.sql`, `0002_storage_workbooks.sql`,
   members read + upload) and adds `author_email` to `tyre_results`. After
   running it, upload the toolset to Storage → `tyre` (the Tyre page's download
   button references `TTC_Tyre_Tool.rar` — rename there or in the page to match).
+- `0006` creates `resource_folders` + `resources` (docs organised by system;
+  entries are an uploaded file or a space-saving link) and the private
+  `resources` bucket, and seeds one folder per discipline.
 
 Verify: **Table editor → vehicle_spec** shows 14 rows; **gates** shows 10;
 **Storage** lists a `workbooks` bucket marked *private*.
