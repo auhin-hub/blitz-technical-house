@@ -3,102 +3,137 @@ import Base from '../layouts/Base.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import { PARAM_SEED, fieldState } from '../lib/master';
-import { url } from '../lib/config';
 
-// Server-renders the TOOL_SPECS §0 defaults so the page is meaningful without
-// JS or before the DB exists; the client island below upgrades each row to the
-// live Supabase value (and shows frozen / confidence). The editable write-back
-// UI is step 2 — this step proves the read side of the shared-state loop.
-const stateClass = {
-  input: 'field-input',
-  linked: 'field-linked',
-  computed: 'field-computed',
-} as const;
+// The shared Master store, editable. Server-renders the TOOL_SPECS §0 defaults
+// so the page is meaningful without JS; the client island below loads the live
+// Supabase values, saves edits back (shared across members), and keeps the
+// computed axle loads in step with mass + mass fraction.
+const stateClass = { input: 'field-input', linked: 'field-linked', computed: 'field-computed' } as const;
+const rows = PARAM_SEED.map((p) => ({ ...p, state: fieldState(p.source) }));
 ---
 <Base title="Vehicle Spec">
   <p class="annot annot-tick">Cross-cutting · the Master store</p>
   <h1 style="margin-top:0.4rem;">Vehicle Spec</h1>
   <p style="color:var(--ink-2);margin-top:0.5rem;max-width:70ch;">
     The one live set of car parameters. Enter a number once here and every tool
-    reads it — the golden rule: no private copies of a shared number. Mass, mass
-    fraction, CoG and axle loads flow from the MassBudget.
+    reads it — the golden rule: no private copies of a shared number. Edits save
+    for the whole team. Axle loads are computed from mass and mass fraction.
   </p>
 
   <div class="notice" style="margin:1.25rem 0;" data-source-note>
-    Showing <strong>workbook defaults</strong> (TOOL_SPECS §0). Sign in and run
-    the schema to see the live shared values. Editing is added in the next step.
+    Showing <strong>workbook defaults</strong> (TOOL_SPECS §0). Sign in to load
+    and edit the live shared values.
   </div>
 
   <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;justify-content:space-between;">
     <LegendKey />
     <WorkbookDownload file="MIST_Blitz_FS_Master_Workbook.xlsx" label="Download master workbook (.xlsx)" />
   </div>
+  <p class="mono" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);">
+    Green values will be computed by their sub-tool (MassBudget, Tyre) once built —
+    editable here in the interim. <span data-save-status></span>
+  </p>
 
-  <div style="overflow-x:auto;margin-top:1.25rem;">
-    <table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);min-width:640px;">
+  <div style="overflow-x:auto;margin-top:1rem;">
+    <table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);min-width:680px;">
       <thead>
         <tr style="text-align:left;border-bottom:1px solid var(--rule-strong);">
           <th style="padding:0.6rem 0.75rem;" class="annot">Parameter</th>
           <th style="padding:0.6rem 0.75rem;" class="annot">Sym</th>
-          <th style="padding:0.6rem 0.75rem;text-align:right;" class="annot">Value</th>
+          <th style="padding:0.6rem 0.75rem;text-align:right;min-width:120px;" class="annot">Value</th>
           <th style="padding:0.6rem 0.75rem;" class="annot">Unit</th>
           <th style="padding:0.6rem 0.75rem;" class="annot">Source</th>
           <th style="padding:0.6rem 0.75rem;" class="annot">State</th>
         </tr>
       </thead>
       <tbody>
-        {PARAM_SEED.map((p) => {
-          const state = fieldState(p.source);
-          return (
-            <tr data-key={p.key} style="border-bottom:1px solid var(--rule);">
-              <td style="padding:0.55rem 0.75rem;">{p.label}</td>
-              <td style="padding:0.55rem 0.75rem;" class="mono">{p.symbol}</td>
-              <td style="padding:0.55rem 0.75rem;text-align:right;" class="mono">
-                <span class={`field ${stateClass[state]}`} data-value>{p.value}</span>
-              </td>
-              <td style="padding:0.55rem 0.75rem;" class="mono">{p.unit}</td>
-              <td style="padding:0.55rem 0.75rem;color:var(--ink-3);" class="mono">{p.source}</td>
-              <td style="padding:0.55rem 0.75rem;">
-                <span data-badges><span class="badge badge-est">Est</span></span>
-              </td>
-            </tr>
-          );
-        })}
+        {rows.map((p) => (
+          <tr data-key={p.key} data-state={p.state} style="border-bottom:1px solid var(--rule);">
+            <td style="padding:0.5rem 0.75rem;">{p.label}</td>
+            <td style="padding:0.5rem 0.75rem;" class="mono">{p.symbol}</td>
+            <td style="padding:0.5rem 0.75rem;text-align:right;" class="mono">
+              {p.state === 'computed' ? (
+                <span class={`field ${stateClass[p.state]}`} data-value>{p.value}</span>
+              ) : (
+                <input
+                  type="number" step="any" data-input
+                  value={p.value}
+                  class={`field ${stateClass[p.state]}`}
+                  aria-label={p.label}
+                  style="width:110px;text-align:right;font-family:var(--font-mono);"
+                />
+              )}
+            </td>
+            <td style="padding:0.5rem 0.75rem;" class="mono">{p.unit}</td>
+            <td style="padding:0.5rem 0.75rem;color:var(--ink-3);" class="mono">{p.source}</td>
+            <td style="padding:0.5rem 0.75rem;">
+              <span data-badges><span class="badge badge-est">Est</span></span>
+            </td>
+          </tr>
+        ))}
       </tbody>
     </table>
   </div>
 
   <p class="mono" style="margin-top:1.5rem;font-size:var(--fs-200);color:var(--ink-3);">
-    The original Excel Master stays the authoritative archive (BRIEF §C) —
-    <a href={url('')}>home</a> ·
-    <a href="https://github.com/auhin-hub/blitz-technical-house" target="_blank" rel="noopener">repo</a>.
+    The original Excel Master stays the authoritative archive (BRIEF §C).
   </p>
 </Base>
 
 <script>
-  import { supabase } from '../lib/supabase';
+  import { loadMaster, setMasterValue, fmt, debounce } from '../lib/store';
 
+  const G = 9.81;
   const note = document.querySelector('[data-source-note]') as HTMLElement | null;
+  const status = document.querySelector('[data-save-status]') as HTMLElement | null;
 
-  function fmt(v: number | null): string {
-    if (v === null || v === undefined) return '—';
-    // Trim trailing zeros but keep the workbook's precision where it matters.
-    return Number.isInteger(v) ? String(v) : String(parseFloat(v.toFixed(4)));
+  function setStatus(text: string, color = 'var(--ink-3)') {
+    if (!status) return;
+    status.textContent = text;
+    status.style.color = color;
+  }
+
+  function cell(key: string) {
+    return document.querySelector(`tr[data-key="${key}"]`);
+  }
+  function setComputed(key: string, value: number) {
+    const el = cell(key)?.querySelector('[data-value]');
+    if (el) el.textContent = fmt(value);
+  }
+
+  // Keep axle loads in step with mass + mass fraction (Master-internal formula).
+  async function recomputeAxleLoads(mass: number, ff: number) {
+    const front = mass * G * ff;
+    const rear = mass * G * (1 - ff);
+    setComputed('axle_load_front', front);
+    setComputed('axle_load_rear', rear);
+    await Promise.all([
+      setMasterValue('axle_load_front', front),
+      setMasterValue('axle_load_rear', rear),
+    ]);
   }
 
   (async () => {
-    const { data, error } = await supabase
-      .from('vehicle_spec')
-      .select('key,value,confidence,frozen,frozen_gate')
-      .order('display_order', { ascending: true });
+    const master = await loadMaster();
+    const keys = Object.keys(master);
+    if (keys.length === 0) return; // not signed in / no schema → keep seed view
 
-    if (error || !data || data.length === 0) return; // keep the seed view + note
-
-    for (const row of data) {
-      const tr = document.querySelector(`tr[data-key="${row.key}"]`);
+    // Populate live values + badges, wire inputs.
+    for (const key of keys) {
+      const row = master[key];
+      const tr = cell(key);
       if (!tr) continue;
-      const valEl = tr.querySelector('[data-value]');
-      if (valEl) valEl.textContent = fmt(row.value);
+
+      const input = tr.querySelector('[data-input]') as HTMLInputElement | null;
+      if (input) {
+        input.value = String(row.value ?? '');
+        if (row.frozen) {
+          input.disabled = true;
+          input.title = `Frozen${row.frozen_gate ? ' at ' + row.frozen_gate : ''} — unlock in Gates`;
+        }
+      } else {
+        setComputed(key, row.value as number);
+      }
 
       const badges = tr.querySelector('[data-badges]');
       if (badges) {
@@ -112,8 +147,29 @@ const stateClass = {
       }
     }
 
-    if (note) {
-      note.innerHTML = 'Showing <strong>live shared values</strong> from the Master store.';
-    }
+    if (note) note.innerHTML = 'Showing <strong>live shared values</strong> from the Master store. Edits save for the whole team.';
+
+    const save = debounce(async (key: string, value: number) => {
+      setStatus('Saving…');
+      const err = await setMasterValue(key, value);
+      if (err) { setStatus('Save failed: ' + err, 'var(--heritage)'); return; }
+      if (key === 'mass_total' || key === 'mass_frac_front') {
+        const mass = Number((cell('mass_total')?.querySelector('[data-input]') as HTMLInputElement)?.value);
+        const ff = Number((cell('mass_frac_front')?.querySelector('[data-input]') as HTMLInputElement)?.value);
+        if (Number.isFinite(mass) && Number.isFinite(ff)) await recomputeAxleLoads(mass, ff);
+      }
+      setStatus('Saved ✓', 'var(--state-linked)');
+    }, 500);
+
+    document.querySelectorAll('[data-input]').forEach((el) => {
+      const input = el as HTMLInputElement;
+      const key = input.closest('tr')?.getAttribute('data-key');
+      if (!key) return;
+      input.addEventListener('input', () => {
+        const v = Number(input.value);
+        if (input.value.trim() === '' || !Number.isFinite(v)) { setStatus('Enter a number', 'var(--heritage)'); return; }
+        save(key, v);
+      });
+    });
   })();
 </script>
