@@ -1,0 +1,25 @@
+{
+  "name": "blitz-technical-house",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MIST Blitz Formula Student Workspace — internal team-only engineering toolhouse.",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "astro": "^5.1.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.7.2"
+  }
+}

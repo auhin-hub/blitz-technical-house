@@ -1,0 +1,35 @@
+# Build output
+dist/
+.output/
+
+# Astro
+.astro/
+
+# Dependencies
+node_modules/
+
+# Environment / secrets
+# (The Supabase anon key is public by design and lives in src/lib/config.ts;
+#  never commit a service_role key or a .env with one.)
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Licence-restricted raw tyre data — must never enter the repo (BRIEF §G)
+*.mat
+*.tir
+*.rar
+MIST_Blitz_TTC_Tyre_Toolset.zip
