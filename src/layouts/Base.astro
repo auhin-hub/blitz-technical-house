@@ -1,0 +1,70 @@
+---
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/components.css';
+import Masthead from '../components/Masthead.astro';
+import { SITE, url } from '../lib/config';
+import logo from '../assets/Logo_Gradient v_MIST BLITZ 300x.png';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Hide the masthead (e.g. the login screen). */
+  bare?: boolean;
+}
+const { title, description = SITE.description, bare = false } = Astro.props;
+const fullTitle = title === SITE.name ? title : `${title} · ${SITE.name}`;
+const year = new Date().getFullYear();
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Internal, team-only: keep it out of search indexes (BRIEF §A). -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content={description} />
+    <title>{fullTitle}</title>
+    <link rel="icon" type="image/png" href={logo.src} />
+
+    <!-- No-flash theme init: set [data-theme] from the saved choice before paint. -->
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('blitz-theme');
+          if (t === 'light' || t === 'dark') {
+            document.documentElement.setAttribute('data-theme', t);
+          }
+        } catch (e) { /* private mode: fall back to OS preference */ }
+      })();
+    </script>
+
+    <!-- Section T type: Archivo + IBM Plex Sans + IBM Plex Mono. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+    />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    {!bare && <Masthead pathname={Astro.url.pathname} />}
+    <main id="main" class="container" style="padding-block: 2rem;">
+      <slot />
+    </main>
+    {!bare && (
+      <footer class="site-footer">
+        <div class="container">
+          <p class="mono">
+            {SITE.name} — {SITE.tagline}. Internal team workspace · not public.
+          </p>
+          <p class="mono" style="margin-top:0.4rem;">
+            Faithful web re-creation of the Blitz workbook set — the original
+            <a href={url('vehicle-spec')}>Excel Master</a> stays the authoritative archive. © {year}.
+          </p>
+        </div>
+      </footer>
+    )}
+  </body>
+</html>

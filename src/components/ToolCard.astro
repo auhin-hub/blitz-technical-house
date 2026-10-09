@@ -1,0 +1,16 @@
+---
+import type { Tool } from '../lib/config';
+
+// A tool inside a discipline page. The calculator itself is built in a later
+// step; this card names it, links its in-page anchor, and cites its spec so the
+// "port the workbook, never invent a formula" trail stays visible.
+const { tool } = Astro.props as { tool: Tool };
+---
+<article class="card" id={tool.anchor}>
+  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+    <h3 style="font-size:var(--fs-600);">{tool.title}</h3>
+    {tool.spec && <span class="badge">{tool.spec}</span>}
+  </div>
+  <p style="color:var(--ink-2);margin-top:0.4rem;font-size:var(--fs-300);">{tool.blurb}</p>
+  <p class="annot" style="margin-top:0.9rem;">Calculator — build pending</p>
+</article>

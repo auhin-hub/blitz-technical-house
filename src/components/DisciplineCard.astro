@@ -1,0 +1,15 @@
+---
+import { url } from '../lib/config';
+import type { Discipline } from '../lib/config';
+
+const { discipline } = Astro.props as { discipline: Discipline };
+---
+<a class="card card-link annot-frame" href={url(discipline.slug)}>
+  <span class="annot annot-tick">{String(discipline.tools.length).padStart(2, '0')} tools</span>
+  <h3 style="margin-top:0.6rem;">{discipline.title}</h3>
+  <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">{discipline.blurb}</p>
+  <ul class="mono" style="list-style:none;margin-top:0.8rem;color:var(--ink-3);font-size:var(--fs-200);line-height:1.9;">
+    {discipline.tools.slice(0, 4).map((t) => <li>› {t.title}</li>)}
+    {discipline.tools.length > 4 && <li>› +{discipline.tools.length - 4} more</li>}
+  </ul>
+</a>

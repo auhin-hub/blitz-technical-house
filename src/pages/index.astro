@@ -1,0 +1,53 @@
+---
+import Base from '../layouts/Base.astro';
+import DisciplineCard from '../components/DisciplineCard.astro';
+import { DISCIPLINES, SITE, url } from '../lib/config';
+import logo from '../assets/Logo_Gradient v_MIST BLITZ 300x.png';
+---
+<Base title={SITE.name} description={SITE.description}>
+  <!-- Home hero (BRIEF §H: logo + workspace title). -->
+  <section style="display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
+    <img src={logo.src} width="64" height="64" alt="" style="flex:none;" />
+    <div>
+      <p class="annot annot-tick">Internal workspace · members only</p>
+      <h1 style="font-size:var(--fs-900);margin-top:0.4rem;">{SITE.tagline}</h1>
+      <p style="color:var(--ink-2);margin-top:0.5rem;">
+        One live set of car parameters, every team's calculators, and the gates
+        that govern them — a faithful web re-creation of the Blitz workbook set.
+      </p>
+    </div>
+  </section>
+
+  <!-- Gate/phase status + latest results: wired to Supabase in later steps. -->
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));margin:1.5rem 0 2.5rem;">
+    <div class="card">
+      <span class="annot">Gate status</span>
+      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
+        G0–G9 phase tracking with freeze-and-log change control.
+      </p>
+      <p style="margin-top:0.8rem;"><a href={url('gates')}>Open Gates / Phases →</a></p>
+    </div>
+    <div class="card">
+      <span class="annot">Vehicle Spec</span>
+      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
+        The shared Master store — enter a number once, read it everywhere.
+      </p>
+      <p style="margin-top:0.8rem;"><a href={url('vehicle-spec')}>Open Vehicle Spec →</a></p>
+    </div>
+    <div class="card">
+      <span class="annot">Latest tyre results</span>
+      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
+        Shared fit results + the MATLAB toolset download.
+      </p>
+      <p style="margin-top:0.8rem;"><a href={url('tyre')}>Open Tyre →</a></p>
+    </div>
+  </div>
+
+  <!-- The discipline grid — the heart of the landing page (BRIEF §D). -->
+  <section>
+    <div class="annot-dim" style="margin-bottom:1rem;">Disciplines</div>
+    <div class="grid">
+      {DISCIPLINES.map((d) => <DisciplineCard discipline={d} />)}
+    </div>
+  </section>
+</Base>

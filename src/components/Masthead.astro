@@ -1,0 +1,44 @@
+---
+import { url, SITE, TOP_NAV } from '../lib/config';
+import ThemeToggle from './ThemeToggle.astro';
+import logo from '../assets/Logo_Gradient v_MIST BLITZ 300x.png';
+
+// Mark the active top-nav item. `pathname` comes from Astro.url.
+const { pathname = '' } = Astro.props as { pathname?: string };
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '');
+const rel = pathname.replace(base, '').replace(/^\/+|\/+$/g, ''); // '', 'tyre', ...
+
+function isCurrent(href: string): boolean {
+  return rel === href;
+}
+---
+<header class="masthead">
+  <div class="container masthead-inner">
+    <a class="brand" href={url('')} aria-label={`${SITE.name} — home`}>
+      <img src={logo.src} width={logo.width} height={logo.height} alt="" />
+      <span class="wordmark">
+        {SITE.name}
+        <small>{SITE.tagline}</small>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      {TOP_NAV.map((item) => (
+        <a
+          href={url(item.href)}
+          aria-current={isCurrent(item.href) ? 'page' : undefined}
+        >{item.label}</a>
+      ))}
+    </nav>
+
+    <span class="nav-spacer"></span>
+
+    <!-- Auth status: filled client-side by the auth island (commit: auth). -->
+    <span class="nav" data-auth-status hidden>
+      <span class="mono" data-auth-email style="font-size:var(--fs-200);color:var(--ink-3)"></span>
+      <button class="btn btn-ghost" type="button" data-sign-out>Sign out</button>
+    </span>
+
+    <ThemeToggle />
+  </div>
+</header>
