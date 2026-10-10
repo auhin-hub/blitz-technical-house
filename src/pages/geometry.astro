@@ -14,6 +14,19 @@ const HP = [
   { key: 'cp', label: 'Contact patch', x: 0, y: 620, z: 0 },
 ];
 const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
+// Synthesis (target-driven) inputs — Suspension_Geometry.xlsx D11–D32.
+const SYNTH = [
+  { key: 'rcHeight', label: 'RC height', val: 50 }, { key: 'vsal', label: 'VSAL (Y)', val: 3000 },
+  { key: 'scrub', label: 'Scrub radius', val: 40 }, { key: 'kpi', label: 'KPI angle (deg)', val: 2 },
+  { key: 'lowerOuterHeight', label: 'Lower outer height', val: 135 }, { key: 'upperOuterHeight', label: 'Upper outer height', val: 365 },
+  { key: 'lowerArmLen', label: 'Lower arm length', val: 493 }, { key: 'upperArmLen', label: 'Upper arm length', val: 360 },
+  { key: 'caster', label: 'Caster (deg)', val: 4 }, { key: 'mechTrail', label: 'Mechanical trail', val: 25 },
+  { key: 'lowerInnerLong', label: 'Lower inner fore-aft span', val: 300 }, { key: 'lowerInnerFwd', label: 'Lower inner fwd of CP', val: 50 },
+  { key: 'upperInnerLong', label: 'Upper inner fore-aft span', val: 400 }, { key: 'upperInnerFwd', label: 'Upper inner fwd of CP', val: 75 },
+  { key: 'pushrodLowerY', label: 'Pushrod lower Y', val: 45 }, { key: 'pushrodLowerZ', label: 'Pushrod lower Z', val: 135 },
+  { key: 'pushrodUpperY', label: 'Pushrod upper Y', val: 412 }, { key: 'pushrodUpperZ', label: 'Pushrod upper Z', val: 343 },
+  { key: 'tyreRadius', label: 'Tyre loaded radius', val: 228 }, { key: 'track', label: 'Front track', val: 1600 },
+];
 ---
 <Base title="Suspension geometry">
   <nav class="annot" style="margin-bottom:0.75rem;">
@@ -23,12 +36,14 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
     <p class="annot annot-tick">Stage 05 · Gate G3 · hardpoints freeze here</p>
     <h1 style="margin-top:0.4rem;">Suspension geometry</h1>
     <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
-      Front-view double-wishbone kinematics through travel: roll-centre height,
-      camber and scrub vs wheel heave, from the hardpoint table (the single source
-      of hardpoints), with a <strong>live front-view diagram</strong> (arms → instant
-      centre → roll centre), a side-view anti-geometry schematic, and a
-      SolidWorks-coordinate hardpoint export. A design-stage estimate — full 3D
-      kinematics stays in ADAMS. <strong>Freeze the hardpoints at G3.</strong>
+      Dual-mode: <strong>synthesis</strong> generates the hardpoint set from target
+      parameters (ported from the Suspension_Geometry workbook); the
+      <strong>solver</strong> reads that one shared set and computes roll-centre,
+      camber and scrub through travel, with a live front-view diagram (arms →
+      instant centre → roll centre, tyre), a car-scaled side view, target-vs-achieved
+      against the synthesis intent, and a SolidWorks-coordinate hardpoint export. A
+      design-stage estimate — full 3D kinematics stays in ADAMS.
+      <strong>Freeze the hardpoints at G3.</strong>
     </p>
   </header>
 
@@ -43,6 +58,19 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
   <div class="card">
     <div class="ct-body">
       <div class="ct-col">
+        <details class="synth" style="margin-bottom:0.8rem;border:1px solid var(--rule);border-radius:var(--radius);padding:0.6rem;">
+          <summary class="annot" style="cursor:pointer;">Synthesis — generate hardpoints from targets (Suspension_Geometry.xlsx)</summary>
+          <p class="ct-ref" style="margin:0.3rem 0;">Planar (front-view y/z) synthesis; longitudinal x from caster + inner-distance inputs. <strong>Generate</strong> overwrites the hardpoint table; the solver then reports target-vs-achieved. Targets are retained after hand-edits.</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0.25rem 0.8rem;">
+            {SYNTH.map((s) => (
+              <label style="font-size:var(--fs-200);display:flex;justify-content:space-between;gap:0.4rem;align-items:center;">{s.label}
+                <input type="number" step="any" data-synth={s.key} value={s.val} style={ni} aria-label={s.label} /></label>
+            ))}
+          </div>
+          <button class="btn btn-heritage" type="button" id="geo-generate" style="margin-top:0.5rem;">Generate hardpoints</button>
+          <span class="mono" id="geo-generate-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+        </details>
+
         <h3 class="ct-h3">Hardpoints — one corner (freeze at G3)</h3>
         <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Point</th><th class="ct-num">x (mm)</th><th class="ct-num">y (mm)</th><th class="ct-num">z (mm)</th></tr></thead>
           <tbody>{HP.map((p) => (
@@ -82,12 +110,22 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
           <div class="ct-stat"><span class="annot">Scrub @ bump</span><div class="val"><span data-out="scrubBump">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div></div>
           <div class="ct-stat"><span class="annot">Static camber</span><div class="val"><span data-out="staticCamber">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> deg</span></div></div>
         </div>
+        <h3 class="ct-h3">Target vs achieved</h3>
+        <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Parameter</th><th class="ct-num">Target</th><th class="ct-num">Solved</th></tr></thead>
+          <tbody>
+            <tr><td>RC height (mm)</td><td class="ct-num"><span data-out="tgtRc">—</span></td><td class="ct-num"><span data-out="solRc">—</span></td></tr>
+            <tr><td>Scrub radius (mm)</td><td class="ct-num"><span data-out="tgtScrub">—</span></td><td class="ct-num"><span data-out="solScrub">—</span></td></tr>
+            <tr><td>KPI (deg)</td><td class="ct-num"><span data-out="tgtKpi">—</span></td><td class="ct-num"><span data-out="solKpi">—</span></td></tr>
+          </tbody></table></div>
         <h3 class="ct-h3">Roll-centre height vs heave</h3>
         <div style="height:190px;position:relative;"><canvas id="rc-chart"></canvas></div>
         <h3 class="ct-h3">Camber &amp; scrub vs heave</h3>
         <div style="height:190px;position:relative;"><canvas id="cam-chart"></canvas></div>
         <p style="margin-top:0.6rem;"><button class="btn btn-heritage" type="button" id="geo-contribute">Contribute to Master</button>
           <span class="mono" id="geo-contribute-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span></p>
+        <p style="margin-top:0.4rem;font-size:var(--fs-300);">Rear roll-centre height <input type="number" step="any" id="geo-rear-rc" style={ni} placeholder="mm" /> mm
+          <button class="btn btn-ghost" type="button" id="geo-rear-rc-write" style="font-size:var(--fs-200);margin-left:0.4rem;">Write rear_rc_height → Master</button>
+          <span class="mono" id="geo-rear-rc-status" style="margin-left:0.4rem;font-size:var(--fs-200);color:var(--ink-3);"></span></p>
       </div>
     </div>
     <p class="mono" data-save-status style="margin-top:0.7rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
@@ -97,7 +135,8 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
 <script>
   import Chart from 'chart.js/auto';
   import { geometrySweep, geometrySummary, antiGeometry, frontViewConstruction, staticCamber, type Hardpoints } from '../lib/calc/geometry';
-  import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
+  import { synthesize, solvedScrub, solvedKpiDeg, type SynthInput } from '../lib/calc/geometry-synth';
+  import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, setMasterValue, fmt, debounce } from '../lib/store';
   import { toCsv, downloadText } from '../lib/csv';
   import { decorateLinkedCells } from '../lib/linked';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
@@ -109,7 +148,11 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
   let last: any = {};
   const gh = (k: string) => Number((document.querySelector(`[data-hp="${k}"]`) as HTMLInputElement)?.value);
   const gi = (k: string) => Number((document.querySelector(`[data-in="${k}"]`) as HTMLInputElement)?.value);
+  const gsy = (k: string) => Number((document.querySelector(`[data-synth="${k}"]`) as HTMLInputElement)?.value);
   const put = (k: string, v: number, d = 1) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = Number.isFinite(v) ? fmt(v, d) : '—'; };
+  const setText = (k: string, s: string) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = s; };
+  // Retained synthesis targets (survive hand-edits), for target-vs-achieved.
+  let targets: { rcHeight: number; scrub: number; kpi: number } | null = null;
 
   function hardpoints(): Hardpoints {
     const p = (k: string) => ({ y: gh(`${k}_y`), z: gh(`${k}_z`) });
@@ -134,6 +177,9 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
     const dot = (p: P, st: string, rr = 3) => `<circle cx="${X(p.y)}" cy="${Y(p.z)}" r="${rr}" fill="${st}"/>`;
     let el = `<line x1="${X(0)}" y1="0" x2="${X(0)}" y2="${H}" stroke="var(--rule-strong)" stroke-width="1" stroke-dasharray="2 4"/>`;
     el += `<line x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}" stroke="var(--rule-strong)" stroke-width="1"/>`;
+    // tyre rectangle (ground → 2·wheel-centre height, ~tyre width around wc.y)
+    const tw = 90;
+    el += `<rect x="${X(hp.wc.y - tw)}" y="${Y(hp.wc.z * 2)}" width="${(2 * tw * s).toFixed(1)}" height="${(hp.wc.z * 2 * s).toFixed(1)}" fill="none" stroke="var(--rule-strong)" stroke-width="1"/>`;
     el += `<circle cx="${X(hp.wc.y)}" cy="${Y(hp.wc.z)}" r="${(r * s).toFixed(1)}" fill="none" stroke="var(--ink-3)" stroke-width="1.5"/>`;
     el += line(hp.lip, hp.lbj, 'var(--sky)') + line(hp.uip, hp.ubj, 'var(--sky)') + line(hp.lbj, hp.ubj, 'var(--ink)');
     if (useIc) {
@@ -145,23 +191,27 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
     el += dot(hp.cp, 'var(--amber)');
     return `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" width="100%" style="display:block;height:auto;" role="img" aria-label="front-view suspension diagram">${el}</svg>`;
   }
-  function buildSide(hp: Record<string, { x: number; y: number; z: number }>, svsaDeg: number, antiPct: number): string {
-    type Q = { x: number; z: number };
+  function buildSide(hp: Record<string, { x: number; y: number; z: number }>, svsaDeg: number, antiPct: number, wheelbase: number): string {
+    // Clip the view to a car-scaled window around the wheel (not a runaway SVSA
+    // circle): x window = ±~¼ wheelbase (fallback 450 mm). The side-view swing arm
+    // is drawn as a direction clipped to the right edge; its IC usually lies well
+    // outside the window, so we annotate it rather than zooming out to include it.
     const r = Math.abs(hp.wc.z - hp.cp.z) || 100;
-    const th = (svsaDeg * Math.PI) / 180;
-    const icLen = 600;
-    const ic: Q = { x: hp.cp.x + icLen * Math.cos(th), z: hp.cp.z + icLen * Math.sin(th) };
-    const all: Q[] = [{ x: hp.wc.x - r, z: 0 }, { x: hp.wc.x + r, z: hp.wc.z + r }, { x: hp.cp.x, z: 0 }, ic];
-    const minX = Math.min(...all.map((p) => p.x)) - 30, maxX = Math.max(...all.map((p) => p.x)) + 30;
-    const minZ = Math.min(...all.map((p) => p.z)) - 30, maxZ = Math.max(...all.map((p) => p.z)) + 30;
+    const win = Number.isFinite(wheelbase) && wheelbase > 0 ? wheelbase / 4 : 450;
+    const minX = hp.cp.x - win - 30, maxX = hp.cp.x + win + 30;
+    const minZ = -30, maxZ = Math.max(hp.wc.z + r, r) + 40;
     const W = 360, s = W / (maxX - minX), H = Math.max(140, (maxZ - minZ) * s);
     const X = (x: number) => ((x - minX) * s).toFixed(1), Y = (z: number) => ((maxZ - z) * s).toFixed(1);
+    const th = (svsaDeg * Math.PI) / 180;
+    // SVSA line from the contact patch, clipped to the right window edge.
+    const dx = maxX - hp.cp.x;
+    const endX = hp.cp.x + dx, endZ = hp.cp.z + dx * Math.tan(th);
     let el = `<line x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}" stroke="var(--rule-strong)" stroke-width="1"/>`;
+    el += `<rect x="${X(hp.wc.x - 90)}" y="${Y(hp.wc.z * 2)}" width="${(180 * s).toFixed(1)}" height="${(hp.wc.z * 2 * s).toFixed(1)}" fill="none" stroke="var(--rule-strong)" stroke-width="1"/>`;
     el += `<circle cx="${X(hp.wc.x)}" cy="${Y(hp.wc.z)}" r="${(r * s).toFixed(1)}" fill="none" stroke="var(--ink-3)" stroke-width="1.5"/>`;
-    el += `<line x1="${X(hp.cp.x)}" y1="${Y(hp.cp.z)}" x2="${X(ic.x)}" y2="${Y(ic.z)}" stroke="var(--amber)" stroke-width="2" stroke-dasharray="4 3"/>`;
-    el += `<circle cx="${X(ic.x)}" cy="${Y(ic.z)}" r="3" fill="var(--sky)"/><text x="${X(ic.x)}" y="${+Y(ic.z) - 6}" fill="var(--ink-2)" font-size="10">side-view IC</text>`;
+    el += `<line x1="${X(hp.cp.x)}" y1="${Y(hp.cp.z)}" x2="${X(endX)}" y2="${Y(endZ)}" stroke="var(--amber)" stroke-width="2" stroke-dasharray="4 3"/>`;
     el += `<circle cx="${X(hp.cp.x)}" cy="${Y(hp.cp.z)}" r="3" fill="var(--amber)"/>`;
-    el += `<text x="8" y="16" fill="var(--ink-2)" font-size="11">θ_svsa ${r1(svsaDeg)}° · anti ${r1(antiPct)}%</text>`;
+    el += `<text x="8" y="16" fill="var(--ink-2)" font-size="11">θ_svsa ${r1(svsaDeg)}° · anti ${r1(antiPct)}% · side-view IC off-window (long swing arm)</text>`;
     return `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" width="100%" style="display:block;height:auto;" role="img" aria-label="side-view anti-geometry schematic">${el}</svg>`;
   }
 
@@ -191,7 +241,16 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
     // Live diagrams.
     const { ic, rc } = frontViewConstruction(hp);
     const frontEl = document.getElementById('geo-front-svg'); if (frontEl) frontEl.innerHTML = buildFront(hp, ic, rc.z);
-    const sideEl = document.getElementById('geo-side-svg'); if (sideEl) sideEl.innerHTML = buildSide(hp3d(), gi('f_svsa'), Number.isFinite(fAnti) ? fAnti : 0);
+    const sideEl = document.getElementById('geo-side-svg'); if (sideEl) sideEl.innerHTML = buildSide(hp3d(), gi('f_svsa'), Number.isFinite(fAnti) ? fAnti : 0, master.wheelbase);
+
+    // Target vs achieved (retained synthesis targets vs the solved geometry).
+    const hpf = hardpoints();
+    put('solRc', sum.staticRc as number, 1);
+    put('solScrub', solvedScrub(hpf.lbj, hpf.ubj), 1);
+    put('solKpi', solvedKpiDeg(hpf.lbj, hpf.ubj), 2);
+    setText('tgtRc', targets ? fmt(targets.rcHeight, 1) : '—');
+    setText('tgtScrub', targets ? fmt(targets.scrub, 1) : '—');
+    setText('tgtKpi', targets ? fmt(targets.kpi, 2) : '—');
 
     const p = palette();
     const labels = sweep.map((s) => s.heave.toFixed(0));
@@ -205,28 +264,68 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
   }
 
   const persist = debounce(async () => {
-    const data: Record<string, number> = {};
+    const data: Record<string, any> = {};
     document.querySelectorAll('[data-hp]').forEach((el) => { data[(el as HTMLInputElement).dataset.hp!] = Number((el as HTMLInputElement).value); });
     document.querySelectorAll('[data-in]').forEach((el) => { data['in_' + (el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
+    document.querySelectorAll('[data-synth]').forEach((el) => { data['sy_' + (el as HTMLInputElement).dataset.synth!] = Number((el as HTMLInputElement).value); });
+    if (targets) data.targets = targets;
     saveStatus.textContent = 'Saving…';
     const err = await saveToolJson(TOOL, data);
     saveStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
     saveStatus.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
   }, 600);
 
+  function readSynth(): SynthInput {
+    const k = (x: string) => gsy(x);
+    return {
+      rcHeight: k('rcHeight'), vsal: k('vsal'), scrub: k('scrub'), kpi: k('kpi'),
+      lowerOuterHeight: k('lowerOuterHeight'), upperOuterHeight: k('upperOuterHeight'),
+      lowerArmLen: k('lowerArmLen'), upperArmLen: k('upperArmLen'), caster: k('caster'), mechTrail: k('mechTrail'),
+      lowerInnerLong: k('lowerInnerLong'), lowerInnerFwd: k('lowerInnerFwd'), upperInnerLong: k('upperInnerLong'), upperInnerFwd: k('upperInnerFwd'),
+      pushrodLowerY: k('pushrodLowerY'), pushrodLowerZ: k('pushrodLowerZ'), pushrodUpperY: k('pushrodUpperY'), pushrodUpperZ: k('pushrodUpperZ'),
+      tyreRadius: k('tyreRadius'), track: k('track'),
+    };
+  }
+  function generate() {
+    const inp = readSynth();
+    const r = synthesize(inp);
+    const setHp = (key: string, pt: { x: number; y: number; z: number }) => {
+      for (const f of ['x', 'y', 'z'] as const) { const el = document.querySelector(`[data-hp="${key}_${f}"]`) as HTMLInputElement | null; if (el) el.value = String(+pt[f].toFixed(2)); }
+    };
+    setHp('lip', r.hp.lip); setHp('uip', r.hp.uip); setHp('lbj', r.hp.lbj); setHp('ubj', r.hp.ubj); setHp('wc', r.hp.wc); setHp('cp', r.hp.cp);
+    targets = { rcHeight: inp.rcHeight, scrub: inp.scrub, kpi: inp.kpi };
+    const st = document.getElementById('geo-generate-status'); if (st) { st.textContent = 'hardpoints generated ✓'; st.style.color = 'var(--state-linked)'; }
+    recompute(); persist();
+  }
+
   (async () => {
     applyChartDefaults();
     const rows = await loadMaster();
     master = Object.fromEntries(Object.entries(rows).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
     decorateLinkedCells(document, rows);
-    const saved = await loadToolJson<Record<string, number>>(TOOL, {});
+    const saved = await loadToolJson<Record<string, any>>(TOOL, {});
     for (const [k, v] of Object.entries(saved)) {
       if (v == null) continue;
+      if (k === 'targets') { targets = v as any; continue; }
       if (k.startsWith('in_')) { const el = document.querySelector(`[data-in="${k.slice(3)}"]`) as HTMLInputElement | null; if (el) el.value = String(v); }
+      else if (k.startsWith('sy_')) { const el = document.querySelector(`[data-synth="${k.slice(3)}"]`) as HTMLInputElement | null; if (el) el.value = String(v); }
       else { const el = document.querySelector(`[data-hp="${k}"]`) as HTMLInputElement | null; if (el) el.value = String(v); }
     }
     recompute();
     document.querySelectorAll('[data-hp],[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
+    document.querySelectorAll('[data-synth]').forEach((el) => el.addEventListener('input', persist));
+    document.getElementById('geo-generate')!.addEventListener('click', generate);
+
+    // Rear roll-centre height → Master (freeze-aware), for the rear corner.
+    document.getElementById('geo-rear-rc-write')!.addEventListener('click', async () => {
+      const st = document.getElementById('geo-rear-rc-status')!;
+      const v = Number((document.getElementById('geo-rear-rc') as HTMLInputElement).value);
+      if (!Number.isFinite(v)) { st.textContent = 'Enter a value.'; st.style.color = 'var(--heritage)'; return; }
+      st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
+      const err = await setMasterValue('rear_rc_height', +v.toFixed(2));
+      st.textContent = err ? 'Failed (frozen?): ' + err : 'Written ✓';
+      st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+    });
 
     document.getElementById('geo-export')!.addEventListener('click', () => {
       const hp = hp3d();
