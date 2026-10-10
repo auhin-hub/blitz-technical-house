@@ -119,6 +119,20 @@ export function staticRcHeight(hp: Hardpoints): number {
   return rollCentreHeight(hp.lip, hp.lbj, hp.uip, hp.ubj, hp.cp);
 }
 
+/** Front-view construction for the live diagram: the instant centre (arm lines
+ *  intersection) and the roll-centre point (CP→IC line crossing the centreline). */
+export function frontViewConstruction(hp: Hardpoints): { ic: Pt | null; rc: Pt } {
+  const ic = lineIntersect(hp.lip, hp.lbj, hp.uip, hp.ubj);
+  return { ic, rc: { y: 0, z: staticRcHeight(hp) } };
+}
+
+/** Static camber from the upright line (ubj−lbj): negative = top inboard (deg).
+ *  On a right-side corner (y+ outboard), top-inboard means Δy<0 → negative. */
+export function staticCamber(hp: Hardpoints): number {
+  const dy = hp.ubj.y - hp.lbj.y, dz = hp.ubj.z - hp.lbj.z;
+  return (Math.atan2(dy, dz) * 180) / Math.PI;
+}
+
 /** Summary metrics for the design-target tracker. */
 export function geometrySummary(hp: Hardpoints, range = 30): Out {
   const sweep = geometrySweep(hp, range);

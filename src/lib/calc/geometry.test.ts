@@ -1,6 +1,6 @@
 /** Suspension geometry reconstruction (MASTER_BUILD_PLAN §6.4). */
 import { describe, it, expect } from 'vitest';
-import { geometrySweep, staticRcHeight, antiGeometry, type Hardpoints } from './geometry';
+import { geometrySweep, staticRcHeight, antiGeometry, frontViewConstruction, staticCamber, type Hardpoints } from './geometry';
 
 // Both arm lines are constructed to pass through (0, 150), so the instant centre
 // is on the centreline at z = 150 → the roll-centre height must be 150 mm.
@@ -26,6 +26,20 @@ describe('geometry · RC reconstruction', () => {
     const sweep = geometrySweep(hp, 30);
     expect(Math.min(...sweep.map((s) => s.heave))).toBeLessThan(-10);
     expect(Math.max(...sweep.map((s) => s.heave))).toBeGreaterThan(10);
+  });
+});
+
+describe('geometry · construction + camber', () => {
+  it('front-view construction puts the IC on the centreline at RC height', () => {
+    const { ic, rc } = frontViewConstruction(hp);
+    expect(rc.z).toBeCloseTo(150, 3);
+    expect(ic).not.toBeNull();
+    expect(ic!.y).toBeCloseTo(0, 1);   // both arm lines meet on the centreline here
+    expect(ic!.z).toBeCloseTo(150, 1);
+  });
+  it('static camber is negative when the top of the upright is inboard', () => {
+    const c = staticCamber({ ...hp, lbj: { y: 500, z: 135 }, ubj: { y: 480, z: 365 } });
+    expect(c).toBeLessThan(0);
   });
 });
 
