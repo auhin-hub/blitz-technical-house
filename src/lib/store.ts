@@ -11,7 +11,7 @@ import type { SpecRow } from './master';
 export async function loadMaster(): Promise<Record<string, SpecRow>> {
   const { data, error } = await supabase
     .from('vehicle_spec')
-    .select('key,label,symbol,unit,value,source,confidence,frozen,frozen_gate,updated_at')
+    .select('key,label,symbol,unit,value,text_value,source,confidence,frozen,frozen_gate,updated_at')
     .order('display_order', { ascending: true });
   const out: Record<string, SpecRow> = {};
   if (error || !data) return out;
@@ -58,6 +58,22 @@ export async function saveToolState(
 /** Change a FROZEN parameter through the enforced, change-logged path (BRIEF §E5). */
 export async function editFrozenParam(key: string, value: number, reason: string): Promise<string | null> {
   const { error } = await supabase.rpc('edit_param', { p_key: key, p_value: value, p_reason: reason });
+  return error ? error.message : null;
+}
+
+/** Set a text "selected" Master key (0008). Returns an error message, or null. */
+export async function setMasterText(key: string, text: string): Promise<string | null> {
+  const { data: u } = await supabase.auth.getUser();
+  const { error } = await supabase
+    .from('vehicle_spec')
+    .update({ text_value: text, updated_by: u.user?.id ?? null })
+    .eq('key', key);
+  return error ? error.message : null;
+}
+
+/** Change a FROZEN text key through the enforced, change-logged path (0008). */
+export async function editFrozenText(key: string, text: string, reason: string): Promise<string | null> {
+  const { error } = await supabase.rpc('edit_param_text', { p_key: key, p_text: text, p_reason: reason });
   return error ? error.message : null;
 }
 

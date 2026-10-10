@@ -27,6 +27,8 @@ export interface SpecParam {
   computed?: boolean;
   /** Typical FS-car value for orientation (shown as a muted reference). */
   ref?: Ref;
+  /** 'text' = a "selected" string key (stored in text_value); default 'number'. */
+  type?: 'number' | 'text';
 }
 
 const HB = 'Team Blitz VD Handbook';
@@ -59,6 +61,14 @@ export const PARAM_SEED: SpecParam[] = [
   { key: 'weight',            label: 'Weight',                   symbol: 'W',   unit: 'N',     value: null, source: '=m·g',       computed: true },
   { key: 'axle_load_front',   label: 'Front axle static load',   symbol: '',    unit: 'N',     value: null, source: '=W·ff',      computed: true },
   { key: 'axle_load_rear',    label: 'Rear axle static load',    symbol: '',    unit: 'N',     value: null, source: '=W·(1−ff)',  computed: true },
+  // Promote-to-Master keys (Handoff v2 Part 0.1) — procurement/rules decisions the
+  // Component Readiness board tracks. Text keys hold a "selected" string.
+  { key: 'restrictor_dia',    label: 'Intake restrictor Ø (rules)', symbol: '', unit: 'mm',    value: null, source: 'input',      ref: { typ: '20 petrol / 19 E85 (⚖)', src: FS } },
+  { key: 'rear_rc_height',    label: 'Rear roll-centre height',  symbol: '',    unit: 'mm',    value: null, source: 'Geometry',   ref: { typ: '40–60', src: FS } },
+  { key: 'engine_selected',   label: 'Engine chosen (model)',    symbol: '',    unit: '',      value: null, source: 'input', type: 'text' },
+  { key: 'wheel_selected',    label: 'Wheel / rim chosen (size, PCD)', symbol: '', unit: '',   value: null, source: 'input', type: 'text' },
+  { key: 'damper_selected',   label: 'Damper chosen (eye-to-eye, travel)', symbol: '', unit: '', value: null, source: 'input', type: 'text' },
+  { key: 'diff_selected',     label: 'Differential chosen',      symbol: '',    unit: '',      value: null, source: 'input', type: 'text' },
 ];
 
 /** A live row from the Supabase `vehicle_spec` table. */
@@ -67,6 +77,8 @@ export interface SpecRow extends SpecParam {
   frozen: boolean;
   frozen_gate: string | null;
   updated_at: string | null;
+  /** Live text state for a `type: 'text'` key. */
+  text_value?: string | null;
 }
 
 /** Field colour state: input (blue) · linked (green) · computed (black). */

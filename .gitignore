@@ -39,3 +39,7 @@ MIST_Blitz_TTC_Tyre_Toolset.zip
 # for uploading to the bucket, but not committed.
 /workbooks/
 *.xlsx
+
+# FSAE-J cost report source (heavy workbooks + PDFs). The app uses the derived
+# public/data/cost-bom-seed.csv + public/templates/cost/ template instead.
+/handoff/63_MIST_FSAEJ_CR/

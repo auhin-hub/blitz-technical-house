@@ -1,0 +1,87 @@
+component,owner_team,prerequisite,default_bin,source_type,source_key,produced_by_team,notes
+Front Upright,VD,Front suspension hardpoints frozen,blocking,tool_output,rc_height_static,VD,Geometry must be locked before the upright can be packaged
+Front Upright,VD,Loaded rolling radius,blocking,master,rolling_radius,VD(Tyre),Sets wheel/bearing envelope
+Front Upright,VD,Front brake rotor OD + caliper envelope,blocking,tool_output,brake_torque_front,Brake,Caliper must clear inside the upright
+Front Upright,VD,Peak pushrod/corner load,blocking,tool_output,pushrod_force_front,VD,From Suspension loads; sizes the upright structurally
+Front Upright,VD,Steering arm pickup point,blocking,tool_output,rc_height_static,VD(Steering),Outer tie-rod point lives on the upright
+Front Upright,VD,Target static camber,soft,tool_output,camber_gain_bump,VD,Can be tuned via shims later
+Rear Upright,VD,Rear suspension hardpoints frozen,blocking,tool_output,rc_height_static,VD,
+Rear Upright,VD,Loaded rolling radius,blocking,master,rolling_radius,VD(Tyre),
+Rear Upright,VD,Rear brake rotor + caliper envelope,blocking,tool_output,brake_torque_rear,Brake,
+Rear Upright,VD,Peak pushrod/corner load,blocking,tool_output,pushrod_force_rear,VD,
+Rear Upright,VD,Driveshaft/tripod OD,blocking,tool_output,max_wheel_torque,Powertrain,Hub bore must pass the driveshaft
+Front/Rear A-arms,VD,Hardpoints frozen,blocking,tool_output,rc_height_static,VD,Arm lengths/angles come straight from geometry
+Front/Rear A-arms,VD,Peak suspension loads,blocking,tool_output,pushrod_force_front,VD,Tube OD/wall sized from load
+Front/Rear A-arms,VD,Anti-dive/anti-squat targets,soft,tool_output,rc_height_static,VD,Side-view geometry; refine while iterating
+Pushrod,VD,Motion ratio,blocking,master,motion_ratio,VD,
+Pushrod,VD,Peak pushrod load,blocking,tool_output,pushrod_force_front,VD,Buckling check
+Pushrod,VD,Damper eye-to-eye length,blocking,procurement,damper_selected,VD,Depends on chosen damper
+Bellcrank/Rocker,VD,Motion ratio,blocking,master,motion_ratio,VD,Rocker ratio defines the geometry
+Bellcrank/Rocker,VD,Spring rate,blocking,tool_output,spring_rate_front,VD,
+Bellcrank/Rocker,VD,Peak pushrod load,blocking,tool_output,pushrod_force_front,VD,
+Spring (procure),VD,Wheel/spring rate,blocking,tool_output,spring_rate_front,VD,Select catalogue rate
+Spring (procure),VD,Spring travel,soft,master,motion_ratio,VD,
+Damper (procure),VD,Damper rate (bump/rebound),blocking,tool_output,spring_rate_front,VD,From Springs&Dampers damping block
+Damper (procure),VD,Wheel travel bump/droop,blocking,master,ride_height,VD,
+Anti-roll bar,VD,ARB rate for target balance,blocking,tool_output,understeer_gradient,VD,From Balance ARB-needed output
+Anti-roll bar,VD,Roll gradient target,soft,master,roll_grad_target,VD,
+Hub + wheel bearing,VD,Axle static load,blocking,master,axle_load_front,VD,
+Hub + wheel bearing,VD,Wheel bolt pattern / rim,blocking,procurement,wheel_selected,VD,
+Steering rack (procure),VD,Wheelbase + front track,blocking,master,wheelbase,VD,
+Steering rack (procure),VD,Rack travel / Ackermann,blocking,tool_output,ackermann_split,VD(Steering),
+Steering column + wheel,VD,Steering-wheel torque,blocking,tool_output,steering_wheel_torque,VD(Steering),New steering-effort calc
+Steering column + wheel,VD,Driver reach,blocking,tool_output,seat_back_angle,Ergonomics,
+Tie rod,VD,Steering arm pickup,blocking,tool_output,rc_height_static,VD(Steering),
+Tie rod,VD,Rack force,blocking,tool_output,steering_wheel_torque,VD(Steering),
+Front brake rotor,Brake,Front brake torque,blocking,tool_output,brake_torque_front,Brake,
+Front brake rotor,Brake,Rolling radius,blocking,master,rolling_radius,VD(Tyre),
+Front brake rotor,Brake,Upright/hub mounting PCD,blocking,tool_output,rc_height_static,VD,
+Rear brake rotor,Brake,Rear brake torque,blocking,tool_output,brake_torque_rear,Brake,
+Caliper (procure),Brake,Line pressure + clamp load,blocking,tool_output,achieved_front_bias,Brake,
+Caliper (procure),Brake,Rotor thickness/OD,blocking,tool_output,brake_torque_front,Brake,
+Master cylinders + pedal box,Brake,Achieved brake bias,blocking,tool_output,achieved_front_bias,Brake,
+Master cylinders + pedal box,Brake,Pedal position/reach,blocking,tool_output,seat_back_angle,Ergonomics,
+Engine (procure/select),Powertrain,Target peak power,blocking,tool_output,engine_peak_power,Powertrain,
+Engine (procure/select),Powertrain,Restrictor power ceiling,blocking,tool_output,engine_peak_power,Powertrain,Restrictor tool caps airflow
+Engine (procure/select),Powertrain,Mass budget allocation,blocking,master,mass_total,VD,
+Intake + restrictor,Powertrain,Restrictor diameter (rules),blocking,rules,restrictor_dia,Powertrain,20mm petrol / 19 E85 - rulebook
+Intake + restrictor,Powertrain,Engine airflow,blocking,tool_output,engine_peak_power,Powertrain,
+Final drive + sprockets,Powertrain,Final drive ratio,blocking,tool_output,final_drive,Powertrain,
+Final drive + sprockets,Powertrain,Rolling radius,blocking,master,rolling_radius,VD(Tyre),
+Chain,Powertrain,Final drive + wheel torque,blocking,tool_output,max_wheel_torque,Powertrain,
+Differential (procure),Powertrain,Max wheel torque,blocking,tool_output,max_wheel_torque,Powertrain,
+Differential (procure),Powertrain,Rear track,blocking,master,track_rear,VD,
+Driveshafts + tripods,Powertrain,Max wheel torque,blocking,tool_output,max_wheel_torque,Powertrain,
+Driveshafts + tripods,Powertrain,Rear track + suspension travel,blocking,master,track_rear,VD,
+Fuel tank,Powertrain,Endurance fuel/energy estimate,blocking,tool_output,engine_peak_power,Powertrain,From lap-sim once built
+Fuel tank,Powertrain,CoG height target,soft,master,cog_height,VD,
+Cooling (radiator + fan),Powertrain,Engine heat rejection,blocking,tool_output,engine_peak_power,Powertrain,Cooling analyzer output
+Cooling (radiator + fan),Powertrain,Sidepod package,soft,tool_output,cl_a,Aero,
+Main spaceframe chassis,Chassis,Front+rear hardpoints frozen,blocking,tool_output,rc_height_static,VD,Suspension pickups define chassis nodes
+Main spaceframe chassis,Chassis,Engine package + mount points,blocking,procurement,engine_selected,Powertrain,
+Main spaceframe chassis,Chassis,Driver position + seat angle,blocking,tool_output,seat_back_angle,Ergonomics,
+Main spaceframe chassis,Chassis,Torsional stiffness target,soft,tool_output,torsional_stiffness,Chassis,
+Engine mounts,Chassis,Engine selected,blocking,procurement,engine_selected,Powertrain,
+Engine mounts,Chassis,Chassis geometry,blocking,tool_output,torsional_stiffness,Chassis,
+Suspension/bellcrank mounts,Chassis,Hardpoints frozen,blocking,tool_output,rc_height_static,VD,
+Pedal box mounting,Chassis,Pedal position,blocking,tool_output,seat_back_angle,Ergonomics,
+Front wing,Aero,Downforce target (ClA),blocking,tool_output,cl_a,Aero,
+Front wing,Aero,Front track + ride height,blocking,master,track_front,VD,
+Front wing,Aero,Aero balance (CoP),soft,tool_output,aero_balance_front,Aero,
+Rear wing,Aero,Downforce target (ClA),blocking,tool_output,cl_a,Aero,
+Rear wing,Aero,Rear track + packaging,blocking,master,track_rear,VD,
+Undertray/diffuser,Aero,Ride height,blocking,master,ride_height,VD,
+Undertray/diffuser,Aero,Floor/chassis underside,soft,tool_output,torsional_stiffness,Chassis,
+Bodywork + sidepods,Aero,Radiator size,blocking,tool_output,engine_peak_power,Powertrain,
+Bodywork + sidepods,Aero,Chassis outer geometry,blocking,tool_output,torsional_stiffness,Chassis,
+Seat,Ergonomics,Driver anthropometrics (5th/95th),blocking,tool_output,driver_mass,Ergonomics,
+Seat,Ergonomics,Chassis inner geometry,blocking,tool_output,torsional_stiffness,Chassis,
+Pedal box,Ergonomics,Driver pedal reach,blocking,tool_output,seat_back_angle,Ergonomics,
+Pedal box,Ergonomics,Master cylinder selection,blocking,tool_output,achieved_front_bias,Brake,
+Wiring harness,ECS,Total current draw,blocking,tool_output,total_current_draw,ECS,
+Wiring harness,ECS,Component placement list,soft,tool_output,bus_utilisation,ECS,
+Accumulator/battery,ECS,Battery capacity (Ah/Wh),blocking,tool_output,battery_mass,ECS,
+Accumulator/battery,ECS,Total current draw,blocking,tool_output,total_current_draw,ECS,
+ECU mounting,ECS,Engine selected,blocking,procurement,engine_selected,Powertrain,
+DAQ sensors,ECS,DAQ channel plan + bus load,blocking,tool_output,bus_utilisation,ECS,
+DAQ sensors,ECS,Sensor mount points,soft,tool_output,rc_height_static,VD,

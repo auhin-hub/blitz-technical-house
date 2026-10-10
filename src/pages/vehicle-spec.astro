@@ -104,6 +104,10 @@ const SOURCING: Record<string, string> = {
             <td style={td + 'text-align:right;'} class="mono">
               {p.state === 'computed' ? (
                 <span class={`field ${stateClass[p.state]}`} data-value>—</span>
+              ) : p.type === 'text' ? (
+                <input type="text" data-input-text placeholder={p.ref?.typ ?? 'choose…'}
+                  class={`field ${stateClass[p.state]}`} aria-label={p.label}
+                  style="width:160px;font-family:var(--font-mono);" />
               ) : (
                 <input type="number" step="any" data-input value={p.value ?? ''} placeholder={p.ref?.typ ?? ''}
                   class={`field ${stateClass[p.state]}`} aria-label={p.label}
@@ -132,7 +136,7 @@ const SOURCING: Record<string, string> = {
 </Base>
 
 <script>
-  import { loadMaster, setMasterValue, setFrozen, editFrozenParam, fmt, debounce, loadPresets, saveNamedPreset, deletePreset } from '../lib/store';
+  import { loadMaster, setMasterValue, setFrozen, editFrozenParam, setMasterText, editFrozenText, fmt, debounce, loadPresets, saveNamedPreset, deletePreset } from '../lib/store';
   import { COUPLING_BY_KEY } from '../lib/config';
 
   const G = 9.81;
@@ -184,7 +188,9 @@ const SOURCING: Record<string, string> = {
       const row = master[key]; const tr = cell(key); if (!tr) continue;
       frozenState[key] = row.frozen;
       const input = tr.querySelector('[data-input]') as HTMLInputElement | null;
-      if (input) input.value = row.value === null || row.value === undefined ? '' : String(row.value);
+      const textInput = tr.querySelector('[data-input-text]') as HTMLInputElement | null;
+      if (textInput) textInput.value = (row as any).text_value ?? '';
+      else if (input) input.value = row.value === null || row.value === undefined ? '' : String(row.value);
       else setComputed(key, row.value as number | null);
       const fz = tr.querySelector('[data-freeze]') as HTMLInputElement | null;
       if (fz) fz.checked = row.frozen;
@@ -278,6 +284,36 @@ const SOURCING: Record<string, string> = {
           if (!Number.isFinite(v)) return setStatus('Enter a number', 'var(--heritage)');
           saveNormal(key, v);
         });
+      }
+    });
+
+    // Text "selected" keys (0008): same freeze mechanic, via text paths.
+    const saveNormalText = debounce(async (key: string, text: string) => {
+      setStatus('Saving…');
+      const err = await setMasterText(key, text);
+      setStatus(err ? 'Save failed: ' + err : 'Saved ✓', err ? 'var(--heritage)' : 'var(--state-linked)');
+    }, 500);
+    async function saveFrozenText(key: string, text: string) {
+      const knock = COUPLING_BY_KEY[key];
+      const msg = `"${key}" is frozen.` + (knock ? `\n\nThis also affects: ${knock}\n\n` : '\n\n') + 'enter a reason for this change (recorded in the Change Log):';
+      const reason = window.prompt(msg);
+      if (reason === null || reason.trim() === '') { setStatus('Frozen edit cancelled — a reason is required.', 'var(--heritage)'); return false; }
+      setStatus('Saving…');
+      const err = await editFrozenText(key, text.trim(), reason.trim());
+      if (err) { setStatus('Save failed: ' + err, 'var(--heritage)'); return false; }
+      setStatus('Saved & logged ✓', 'var(--state-linked)');
+      return true;
+    }
+    document.querySelectorAll('[data-input-text]').forEach((el) => {
+      const input = el as HTMLInputElement;
+      const key = input.closest('tr')?.getAttribute('data-key'); if (!key) return;
+      if (frozenState[key]) {
+        input.addEventListener('change', async () => {
+          const ok = await saveFrozenText(key, input.value);
+          if (!ok) { const m = await loadMaster(); if (m[key]) input.value = (m[key] as any).text_value ?? ''; }
+        });
+      } else {
+        input.addEventListener('input', () => saveNormalText(key, input.value));
       }
     });
 

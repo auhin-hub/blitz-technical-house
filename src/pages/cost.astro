@@ -1,0 +1,305 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+---
+<Base title="Cost / BOM">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Cost / BOM
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">FSAE Japan 2026 · BOM + Final Cost Analysis</p>
+    <h1 style="margin-top:0.4rem;">Cost / BOM</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:78ch;">
+      Build the BOM, cost each part with the four FSAE-J blocks (Materials,
+      Processes, Fasteners, Tooling) driven by the bundled 2026 cost tables, and
+      roll everything up by system to a total vehicle cost. Material/fastener
+      prices use the tables' own parametric formulas with your sizes.
+      <span class="mono" id="cost-tbl-status" style="color:var(--ink-3);"></span>
+    </p>
+  </header>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <div id="cost-ctrls"></div>
+    <div style="display:flex;gap:0.8rem;flex-wrap:wrap;align-items:flex-end;margin-top:0.4rem;">
+      <label style="font-size:var(--fs-300);">Production volume (PVF)
+        <input type="number" step="any" id="cost-pvf" value="1000" style="display:block;margin-top:0.2rem;width:100px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
+      <button class="btn btn-ghost" type="button" id="cost-add">+ Part</button>
+      <button class="btn btn-ghost" type="button" id="cost-export-bom" style="font-size:var(--fs-200);">Export BOM (FSAE-J layout)</button>
+      <button class="btn btn-ghost" type="button" id="cost-export-fca" style="font-size:var(--fs-200);">Export FCA detail</button>
+      <a class="btn btn-ghost" href={url('templates/cost/FSAEJ_BOM_Template_2026_v0.xlsx')} download style="font-size:var(--fs-200);">Blank template ↓</a>
+      <button class="btn btn-ghost" type="button" id="cost-reset" style="font-size:var(--fs-200);">Reset to team BOM</button>
+      <button class="btn btn-ghost" type="button" id="cost-req-toggle" style="font-size:var(--fs-200);">Request table entry</button>
+      <span class="mono" id="cost-save" style="font-size:var(--fs-200);color:var(--ink-3);align-self:center;"></span>
+    </div>
+    <form id="cost-req-form" hidden style="margin-top:0.6rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;background:var(--surface-2);padding:0.6rem;border-radius:var(--radius);">
+      <label style="font-size:var(--fs-300);">Table<select id="cr-table" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;"><option>Materials</option><option>Processes</option><option>Fasteners</option><option>Tooling</option></select></label>
+      <label style="font-size:var(--fs-300);">Entry<input id="cr-entry" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
+      <label style="font-size:var(--fs-300);">Reason / source<input id="cr-reason" style="display:block;margin-top:0.2rem;min-width:220px;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
+      <button class="btn btn-heritage" type="submit">Submit request</button>
+    </form>
+    <p class="mono" style="margin-top:0.4rem;font-size:var(--fs-100);color:var(--ink-3);">Add-requests are logged for an admin to vet; they have no pricing effect until the official table adds them. Next year's tables are swapped in by regenerating public/data/cost-tables.json from the new .xlsx.</p>
+    <div id="cost-reqs" style="margin-top:0.4rem;font-size:var(--fs-200);"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:1.25rem;align-items:start;" class="cost-grid">
+    <div class="card">
+      <h2 style="font-size:var(--fs-600);">BOM</h2>
+      <div style="overflow-x:auto;margin-top:0.5rem;">
+        <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:820px;">
+          <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+            <th style="padding:0.4rem 0.4rem;" class="annot">System</th>
+            <th style="padding:0.4rem 0.4rem;" class="annot">Component</th>
+            <th style="padding:0.4rem 0.4rem;" class="annot">Sub-asm</th>
+            <th style="padding:0.4rem 0.4rem;" class="annot">Team</th>
+            <th style="padding:0.4rem 0.4rem;text-align:right;" class="annot">Qty</th>
+            <th style="padding:0.4rem 0.4rem;text-align:right;" class="annot">Unit cost</th>
+            <th style="padding:0.4rem 0.4rem;text-align:right;" class="annot">Total</th>
+            <th style="padding:0.4rem 0.4rem;" class="annot">FCA</th>
+            <th style="padding:0.4rem 0.4rem;"></th>
+          </tr></thead>
+          <tbody id="cost-body"></tbody>
+        </table>
+      </div>
+      <p class="mono" id="cost-save2" style="margin-top:0.5rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+
+      <div id="fca-panel" hidden style="margin-top:1rem;border-top:2px solid var(--rule-strong);padding-top:0.8rem;"></div>
+    </div>
+
+    <div>
+      <div class="ct-stat" style="margin-bottom:0.6rem;"><span class="annot">Total vehicle cost</span><div class="val" style="font-size:var(--fs-700)"><span id="cost-total">—</span></div></div>
+      <h3 class="ct-h3">By system</h3>
+      <div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:var(--fs-300);width:100%;"><tbody id="cost-summary"></tbody></table></div>
+      <div style="height:220px;position:relative;margin-top:0.6rem;"><canvas id="cost-chart"></canvas></div>
+    </div>
+  </div>
+</Base>
+
+<style>@media (max-width: 900px) { .cost-grid { grid-template-columns: 1fr !important; } }</style>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { tableUnitPrice, costSummary, num } from '../lib/calc/cost';
+  import { loadToolJson, saveToolJson, debounce } from '../lib/store';
+  import { mountListControls } from '../lib/list-controls';
+  import { toCsv, parseCsv, downloadText, missingColumns } from '../lib/csv';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+  import { url } from '../lib/config';
+
+  const TOOL = 'cost';
+  const SYSTEMS = ['Brake', 'Drivetrain', 'Engine & Exhaust', 'Frame & Body', 'Electrical', 'Steering', 'Suspension', 'Wheels/Hubs', 'Misc'];
+  const TEAMS = ['VD', 'Chassis', 'Aero', 'Ergonomics', 'Powertrain', 'ECS', 'Brake'];
+  const body = document.getElementById('cost-body')!;
+  const saveEl = document.getElementById('cost-save2')!;
+  let chart: Chart | null = null;
+
+  interface MatLine { matName: string; size1: number | null; size2: number | null; qty: number | null }
+  interface ProcLine { procName: string; qty: number | null; multName: string }
+  interface FastLine { fName: string; size1: number | null; size2: number | null; qty: number | null }
+  interface ToolLine { toolName: string; qty: number | null }
+  interface PartFca { materials: MatLine[]; processes: ProcLine[]; fasteners: FastLine[]; tooling: ToolLine[] }
+  interface Blocks { mat: number | null; proc: number | null; fast: number | null; tool: number | null }
+  interface Part { system: string; name: string; subassembly: string; assembly: string; team: string; qty: number | null; unitManual: number | null; fca?: PartFca; sysCode?: string; asmPrt?: string; rev?: string; description?: string; blocks?: Blocks }
+
+  let parts: Part[] = [];
+  let pvf = 1000;
+  let requests: { table: string; entry: string; reason: string }[] = [];
+  let selected = -1;
+  let tables: any = { materials: [], processes: [], fasteners: [], multipliers: [], tooling: [] };
+  const byName = (arr: any[]) => new Map(arr.map((r) => [r.name, r]));
+  let matMap = new Map(), procMap = new Map(), fastMap = new Map(), multMap = new Map(), toolMap = new Map();
+
+  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  const inp = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;font-size:var(--fs-200);';
+  const n = (s: string) => (s.trim() === '' ? null : Number(s));
+
+  const persist = debounce(async () => {
+    saveEl.textContent = 'Saving…';
+    const err = await saveToolJson(TOOL, { parts, pvf, requests });
+    saveEl.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    saveEl.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  // ---- costing ----
+  function matLinePrice(l: MatLine) { const r = matMap.get(l.matName); return r ? tableUnitPrice(r, l.size1, l.size2) * num(l.qty) : 0; }
+  function fastLinePrice(l: FastLine) { const r = fastMap.get(l.fName); return r ? tableUnitPrice(r, l.size1, l.size2) * num(l.qty) : 0; }
+  function procLinePrice(l: ProcLine) { const r = procMap.get(l.procName); const m = multMap.get(l.multName); return r ? num(r.unitCost) * num(l.qty) * (m ? num(m.multiplier) : 1) : 0; }
+  function toolLinePrice(l: ToolLine) { const r = toolMap.get(l.toolName); return r && pvf > 0 ? num(r.cost) * (num(l.qty) / pvf) : 0; }
+  function fcaResolvedTotal(f: PartFca): number {
+    return f.materials.reduce((s, l) => s + matLinePrice(l), 0) + f.processes.reduce((s, l) => s + procLinePrice(l), 0)
+      + f.fasteners.reduce((s, l) => s + fastLinePrice(l), 0) + f.tooling.reduce((s, l) => s + toolLinePrice(l), 0);
+  }
+  // Per-unit block subtotals: from the FCA when present, else the carried block
+  // costs (from the seed/CSV), else the whole unit falls under "material".
+  function partBlocks(p: Part): Blocks {
+    if (p.fca) return { mat: p.fca.materials.reduce((s, l) => s + matLinePrice(l), 0), proc: p.fca.processes.reduce((s, l) => s + procLinePrice(l), 0), fast: p.fca.fasteners.reduce((s, l) => s + fastLinePrice(l), 0), tool: p.fca.tooling.reduce((s, l) => s + toolLinePrice(l), 0) };
+    if (p.blocks) return p.blocks;
+    return { mat: num(p.unitManual), proc: 0, fast: 0, tool: 0 };
+  }
+  function partUnit(p: Part): number {
+    if (p.fca) return fcaResolvedTotal(p.fca);
+    if (p.blocks) { const b = p.blocks; return num(b.mat) + num(b.proc) + num(b.fast) + num(b.tool); }
+    return num(p.unitManual);
+  }
+  function partTotal(p: Part): number { return partUnit(p) * num(p.qty); }
+
+  function renderBom() {
+    body.innerHTML = parts.map((p, i) => {
+      const unit = partUnit(p), tot = partTotal(p);
+      return `<tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.2rem 0.3rem;"><select data-i="${i}" data-k="system" style="${inp}">${SYSTEMS.map((s) => `<option${s === p.system ? ' selected' : ''}>${s}</option>`).join('')}</select></td>
+        <td style="padding:0.2rem 0.3rem;"><input data-i="${i}" data-k="name" value="${esc(p.name)}" style="${inp}width:130px;"></td>
+        <td style="padding:0.2rem 0.3rem;"><input data-i="${i}" data-k="subassembly" value="${esc(p.subassembly)}" style="${inp}width:90px;"></td>
+        <td style="padding:0.2rem 0.3rem;"><select data-i="${i}" data-k="team" style="${inp}">${TEAMS.map((t) => `<option${t === p.team ? ' selected' : ''}>${t}</option>`).join('')}</select></td>
+        <td style="padding:0.2rem 0.3rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="qty" value="${p.qty ?? ''}" style="${inp}width:52px;text-align:right;"></td>
+        <td style="padding:0.2rem 0.3rem;text-align:right;">${(p.fca || p.blocks) ? `<span class="mono" title="${p.fca ? 'from FCA' : 'from BOM block costs'}">${unit.toFixed(2)}</span>` : `<input type="number" step="any" data-i="${i}" data-k="unitManual" value="${p.unitManual ?? ''}" style="${inp}width:72px;text-align:right;">`}</td>
+        <td style="padding:0.2rem 0.3rem;text-align:right;" class="mono">${tot.toFixed(2)}</td>
+        <td style="padding:0.2rem 0.3rem;"><button class="btn btn-ghost" data-fca="${i}" style="font-size:var(--fs-100);padding:0.1rem 0.4rem;">${p.fca ? 'edit' : '+ FCA'}</button></td>
+        <td style="padding:0.2rem 0.3rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-100);padding:0.1rem 0.4rem;">✕</button></td>
+      </tr>`;
+    }).join('');
+    body.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-i]').forEach((el) => {
+      const i = +el.dataset.i!, k = el.dataset.k! as keyof Part;
+      const ev = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(ev, () => { (parts[i] as any)[k] = (k === 'qty' || k === 'unitManual') ? n((el as HTMLInputElement).value) : (el as HTMLInputElement).value; renderSummary(); persist(); if (ev === 'change') renderBom(); });
+    });
+    body.querySelectorAll<HTMLButtonElement>('[data-fca]').forEach((b) => b.addEventListener('click', () => { const i = +b.dataset.fca!; if (!parts[i].fca) parts[i].fca = { materials: [], processes: [], fasteners: [], tooling: [] }; selected = i; renderFca(); renderBom(); persist(); }));
+    body.querySelectorAll<HTMLButtonElement>('[data-del]').forEach((b) => b.addEventListener('click', () => { const i = +b.dataset.del!; parts.splice(i, 1); if (selected === i) selected = -1; renderBom(); renderSummary(); renderFca(); persist(); }));
+  }
+
+  function renderSummary() {
+    const rows = parts.map((p) => ({ system: p.system, total: partTotal(p) }));
+    const s = costSummary(rows);
+    document.getElementById('cost-total')!.textContent = s.total.toFixed(2);
+    document.getElementById('cost-summary')!.innerHTML = s.bySystem.map((x) => `<tr style="border-bottom:1px solid var(--rule);"><td style="padding:0.25rem 0.4rem;">${x.system}</td><td style="padding:0.25rem 0.4rem;text-align:right;" class="mono">${x.total.toFixed(2)}</td></tr>`).join('') || '<tr><td style="padding:0.3rem;color:var(--ink-3);">No parts yet.</td></tr>';
+    const p = palette();
+    const cfg: any = { type: 'bar', data: { labels: s.bySystem.map((x) => x.system), datasets: [{ label: 'cost', data: s.bySystem.map((x) => +x.total.toFixed(2)), backgroundColor: p.sky }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } };
+    if (chart) { chart.data = cfg.data; chart.update(); } else { const cv = document.getElementById('cost-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
+  }
+
+  // ---- FCA editor for the selected part ----
+  function renderFca() {
+    const panel = document.getElementById('fca-panel')!;
+    if (selected < 0 || !parts[selected]?.fca) { panel.hidden = true; return; }
+    panel.hidden = false;
+    const p = parts[selected], f = p.fca!;
+    const matOpts = `<datalist id="fca-mats">${tables.materials.map((m: any) => `<option value="${esc(m.name)}">`).join('')}</datalist>`;
+    const fastOpts = `<datalist id="fca-fasts">${tables.fasteners.map((m: any) => `<option value="${esc(m.name)}">`).join('')}</datalist>`;
+    const procSel = (v: string) => `<option value=""></option>` + tables.processes.map((m: any) => `<option${m.name === v ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
+    const multSel = (v: string) => `<option value="">×1</option>` + tables.multipliers.map((m: any) => `<option${m.name === v ? ' selected' : ''}>${esc(m.name)} (×${m.multiplier})</option>`).join('');
+    const toolSel = (v: string) => `<option value=""></option>` + tables.tooling.map((m: any) => `<option${m.name === v ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
+
+    const matRows = f.materials.map((l, j) => `<tr><td><input data-blk="materials" data-j="${j}" data-f="matName" list="fca-mats" value="${esc(l.matName)}" style="${inp}width:170px;"></td><td><input type="number" step="any" data-blk="materials" data-j="${j}" data-f="size1" value="${l.size1 ?? ''}" placeholder="size1" style="${inp}width:64px;"></td><td><input type="number" step="any" data-blk="materials" data-j="${j}" data-f="size2" value="${l.size2 ?? ''}" placeholder="size2" style="${inp}width:64px;"></td><td><input type="number" step="any" data-blk="materials" data-j="${j}" data-f="qty" value="${l.qty ?? ''}" placeholder="qty" style="${inp}width:52px;"></td><td class="mono" style="text-align:right;">${matLinePrice(l).toFixed(2)}</td><td><button class="btn btn-ghost" data-rm="materials:${j}" style="font-size:var(--fs-100);">✕</button></td></tr>`).join('');
+    const procRows = f.processes.map((l, j) => `<tr><td><select data-blk="processes" data-j="${j}" data-f="procName" style="${inp}width:170px;">${procSel(l.procName)}</select></td><td><input type="number" step="any" data-blk="processes" data-j="${j}" data-f="qty" value="${l.qty ?? ''}" placeholder="qty" style="${inp}width:64px;"></td><td colspan="2"><select data-blk="processes" data-j="${j}" data-f="multName" style="${inp}width:170px;">${multSel(l.multName)}</select></td><td class="mono" style="text-align:right;">${procLinePrice(l).toFixed(2)}</td><td><button class="btn btn-ghost" data-rm="processes:${j}" style="font-size:var(--fs-100);">✕</button></td></tr>`).join('');
+    const fastRows = f.fasteners.map((l, j) => `<tr><td><input data-blk="fasteners" data-j="${j}" data-f="fName" list="fca-fasts" value="${esc(l.fName)}" style="${inp}width:170px;"></td><td><input type="number" step="any" data-blk="fasteners" data-j="${j}" data-f="size1" value="${l.size1 ?? ''}" placeholder="size1" style="${inp}width:64px;"></td><td><input type="number" step="any" data-blk="fasteners" data-j="${j}" data-f="size2" value="${l.size2 ?? ''}" placeholder="size2" style="${inp}width:64px;"></td><td><input type="number" step="any" data-blk="fasteners" data-j="${j}" data-f="qty" value="${l.qty ?? ''}" placeholder="qty" style="${inp}width:52px;"></td><td class="mono" style="text-align:right;">${fastLinePrice(l).toFixed(2)}</td><td><button class="btn btn-ghost" data-rm="fasteners:${j}" style="font-size:var(--fs-100);">✕</button></td></tr>`).join('');
+    const toolRows = f.tooling.map((l, j) => `<tr><td><select data-blk="tooling" data-j="${j}" data-f="toolName" style="${inp}width:170px;">${toolSel(l.toolName)}</select></td><td><input type="number" step="any" data-blk="tooling" data-j="${j}" data-f="qty" value="${l.qty ?? ''}" placeholder="qty" style="${inp}width:64px;"></td><td colspan="2" class="mono" style="color:var(--ink-3);">PVF ${pvf}</td><td class="mono" style="text-align:right;">${toolLinePrice(l).toFixed(2)}</td><td><button class="btn btn-ghost" data-rm="tooling:${j}" style="font-size:var(--fs-100);">✕</button></td></tr>`).join('');
+    const blk = (title: string, add: string, rows: string) => `<h4 class="ct-h3" style="margin-top:0.6rem;">${title} <button class="btn btn-ghost" data-add="${add}" style="font-size:var(--fs-100);">+ add</button></h4><table style="border-collapse:collapse;font-size:var(--fs-200);width:100%;"><tbody>${rows || '<tr><td style="color:var(--ink-3);">—</td></tr>'}</tbody></table>`;
+
+    panel.innerHTML = `${matOpts}${fastOpts}
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+        <h3 style="font-size:var(--fs-600);">FCA — ${esc(p.name || 'part')}</h3>
+        <span>Part cost <strong class="mono" id="fca-total">${fcaResolvedTotal(f).toFixed(2)}</strong> · <button class="btn btn-ghost" id="fca-close" style="font-size:var(--fs-100);">close</button> · <button class="btn btn-ghost" id="fca-clear" style="font-size:var(--fs-100);">clear FCA (use manual)</button></span>
+      </div>
+      ${blk('Materials', 'materials', matRows)}
+      ${blk('Processes', 'processes', procRows)}
+      ${blk('Fasteners', 'fasteners', fastRows)}
+      ${blk('Tooling', 'tooling', toolRows)}`;
+
+    panel.querySelectorAll<HTMLElement>('[data-blk]').forEach((el) => {
+      const blk = el.dataset.blk!, j = +el.dataset.j!, fld = el.dataset.f!;
+      const ev = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(ev, () => { const v = (el as HTMLInputElement).value; (f as any)[blk][j][fld] = (fld === 'size1' || fld === 'size2' || fld === 'qty') ? n(v) : v; renderFca(); renderBom(); renderSummary(); persist(); });
+    });
+    panel.querySelectorAll<HTMLButtonElement>('[data-add]').forEach((b) => b.addEventListener('click', () => {
+      const blk = b.dataset.add! as keyof PartFca;
+      const blank: any = { materials: { matName: '', size1: null, size2: null, qty: 1 }, processes: { procName: '', qty: 1, multName: '' }, fasteners: { fName: '', size1: null, size2: null, qty: 1 }, tooling: { toolName: '', qty: 1 } }[blk];
+      (f as any)[blk].push(blank); renderFca(); persist();
+    }));
+    panel.querySelectorAll<HTMLButtonElement>('[data-rm]').forEach((b) => b.addEventListener('click', () => { const [blk, j] = b.dataset.rm!.split(':'); (f as any)[blk].splice(+j, 1); renderFca(); renderBom(); renderSummary(); persist(); }));
+    document.getElementById('fca-close')!.addEventListener('click', () => { selected = -1; renderFca(); });
+    document.getElementById('fca-clear')!.addEventListener('click', () => { delete parts[selected].fca; selected = -1; renderFca(); renderBom(); renderSummary(); persist(); });
+  }
+
+  function renderRequests() {
+    document.getElementById('cost-reqs')!.innerHTML = requests.length ? '<span class="annot">Pending table-entry requests</span>' + requests.map((r) => `<div>· <strong>${esc(r.table)}</strong>: ${esc(r.entry)} <span style="color:var(--ink-3)">— ${esc(r.reason)}</span></div>`).join('') : '';
+  }
+
+  // ---- CSV (BOM) — round-trips the simple + the official seed columns ----
+  const BOM_COLS = ['system', 'component', 'subassembly', 'team', 'qty', 'unit_cost', 'total'];
+  function getCsv() { return toCsv(BOM_COLS, parts.map((p) => [p.system, p.name, p.subassembly, p.team, p.qty ?? '', partUnit(p).toFixed(2), partTotal(p).toFixed(2)])); }
+  function buildParts(text: string): Part[] {
+    const { headers, rows } = parseCsv(text);
+    const idx = (h: string) => headers.indexOf(h); const g = (r: string[], h: string) => { const i = idx(h); return i < 0 ? '' : (r[i] ?? '').trim(); };
+    const hasBlocks = idx('material_cost') >= 0;
+    return rows.filter((r) => g(r, 'component')).map((r) => {
+      const blocks = hasBlocks ? { mat: n(g(r, 'material_cost')), proc: n(g(r, 'process_cost')), fast: n(g(r, 'fastener_cost')), tool: n(g(r, 'tooling_cost')) } : undefined;
+      const p: Part = { system: g(r, 'system') || 'Miscellaneous, Finish & Assembly', name: g(r, 'component'), subassembly: g(r, 'subassembly') || g(r, 'system_code'), assembly: '', team: g(r, 'team') || 'Chassis', qty: n(g(r, 'qty')), unitManual: n(g(r, 'unit_cost')) };
+      if (g(r, 'system_code')) p.sysCode = g(r, 'system_code');
+      if (g(r, 'asm_prt')) p.asmPrt = g(r, 'asm_prt');
+      if (g(r, 'rev')) p.rev = g(r, 'rev');
+      if (g(r, 'description')) p.description = g(r, 'description');
+      if (blocks && (blocks.mat || blocks.proc || blocks.fast || blocks.tool)) p.blocks = blocks;
+      return p;
+    });
+  }
+  function applyCsv(text: string, mode: 'replace' | 'append'): string | void {
+    const { headers } = parseCsv(text); const miss = missingColumns(headers, ['component']); if (miss.length) return 'missing column(s): ' + miss.join(', ');
+    const built = buildParts(text); if (!built.length) return 'no rows'; parts = mode === 'append' ? parts.concat(built) : built; renderBom(); renderSummary(); persist();
+  }
+
+  // Export in the official FSAE-J BOM template column order (paste into the
+  // template's BOM sheet from row 7; its Cost Summary then recomputes).
+  function officialBomCsv(): string {
+    const cols = ['Line Num.', 'System Code', 'Asm/Prt #', 'Rev. Lvl.', 'Asm', 'Component', 'Description', 'Unit Cost', 'Quantity', 'Material Cost', 'Process Cost', 'Fastener Cost', 'Tooling Cost', 'Total Cost', 'Link to FCA Sheet'];
+    const rows = parts.map((p, i) => { const b = partBlocks(p); return [(i + 1) * 10, p.sysCode ?? '', p.asmPrt ?? '', p.rev ?? '', '', p.name, p.description ?? '', partUnit(p).toFixed(2), p.qty ?? '', num(b.mat).toFixed(2), num(b.proc).toFixed(2), num(b.fast).toFixed(2), num(b.tool).toFixed(2), partTotal(p).toFixed(2), p.fca ? (p.sysCode ?? p.name) : '']; });
+    return toCsv(cols, rows);
+  }
+
+  (async () => {
+    applyChartDefaults();
+    document.getElementById('cost-tbl-status')!.textContent = 'loading cost tables…';
+    try {
+      tables = await fetch(url('data/cost-tables.json')).then((r) => r.json());
+      matMap = byName(tables.materials); procMap = byName(tables.processes); fastMap = byName(tables.fasteners); multMap = byName(tables.multipliers); toolMap = byName(tables.tooling);
+      document.getElementById('cost-tbl-status')!.textContent = `tables: ${tables.materials.length} materials · ${tables.processes.length} processes · ${tables.fasteners.length} fasteners · ${tables.tooling.length} tooling.`;
+    } catch { document.getElementById('cost-tbl-status')!.textContent = 'cost tables failed to load.'; }
+
+    const saved = await loadToolJson<any>(TOOL, {});
+    if (Array.isArray(saved?.parts) && saved.parts.length) {
+      parts = saved.parts;
+    } else {
+      // First run: seed from the team's real FSAE-J BOM.
+      const seed = await fetch(url('data/cost-bom-seed.csv')).then((r) => r.text()).catch(() => '');
+      parts = seed ? buildParts(seed) : [];
+    }
+    pvf = Number.isFinite(saved?.pvf) ? saved.pvf : 1000;
+    requests = Array.isArray(saved?.requests) ? saved.requests : [];
+    (document.getElementById('cost-pvf') as HTMLInputElement).value = String(pvf);
+    renderBom(); renderSummary(); renderRequests();
+
+    document.getElementById('cost-pvf')!.addEventListener('input', (e) => { pvf = Number((e.target as HTMLInputElement).value) || 0; renderBom(); renderSummary(); renderFca(); persist(); });
+    document.getElementById('cost-add')!.addEventListener('click', () => { parts.push({ system: 'Misc', name: 'New part', subassembly: '', assembly: '', team: 'Misc', qty: 1, unitManual: null }); renderBom(); renderSummary(); persist(); });
+    document.getElementById('cost-reset')!.addEventListener('click', async () => {
+      if (!confirm('Replace the BOM with the team FSAE-J seed?')) return;
+      const seed = await fetch(url('data/cost-bom-seed.csv')).then((r) => r.text()).catch(() => '');
+      if (seed) { parts = buildParts(seed); selected = -1; renderBom(); renderSummary(); renderFca(); persist(); }
+    });
+    document.getElementById('cost-req-toggle')!.addEventListener('click', () => { const f = document.getElementById('cost-req-form') as HTMLElement; f.hidden = !f.hidden; });
+    (document.getElementById('cost-req-form') as HTMLFormElement).addEventListener('submit', (e) => { e.preventDefault(); const entry = (document.getElementById('cr-entry') as HTMLInputElement).value.trim(); if (!entry) return; requests.push({ table: (document.getElementById('cr-table') as HTMLSelectElement).value, entry, reason: (document.getElementById('cr-reason') as HTMLInputElement).value.trim() }); (document.getElementById('cost-req-form') as HTMLFormElement).reset(); (document.getElementById('cost-req-form') as HTMLElement).hidden = true; renderRequests(); persist(); });
+
+    document.getElementById('cost-export-bom')!.addEventListener('click', () => downloadText('bom_fsaej.csv', officialBomCsv()));
+    document.getElementById('cost-export-fca')!.addEventListener('click', () => {
+      const cols = ['component', 'block', 'item', 'size1', 'size2', 'qty', 'multiplier', 'sub_cost'];
+      const out: (string | number)[][] = [];
+      for (const p of parts) { if (!p.fca) continue; const f = p.fca;
+        f.materials.forEach((l) => out.push([p.name, 'Material', l.matName, l.size1 ?? '', l.size2 ?? '', l.qty ?? '', '', matLinePrice(l).toFixed(2)]));
+        f.processes.forEach((l) => out.push([p.name, 'Process', l.procName, '', '', l.qty ?? '', l.multName, procLinePrice(l).toFixed(2)]));
+        f.fasteners.forEach((l) => out.push([p.name, 'Fastener', l.fName, l.size1 ?? '', l.size2 ?? '', l.qty ?? '', '', fastLinePrice(l).toFixed(2)]));
+        f.tooling.forEach((l) => out.push([p.name, 'Tooling', l.toolName, '', '', l.qty ?? '', `PVF ${pvf}`, toolLinePrice(l).toFixed(2)]));
+      }
+      downloadText('fca_detail.csv', toCsv(cols, out));
+    });
+
+    mountListControls({ container: document.getElementById('cost-ctrls')!, tool: TOOL, filename: 'bom.csv', getCsv, applyCsv, getPresetPayload: () => ({ parts, pvf }), applyPreset: (p: any) => { if (Array.isArray(p?.parts)) { parts = p.parts; pvf = Number.isFinite(p.pvf) ? p.pvf : pvf; renderBom(); renderSummary(); renderFca(); persist(); } } });
+    watchTheme(() => { applyChartDefaults(); renderSummary(); });
+  })();
+</script>

@@ -1,0 +1,209 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+---
+<Base title="Budget">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Budget
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Team budget · planned vs actual</p>
+    <h1 style="margin-top:0.4rem;">Budget</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:76ch;">
+      Team spend tracking (distinct from the FSAE Cost report). Every line needs a
+      <strong>team</strong> and <strong>sub-assembly</strong> — the charts roll up by
+      team. <strong>Planned</strong> is a locked baseline once committed: changing a
+      committed plan asks for a reason and is recorded, so overshoot isn't hidden by
+      quietly raising the plan. Lines turn <span style="color:var(--amber-text)">amber at ≥90%</span>
+      and <span style="color:var(--heritage)">red at ≥100%</span> of plan.
+    </p>
+  </header>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <div id="bd-ctrls"></div>
+    <form id="bd-add" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;margin-top:0.4rem;">
+      <label style="font-size:var(--fs-300);">Item<input required id="ba-item" style="display:block;margin-top:0.2rem;background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
+      <label style="font-size:var(--fs-300);">Sub-assembly<input required id="ba-sub" style="display:block;margin-top:0.2rem;background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
+      <label style="font-size:var(--fs-300);">Team<select id="ba-team" style="display:block;margin-top:0.2rem;background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);padding:0.25rem 0.4rem;"></select></label>
+      <button class="btn btn-heritage" type="submit">+ Add line</button>
+      <span class="mono" id="bd-status" style="font-size:var(--fs-200);color:var(--ink-3);align-self:center;"></span>
+    </form>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:1.25rem;align-items:start;" class="bd-grid">
+    <div class="card">
+      <h2 style="font-size:var(--fs-600);">Lines</h2>
+      <div style="overflow-x:auto;margin-top:0.5rem;">
+        <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:760px;">
+          <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+            <th style="padding:0.4rem 0.5rem;" class="annot">Item</th>
+            <th style="padding:0.4rem 0.5rem;" class="annot">Sub-asm</th>
+            <th style="padding:0.4rem 0.5rem;" class="annot">Team</th>
+            <th style="padding:0.4rem 0.5rem;" class="annot">Category</th>
+            <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Planned</th>
+            <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Actual</th>
+            <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">% / var</th>
+            <th style="padding:0.4rem 0.5rem;text-align:center;" class="annot" title="Commit = lock the planned baseline">🔒</th>
+            <th style="padding:0.4rem 0.5rem;"></th>
+          </tr></thead>
+          <tbody id="bd-body"></tbody>
+        </table>
+      </div>
+      <p class="mono" id="bd-save" style="margin-top:0.5rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+      <details style="margin-top:0.6rem;"><summary class="annot" style="cursor:pointer;">Planned-baseline change log</summary><div id="bd-log" style="margin-top:0.4rem;font-size:var(--fs-200);color:var(--ink-2);"></div></details>
+    </div>
+
+    <div>
+      <div class="ct-stat" style="margin-bottom:0.6rem;"><span class="annot">Total planned / actual</span><div class="val" style="font-size:var(--fs-600)"><span id="bd-tot">—</span></div><span class="ct-ref" id="bd-tot-note"></span></div>
+      <h3 class="ct-h3">Planned vs actual by team</h3>
+      <div style="height:260px;position:relative;"><canvas id="bd-chart"></canvas></div>
+      <h3 class="ct-h3" style="margin-top:0.8rem;">Top overshoots</h3>
+      <ul id="bd-over" style="margin-top:0.3rem;padding-left:1.1rem;font-size:var(--fs-300);"></ul>
+    </div>
+  </div>
+</Base>
+
+<style>@media (max-width: 860px) { .bd-grid { grid-template-columns: 1fr !important; } }
+  .bd-amber input { color: var(--amber-text); } .bd-red input { color: var(--heritage); font-weight: 600; }</style>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { teamRollups, totals, topOvershoots, alarmFor, type BudgetRow } from '../lib/calc/budget';
+  import { loadToolJson, saveToolJson, debounce } from '../lib/store';
+  import { mountListControls } from '../lib/list-controls';
+  import { toCsv, parseCsv, missingColumns } from '../lib/csv';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+
+  const TEAMS = ['VD', 'Chassis', 'Aero', 'Ergonomics', 'Powertrain', 'ECS', 'Brake'];
+  const TOOL = 'budget';
+  const body = document.getElementById('bd-body')!;
+  const saveEl = document.getElementById('bd-save')!;
+  const statusEl = document.getElementById('bd-status')!;
+  let rows: BudgetRow[] = [];
+  let log: { item: string; old: number | null; new: number | null; reason: string; at: string }[] = [];
+  let chart: Chart | null = null;
+
+  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  const inp = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;font-size:var(--fs-200);';
+  const numI = inp + 'width:72px;text-align:right;font-family:var(--font-mono);';
+
+  const persist = debounce(async () => {
+    saveEl.textContent = 'Saving…';
+    const err = await saveToolJson(TOOL, { rows, log });
+    saveEl.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    saveEl.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  function renderRows() {
+    body.innerHTML = rows.map((r, i) => {
+      const al = alarmFor(Number(r.planned) || 0, Number(r.actual) || 0);
+      const cls = al === 'red' ? 'bd-red' : al === 'amber' ? 'bd-amber' : '';
+      const pct = (r.planned && r.planned > 0) ? Math.round((Number(r.actual) || 0) / r.planned * 100) : (r.actual ? '∞' : 0);
+      const varc = (Number(r.actual) || 0) - (Number(r.planned) || 0);
+      return `<tr class="${cls}" style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="item" value="${esc(r.item)}" style="${inp}width:120px;"></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="subassembly" value="${esc(r.subassembly)}" style="${inp}width:100px;"></td>
+        <td style="padding:0.2rem 0.4rem;"><select data-i="${i}" data-k="team" style="${inp}">${TEAMS.map((t) => `<option${t === r.team ? ' selected' : ''}>${t}</option>`).join('')}</select></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="category" value="${esc(r.category)}" style="${inp}width:90px;"></td>
+        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="planned" value="${r.planned ?? ''}" ${r.committed ? 'data-locked="1"' : ''} style="${numI}"></td>
+        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="actual" value="${r.actual ?? ''}" style="${numI}"></td>
+        <td style="padding:0.2rem 0.4rem;text-align:right;" class="mono">${pct}% <span style="color:var(--ink-3)">${varc >= 0 ? '+' : ''}${varc.toFixed(0)}</span></td>
+        <td style="padding:0.2rem 0.4rem;text-align:center;"><input type="checkbox" data-i="${i}" data-k="committed" ${r.committed ? 'checked' : ''} title="lock planned baseline"></td>
+        <td style="padding:0.2rem 0.4rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-100);padding:0.1rem 0.4rem;">✕</button></td>
+      </tr>`;
+    }).join('');
+
+    body.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-i]').forEach((el) => {
+      const i = +el.dataset.i!, k = el.dataset.k! as keyof BudgetRow;
+      const ev = (el as HTMLInputElement).type === 'checkbox' ? 'change' : (el.tagName === 'SELECT' ? 'change' : 'input');
+      el.addEventListener(ev, () => {
+        if (k === 'committed') { (rows[i] as any).committed = (el as HTMLInputElement).checked; recompute(); persist(); return; }
+        if (k === 'planned') {
+          const old = rows[i].planned;
+          const next = (el as HTMLInputElement).value.trim() === '' ? null : Number((el as HTMLInputElement).value);
+          if (rows[i].committed && next !== old) {
+            const reason = prompt(`"${rows[i].item}" planned is committed. Reason for changing ${old ?? '—'} → ${next ?? '—'} (logged):`);
+            if (!reason || !reason.trim()) { (el as HTMLInputElement).value = old == null ? '' : String(old); return; }
+            log.unshift({ item: rows[i].item, old, new: next, reason: reason.trim(), at: new Date().toISOString() });
+          }
+          rows[i].planned = next; recompute(); persist(); return;
+        }
+        if (k === 'actual') { rows[i].actual = (el as HTMLInputElement).value.trim() === '' ? null : Number((el as HTMLInputElement).value); recompute(); persist(); return; }
+        (rows[i] as any)[k] = (el as HTMLInputElement).value; recompute(); persist();
+      });
+    });
+    body.querySelectorAll<HTMLButtonElement>('[data-del]').forEach((b) =>
+      b.addEventListener('click', () => { rows.splice(+b.dataset.del!, 1); renderRows(); recompute(); persist(); }));
+  }
+
+  function recompute() {
+    const p = palette();
+    const roll = teamRollups(rows);
+    const tot = totals(rows);
+    document.getElementById('bd-tot')!.textContent = `${tot.planned.toFixed(0)} / ${tot.actual.toFixed(0)}`;
+    const note = document.getElementById('bd-tot-note')!;
+    note.textContent = `${tot.planned > 0 ? Math.round(tot.pct) : 0}% of plan · variance ${tot.variance >= 0 ? '+' : ''}${tot.variance.toFixed(0)}`;
+    note.style.color = tot.alarm === 'red' ? 'var(--heritage)' : tot.alarm === 'amber' ? 'var(--amber-text)' : 'var(--ink-3)';
+
+    const labels = roll.map((r) => r.key);
+    const cfg: any = { type: 'bar', data: { labels, datasets: [
+      { label: 'Planned', data: roll.map((r) => +r.planned.toFixed(0)), backgroundColor: p.sky },
+      { label: 'Actual', data: roll.map((r) => +r.actual.toFixed(0)), backgroundColor: roll.map((r) => r.alarm === 'red' ? p.maroon : r.alarm === 'amber' ? p.amber : p.ink3) },
+    ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } }, scales: { y: { title: { display: true, text: 'cost' } } } } };
+    if (chart) { chart.data = cfg.data; chart.options = cfg.options; chart.update(); } else { const cv = document.getElementById('bd-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
+
+    const over = topOvershoots(rows);
+    document.getElementById('bd-over')!.innerHTML = over.length ? over.map((o) => `<li>${o.item} <span class="mono" style="color:var(--heritage)">+${o.over.toFixed(0)}</span> <span style="color:var(--ink-3)">(${o.team})</span></li>`).join('') : '<li style="color:var(--state-linked);">No line is over plan.</li>';
+
+    document.getElementById('bd-log')!.innerHTML = log.length ? log.slice(0, 30).map((l) => `<div>${new Date(l.at).toLocaleDateString()} — <strong>${l.item}</strong>: ${l.old ?? '—'} → ${l.new ?? '—'} · ${l.reason}</div>`).join('') : '<span style="color:var(--ink-3);">No committed-plan changes yet.</span>';
+  }
+
+  const CSV_COLS = ['item', 'subassembly', 'team', 'category', 'planned_cost', 'actual_cost', 'status', 'date', 'notes'];
+  function getCsv(): string {
+    return toCsv(CSV_COLS, rows.map((r) => [r.item, r.subassembly, r.team, r.category, r.planned ?? '', r.actual ?? '', r.status, r.date, r.notes]));
+  }
+  function applyCsv(text: string, mode: 'replace' | 'append'): string | void {
+    const { headers, rows: recs } = parseCsv(text);
+    const miss = missingColumns(headers, ['item', 'team', 'subassembly']);
+    if (miss.length) return 'missing column(s): ' + miss.join(', ');
+    const idx = (h: string) => headers.indexOf(h);
+    const g = (r: string[], h: string) => { const i = idx(h); return i < 0 ? '' : (r[i] ?? '').trim(); };
+    const nn = (s: string) => { const v = s.trim(); return v === '' ? null : Number(v); };
+    const parsed: BudgetRow[] = recs.filter((r) => g(r, 'item') && g(r, 'team') && g(r, 'subassembly')).map((r) => ({
+      item: g(r, 'item'), subassembly: g(r, 'subassembly'), team: g(r, 'team'), category: g(r, 'category'),
+      planned: nn(g(r, 'planned_cost')), actual: nn(g(r, 'actual_cost')), status: g(r, 'status'), date: g(r, 'date'), notes: g(r, 'notes'),
+    }));
+    if (!parsed.length) return 'no rows with item + team + subassembly';
+    rows = mode === 'append' ? rows.concat(parsed) : parsed;
+    renderRows(); recompute(); persist();
+  }
+
+  (async () => {
+    applyChartDefaults();
+    (document.getElementById('ba-team') as HTMLSelectElement).innerHTML = TEAMS.map((t) => `<option>${t}</option>`).join('');
+    const saved = await loadToolJson<any>(TOOL, {});
+    rows = Array.isArray(saved?.rows) ? saved.rows : [];
+    log = Array.isArray(saved?.log) ? saved.log : [];
+    renderRows(); recompute();
+
+    (document.getElementById('bd-add') as HTMLFormElement).addEventListener('submit', (e) => {
+      e.preventDefault();
+      const item = (document.getElementById('ba-item') as HTMLInputElement).value.trim();
+      const sub = (document.getElementById('ba-sub') as HTMLInputElement).value.trim();
+      const team = (document.getElementById('ba-team') as HTMLSelectElement).value;
+      if (!item || !sub || !team) { statusEl.textContent = 'Item, sub-assembly and team are required.'; statusEl.style.color = 'var(--heritage)'; return; }
+      rows.push({ item, subassembly: sub, team, category: '', planned: null, actual: null, status: 'planned', date: '', notes: '' });
+      (document.getElementById('bd-add') as HTMLFormElement).reset();
+      (document.getElementById('ba-team') as HTMLSelectElement).innerHTML = TEAMS.map((t) => `<option>${t}</option>`).join('');
+      statusEl.textContent = ''; renderRows(); recompute(); persist();
+    });
+
+    mountListControls({
+      container: document.getElementById('bd-ctrls')!,
+      tool: TOOL, filename: 'budget.csv', getCsv, applyCsv,
+      getPresetPayload: () => ({ rows }), applyPreset: (p: any) => { if (Array.isArray(p?.rows)) { rows = p.rows; renderRows(); recompute(); persist(); } },
+    });
+
+    watchTheme(() => { applyChartDefaults(); recompute(); });
+  })();
+</script>

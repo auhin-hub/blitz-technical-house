@@ -1,0 +1,162 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+---
+<Base title="Points predictor">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Points predictor
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">FS points · relative to the field</p>
+    <h1 style="margin-top:0.4rem;">Points predictor</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:76ch;">
+      FS scoring is relative to the field, so each time event needs the
+      competition's best (<span class="mono">T_min</span>) and worst
+      (<span class="mono">T_max</span>) references. Points =
+      <span class="mono">P_max·(T_max/T_team − 1)/(T_max/T_min − 1)</span>. Enter
+      your predicted times (pulled from the lap sim where available) and the
+      reference times; Efficiency and the static events are entered as judged
+      scores. <strong>Point ceilings are editable</strong> — verify them against the
+      current rulebook.
+    </p>
+  </header>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <label style="font-size:var(--fs-300);">Competition
+      <select id="pt-comp" style="margin-left:0.4rem;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);padding:0.25rem 0.4rem;"></select>
+    </label>
+    <span class="mono" id="pt-verify" style="margin-left:0.8rem;font-size:var(--fs-200);color:var(--amber-text);"></span>
+    <span class="mono" id="pt-save" style="margin-left:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+  </div>
+
+  <div class="card">
+    <div style="overflow-x:auto;">
+      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:680px;">
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+          <th style="padding:0.4rem 0.5rem;" class="annot">Event</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">P_max</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">T_team</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">T_min (best)</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">T_max (worst)</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Score (static)</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Points</th>
+        </tr></thead>
+        <tbody id="pt-body"></tbody>
+        <tfoot><tr style="border-top:2px solid var(--rule-strong);font-weight:600;">
+          <td style="padding:0.4rem 0.5rem;" colspan="6">Total predicted</td>
+          <td style="padding:0.4rem 0.5rem;text-align:right;" class="mono"><span id="pt-total">—</span> / <span id="pt-ceiling">—</span></td>
+        </tr></tfoot>
+      </table>
+    </div>
+
+    <h3 class="ct-h3" style="margin-top:1rem;">What-if</h3>
+    <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;font-size:var(--fs-300);">
+      <label>Event <select id="pt-wi-event" style="font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.4rem;"></select></label>
+      <label>gain <input type="number" step="any" id="pt-wi-sec" value="1" style="width:64px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.4rem;"> s</label>
+      <span>→ <strong id="pt-wi-out">—</strong></span>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { relativePoints, COMPETITIONS, type EventDef } from '../lib/calc/points';
+  import { loadToolJson, saveToolJson, loadToolOutputsMap, debounce } from '../lib/store';
+
+  const TOOL = 'points';
+  const body = document.getElementById('pt-body')!;
+  const saveEl = document.getElementById('pt-save')!;
+  type Cell = { pMax: number; tTeam: number | null; tMin: number | null; tMax: number | null; score: number | null };
+  let comp = 'japan';
+  let state: Record<string, Record<string, Cell>> = {}; // comp -> eventKey -> cell
+  let outputs: Record<string, { value: number | null }> = {};
+
+  const inpS = 'width:76px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;';
+  const persist = debounce(async () => { const err = await saveToolJson(TOOL, { comp, state }); saveEl.textContent = err ? 'Save failed' : 'Saved ✓'; saveEl.style.color = err ? 'var(--heritage)' : 'var(--state-linked)'; }, 600);
+
+  function cellFor(ev: EventDef): Cell {
+    const c = (state[comp] ||= {});
+    if (!c[ev.key]) c[ev.key] = { pMax: ev.pMax, tTeam: null, tMin: null, tMax: null, score: null };
+    return c[ev.key];
+  }
+  function eventPoints(ev: EventDef, cell: Cell): number {
+    if (ev.kind === 'score') return Number.isFinite(cell.score as number) ? Math.max(0, Math.min(cell.pMax, cell.score as number)) : NaN;
+    return relativePoints(cell.pMax, cell.tTeam as number, cell.tMin as number, cell.tMax as number);
+  }
+
+  function render() {
+    const def = COMPETITIONS[comp];
+    document.getElementById('pt-verify')!.textContent = def.verify ?? '';
+    const v = (n: number | null) => (n == null ? '' : n);
+    body.innerHTML = def.events.map((ev) => {
+      const c = cellFor(ev);
+      const pts = eventPoints(ev, c);
+      const timeCells = ev.kind === 'time'
+        ? `<td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="tTeam" value="${v(c.tTeam)}" style="${inpS}"></td>
+           <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="tMin" value="${v(c.tMin)}" style="${inpS}"></td>
+           <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="tMax" value="${v(c.tMax)}" style="${inpS}"></td>
+           <td style="padding:0.2rem 0.4rem;text-align:right;color:var(--ink-3);">—</td>`
+        : `<td style="padding:0.2rem 0.4rem;text-align:right;color:var(--ink-3);">—</td><td style="padding:0.2rem 0.4rem;text-align:right;color:var(--ink-3);">—</td><td style="padding:0.2rem 0.4rem;text-align:right;color:var(--ink-3);">—</td>
+           <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="score" value="${v(c.score)}" style="${inpS}"></td>`;
+      return `<tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.2rem 0.5rem;">${ev.label} <span class="mono" style="color:var(--ink-3);font-size:var(--fs-100)">${ev.kind}</span></td>
+        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="pMax" value="${c.pMax}" style="${inpS}width:58px;"></td>
+        ${timeCells}
+        <td style="padding:0.2rem 0.5rem;text-align:right;" class="mono">${Number.isFinite(pts) ? pts.toFixed(1) : '—'}</td>
+      </tr>`;
+    }).join('');
+
+    body.querySelectorAll<HTMLInputElement>('input[data-k]').forEach((el) => {
+      el.addEventListener('input', () => {
+        const c = cellFor(COMPETITIONS[comp].events.find((e) => e.key === el.dataset.k)!);
+        (c as any)[el.dataset.f!] = el.value.trim() === '' ? (el.dataset.f === 'pMax' ? 0 : null) : Number(el.value);
+        recomputeTotals(); persist();
+      });
+    });
+
+    // what-if event list
+    document.getElementById('pt-wi-event')!.innerHTML = def.events.filter((e) => e.kind === 'time').map((e) => `<option value="${e.key}">${e.label}</option>`).join('');
+    recomputeTotals();
+  }
+
+  function recomputeTotals() {
+    const def = COMPETITIONS[comp];
+    let total = 0, ceiling = 0;
+    for (const ev of def.events) { const p = eventPoints(ev, cellFor(ev)); if (Number.isFinite(p)) total += p; ceiling += cellFor(ev).pMax; }
+    document.getElementById('pt-total')!.textContent = total.toFixed(1);
+    document.getElementById('pt-ceiling')!.textContent = String(ceiling);
+    whatIf();
+  }
+  function whatIf() {
+    const key = (document.getElementById('pt-wi-event') as HTMLSelectElement).value;
+    const sec = Number((document.getElementById('pt-wi-sec') as HTMLInputElement).value) || 0;
+    const ev = COMPETITIONS[comp].events.find((e) => e.key === key);
+    const out = document.getElementById('pt-wi-out')!;
+    if (!ev) { out.textContent = '—'; return; }
+    const c = cellFor(ev);
+    const now = relativePoints(c.pMax, c.tTeam as number, c.tMin as number, c.tMax as number);
+    const faster = relativePoints(c.pMax, (c.tTeam as number) - sec, c.tMin as number, c.tMax as number);
+    out.textContent = Number.isFinite(now) && Number.isFinite(faster) ? `+${(faster - now).toFixed(1)} pts for ${sec} s faster` : 'enter T_team / T_min / T_max first';
+  }
+
+  (async () => {
+    document.getElementById('pt-comp')!.innerHTML = Object.entries(COMPETITIONS).map(([k, c]) => `<option value="${k}">${c.label}</option>`).join('');
+    const [saved, oMap] = await Promise.all([loadToolJson<any>(TOOL, {}), loadToolOutputsMap()]);
+    outputs = Object.fromEntries(Object.entries(oMap).map(([k, v]) => [k, { value: (v as any).value ?? null }]));
+    if (saved?.state) state = saved.state;
+    if (saved?.comp) comp = saved.comp;
+    (document.getElementById('pt-comp') as HTMLSelectElement).value = comp;
+
+    // Prefill autocross/endurance T_team from the lap-sim contribution if present.
+    const lap = outputs.lap_time_s?.value;
+    if (Number.isFinite(lap as number)) {
+      const c = (state[comp] ||= {});
+      if (!c.autocross) c.autocross = { pMax: 125, tTeam: lap as number, tMin: null, tMax: null, score: null };
+      else if (c.autocross.tTeam == null) c.autocross.tTeam = lap as number;
+    }
+
+    render();
+    document.getElementById('pt-comp')!.addEventListener('change', (e) => { comp = (e.target as HTMLSelectElement).value; render(); persist(); });
+    document.getElementById('pt-wi-event')!.addEventListener('change', whatIf);
+    document.getElementById('pt-wi-sec')!.addEventListener('input', whatIf);
+  })();
+</script>

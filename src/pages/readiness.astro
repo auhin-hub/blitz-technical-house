@@ -1,0 +1,246 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+---
+<Base title="Design Readiness">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Design Readiness
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Component Readiness · what's ready to start</p>
+    <h1 style="margin-top:0.4rem;">Design Readiness</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:76ch;">
+      Each component lists its prerequisites — Master values or tool outputs it
+      needs. A prerequisite is <strong style="color:var(--state-linked)">green</strong>
+      when its source is frozen (Master) or contributed (tool), <strong style="color:var(--amber-text)">amber</strong>
+      when set but not frozen, grey when not set. A component is
+      <strong>Ready to start</strong> only when every <em>blocking</em> prerequisite
+      is green. Drag a requirement between Blocking and Soft to change what gates it.
+    </p>
+  </header>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <div id="rd-ctrls"></div>
+    <div style="display:flex;gap:0.8rem;flex-wrap:wrap;align-items:flex-end;margin-top:0.4rem;">
+      <label style="font-size:var(--fs-300);">Filter team
+        <select id="rd-filter" style="display:block;margin-top:0.2rem;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);padding:0.25rem 0.4rem;"><option value="">all teams</option></select>
+      </label>
+      <button class="btn btn-ghost" type="button" id="rd-add-comp">+ Component</button>
+      <button class="btn btn-ghost" type="button" id="rd-add-req">+ Requirement</button>
+      <button class="btn btn-ghost" type="button" id="rd-reset" style="font-size:var(--fs-200);">Reset to seed</button>
+      <span class="mono" id="rd-status" style="font-size:var(--fs-200);color:var(--ink-3);"></span>
+    </div>
+    <!-- Add-component form -->
+    <form id="rd-comp-form" hidden style="margin-top:0.7rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;background:var(--surface-2);padding:0.6rem;border-radius:var(--radius);">
+      <label style="font-size:var(--fs-300);">Name<input required id="rc-name" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
+      <label style="font-size:var(--fs-300);">Owner team<select id="rc-team" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;"></select></label>
+      <label style="font-size:var(--fs-300);">Subassembly<input id="rc-sub" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
+      <button class="btn btn-heritage" type="submit">Add</button>
+    </form>
+    <!-- Add-requirement form (picker restricted to real keys) -->
+    <form id="rd-req-form" hidden style="margin-top:0.7rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;background:var(--surface-2);padding:0.6rem;border-radius:var(--radius);">
+      <label style="font-size:var(--fs-300);">Component<select id="rr-comp" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;"></select></label>
+      <label style="font-size:var(--fs-300);">Requires (Master / tool output)<select id="rr-key" style="display:block;margin-top:0.2rem;min-width:260px;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;"></select></label>
+      <label style="font-size:var(--fs-300);">Bin<select id="rr-bin" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;"><option value="blocking">Blocking</option><option value="soft">Soft</option></select></label>
+      <button class="btn btn-heritage" type="submit">Add requirement</button>
+    </form>
+  </div>
+
+  <div id="rd-summary" class="card" style="margin-bottom:1rem;"></div>
+  <div id="rd-board"></div>
+</Base>
+
+<style>
+  .rd-team-h { font-size: var(--fs-500); margin: 1.1rem 0 0.5rem; }
+  .rd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 0.9rem; }
+  .rd-card { border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: 0.8rem; background: var(--surface); }
+  .rd-bin { border: 1px dashed var(--rule); border-radius: var(--radius); padding: 0.4rem; min-height: 2.2rem; margin-top: 0.3rem; }
+  .rd-bin.drag { border-color: var(--sky); background: var(--surface-2); }
+  .rd-chip { display: flex; align-items: center; gap: 0.4rem; font-size: var(--fs-200); padding: 0.25rem 0.4rem; border: 1px solid var(--rule); border-radius: var(--radius-sm); margin: 0.2rem 0; background: var(--surface-2); cursor: grab; }
+  .rd-dot { width: 0.7em; height: 0.7em; border-radius: 50%; flex: none; }
+  .rd-green { background: var(--state-linked); } .rd-amber { background: var(--amber); } .rd-grey { background: var(--ink-3); }
+</style>
+
+<script>
+  import { PARAM_SEED } from '../lib/master';
+  import { TOOL_OUTPUT_KEYS, url } from '../lib/config';
+  import { componentReadiness, blockingSummary, type Component, type Prereq, type MasterCell, type Bin } from '../lib/calc/readiness';
+  import { loadMaster, loadToolOutputsMap, loadToolJson, saveToolJson, debounce } from '../lib/store';
+  import { mountListControls } from '../lib/list-controls';
+  import { toCsv, parseCsv, missingColumns } from '../lib/csv';
+
+  const TEAMS = ['VD', 'Chassis', 'Aero', 'Ergonomics', 'Powertrain', 'ECS', 'Brake'];
+  const TOOL = 'readiness';
+  const boardEl = document.getElementById('rd-board')!;
+  const summaryEl = document.getElementById('rd-summary')!;
+  const statusEl = document.getElementById('rd-status')!;
+  let components: Component[] = [];
+  let master: Record<string, MasterCell> = {};
+  let outputs: Record<string, { value: number | null }> = {};
+
+  // Requirement picker = union of all vehicle_spec keys + all tool_output keys.
+  const teamFromSource = (s: string) => ({ Tyre: 'VD(Tyre)', MassBudget: 'VD', VD: 'VD', Geometry: 'VD', target: 'VD', input: 'VD' } as Record<string, string>)[s] ?? 'VD';
+  const MASTER_PICK = PARAM_SEED.map((p) => ({ key: p.key, label: p.label, team: teamFromSource(p.source), source_type: 'master' as const }));
+  const OUTPUT_PICK = TOOL_OUTPUT_KEYS.map((o) => ({ key: o.key, label: o.label, team: o.team, source_type: 'tool_output' as const }));
+  const PICK = [...MASTER_PICK, ...OUTPUT_PICK];
+  const pickByKey = new Map(PICK.map((p) => [p.key, p]));
+
+  const say = (m: string, ok = true) => { statusEl.textContent = m; statusEl.style.color = ok ? 'var(--state-linked)' : 'var(--heritage)'; };
+  const esc = (s: string) => (s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+  const persist = debounce(async () => {
+    const err = await saveToolJson(TOOL, { components });
+    say(err ? 'Save failed: ' + err : 'Saved ✓', !err);
+  }, 600);
+
+  // ---- CSV (one row per prerequisite) ----
+  const CSV_COLS = ['component', 'owner_team', 'prerequisite', 'default_bin', 'source_type', 'source_key', 'produced_by_team', 'notes'];
+  function flatten(): (string | number)[][] {
+    const rows: (string | number)[][] = [];
+    for (const c of components) for (const p of c.prereqs) rows.push([c.name, c.owner_team, p.label, p.bin, p.source_type, p.source_key, p.produced_by_team, (p as any).notes ?? '']);
+    return rows;
+  }
+  function rebuild(rows: string[][], headers: string[]): Component[] {
+    const i = (h: string) => headers.indexOf(h);
+    const byName = new Map<string, Component>();
+    for (const r of rows) {
+      const name = (r[i('component')] ?? '').trim(); if (!name) continue;
+      let c = byName.get(name);
+      if (!c) { c = { name, owner_team: (r[i('owner_team')] ?? 'VD').trim(), subassembly: '', prereqs: [] }; byName.set(name, c); }
+      const label = (r[i('prerequisite')] ?? '').trim(); if (!label) continue;
+      c.prereqs.push({
+        label, bin: ((r[i('default_bin')] ?? 'blocking').trim() === 'soft' ? 'soft' : 'blocking') as Bin,
+        source_type: ((r[i('source_type')] ?? 'master').trim()) as any,
+        source_key: (r[i('source_key')] ?? '').trim(), produced_by_team: (r[i('produced_by_team')] ?? '').trim(),
+        ...(i('notes') >= 0 ? { notes: (r[i('notes')] ?? '').trim() } : {}),
+      } as Prereq);
+    }
+    return [...byName.values()];
+  }
+
+  function render() {
+    // dropdowns
+    const filter = (document.getElementById('rd-filter') as HTMLSelectElement).value;
+    (document.getElementById('rd-filter') as HTMLSelectElement).innerHTML = '<option value="">all teams</option>' + TEAMS.map((t) => `<option value="${t}"${t === filter ? ' selected' : ''}>${t}</option>`).join('');
+    (document.getElementById('rc-team') as HTMLSelectElement).innerHTML = TEAMS.map((t) => `<option>${t}</option>`).join('');
+    (document.getElementById('rr-comp') as HTMLSelectElement).innerHTML = components.map((c, i) => `<option value="${i}">${esc(c.name)}</option>`).join('');
+    (document.getElementById('rr-key') as HTMLSelectElement).innerHTML =
+      `<optgroup label="Master (vehicle_spec)">${MASTER_PICK.map((p) => `<option value="${p.key}">${esc(p.label)} — ${p.key}</option>`).join('')}</optgroup>` +
+      `<optgroup label="Tool outputs">${OUTPUT_PICK.map((p) => `<option value="${p.key}">${esc(p.label)} — ${p.key}</option>`).join('')}</optgroup>`;
+
+    // blocking summary
+    const sum = blockingSummary(components, master, outputs).slice(0, 6);
+    summaryEl.innerHTML = `<span class="annot">What's blocking the most components</span>` + (sum.length
+      ? `<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.4rem;">${sum.map((s) => `<span class="badge">${esc(s.source_key)} <span style="color:var(--ink-3)">· ${esc(s.team)}</span> × ${s.count}</span>`).join('')}</div>`
+      : `<p style="color:var(--state-linked);margin-top:0.3rem;">Nothing blocking — every blocking prerequisite is green.</p>`);
+
+    // board grouped by owner team
+    const teams = [...new Set(components.map((c) => c.owner_team))].filter((t) => !filter || t === filter);
+    boardEl.innerHTML = teams.map((team) => {
+      const comps = components.map((c, idx) => ({ c, idx })).filter((x) => x.c.owner_team === team);
+      return `<h2 class="rd-team-h">${esc(team)}</h2><div class="rd-grid">${comps.map(({ c, idx }) => card(c, idx)).join('')}</div>`;
+    }).join('') || '<p class="mono" style="color:var(--ink-3);">No components. Add one, or reset to the seed.</p>';
+
+    boardEl.querySelectorAll<HTMLElement>('.rd-chip').forEach((chip) => {
+      chip.addEventListener('dragstart', (e) => { e.dataTransfer!.setData('text/plain', chip.dataset.ref!); });
+    });
+    boardEl.querySelectorAll<HTMLElement>('.rd-bin').forEach((bin) => {
+      bin.addEventListener('dragover', (e) => { e.preventDefault(); bin.classList.add('drag'); });
+      bin.addEventListener('dragleave', () => bin.classList.remove('drag'));
+      bin.addEventListener('drop', (e) => {
+        e.preventDefault(); bin.classList.remove('drag');
+        const [ci, pi] = (e.dataTransfer!.getData('text/plain') || '').split(':').map(Number);
+        const targetBin = bin.dataset.bin as Bin;
+        if (components[ci]?.prereqs[pi]) { components[ci].prereqs[pi].bin = targetBin; render(); persist(); }
+      });
+    });
+    boardEl.querySelectorAll<HTMLButtonElement>('[data-del-comp]').forEach((b) =>
+      b.addEventListener('click', () => { components.splice(+b.dataset.delComp!, 1); render(); persist(); }));
+    boardEl.querySelectorAll<HTMLButtonElement>('[data-del-req]').forEach((b) =>
+      b.addEventListener('click', () => { const [ci, pi] = b.dataset.delReq!.split(':').map(Number); components[ci].prereqs.splice(pi, 1); render(); persist(); }));
+  }
+
+  function card(c: Component, idx: number): string {
+    const r = componentReadiness(c, master, outputs);
+    const pct = r.blockingTotal ? Math.round((r.blockingGreen / r.blockingTotal) * 100) : 100;
+    const ring = `<span class="mono" style="font-size:var(--fs-200);color:${r.ready ? 'var(--state-linked)' : 'var(--amber-text)'}">${r.blockingGreen}/${r.blockingTotal} blocking</span>`;
+    const go = r.ready ? `<span class="badge badge-live">GO</span>` : `<span class="badge">${pct}%</span>`;
+    const chip = (p: Prereq, pi: number) => {
+      const st = r.statuses.find((s) => s.prereq === p)!.status;
+      return `<div class="rd-chip" draggable="true" data-ref="${idx}:${pi}" title="${esc(p.source_type)} · ${esc(p.source_key)} · ${esc(p.produced_by_team)}">
+        <span class="rd-dot rd-${st}"></span><span style="flex:1;">${esc(p.label)}</span>
+        <span class="mono" style="color:var(--ink-3);font-size:var(--fs-100);">${esc(p.produced_by_team)}</span>
+        <button class="btn btn-ghost" data-del-req="${idx}:${pi}" style="padding:0 0.3rem;font-size:var(--fs-100);">✕</button></div>`;
+    };
+    const binHtml = (bin: Bin) => c.prereqs.map((p, pi) => ({ p, pi })).filter((x) => x.p.bin === bin).map((x) => chip(x.p, x.pi)).join('') || '<span class="mono" style="color:var(--ink-3);font-size:var(--fs-100);">—</span>';
+    const pending = r.pending.length ? `<p style="font-size:var(--fs-200);color:var(--amber-text);margin-top:0.4rem;">Blocked on: ${r.pending.map((p) => `${esc(p.team)} → ${esc(p.source_key)}`).join(', ')}</p>` : '';
+    return `<div class="rd-card">
+      <div style="display:flex;justify-content:space-between;gap:0.5rem;align-items:baseline;">
+        <strong>${esc(c.name)}</strong><span style="display:flex;gap:0.4rem;align-items:center;">${ring} ${go}</span>
+      </div>
+      <p class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${esc(c.subassembly || '')}</p>
+      <p class="annot" style="margin-top:0.4rem;">Blocking</p><div class="rd-bin" data-bin="blocking" data-ci="${idx}">${binHtml('blocking')}</div>
+      <p class="annot" style="margin-top:0.4rem;">Soft</p><div class="rd-bin" data-bin="soft" data-ci="${idx}">${binHtml('soft')}</div>
+      ${pending}
+      <div style="margin-top:0.5rem;"><button class="btn btn-ghost" data-del-comp="${idx}" style="font-size:var(--fs-100);">Remove component</button></div>
+    </div>`;
+  }
+
+  (async () => {
+    const [mRows, oMap, saved] = await Promise.all([loadMaster(), loadToolOutputsMap(), loadToolJson<any>(TOOL, {})]);
+    master = Object.fromEntries(Object.entries(mRows).map(([k, v]) => [k, { value: (v as any).value ?? null, text_value: (v as any).text_value ?? null, frozen: !!(v as any).frozen }]));
+    outputs = Object.fromEntries(Object.entries(oMap).map(([k, v]) => [k, { value: (v as any).value ?? null }]));
+
+    if (Array.isArray(saved?.components) && saved.components.length) {
+      components = saved.components;
+    } else {
+      const text = await fetch(url('data/readiness-seed.csv')).then((r) => r.text()).catch(() => '');
+      const { headers, rows } = parseCsv(text);
+      components = rebuild(rows, headers);
+    }
+    render();
+
+    // Controls
+    document.getElementById('rd-filter')!.addEventListener('change', render);
+    document.getElementById('rd-add-comp')!.addEventListener('click', () => { const f = document.getElementById('rd-comp-form') as HTMLElement; f.hidden = !f.hidden; });
+    document.getElementById('rd-add-req')!.addEventListener('click', () => { const f = document.getElementById('rd-req-form') as HTMLElement; f.hidden = !f.hidden; render(); });
+    document.getElementById('rd-reset')!.addEventListener('click', async () => {
+      if (!confirm('Replace the board with the seed set?')) return;
+      const text = await fetch(url('data/readiness-seed.csv')).then((r) => r.text()).catch(() => '');
+      const { headers, rows } = parseCsv(text); components = rebuild(rows, headers); render(); persist();
+    });
+    (document.getElementById('rd-comp-form') as HTMLFormElement).addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = (document.getElementById('rc-name') as HTMLInputElement).value.trim(); if (!name) return;
+      components.push({ name, owner_team: (document.getElementById('rc-team') as HTMLSelectElement).value, subassembly: (document.getElementById('rc-sub') as HTMLInputElement).value.trim(), prereqs: [] });
+      (document.getElementById('rd-comp-form') as HTMLFormElement).reset();
+      (document.getElementById('rd-comp-form') as HTMLElement).hidden = true;
+      render(); persist();
+    });
+    (document.getElementById('rd-req-form') as HTMLFormElement).addEventListener('submit', (e) => {
+      e.preventDefault();
+      const ci = Number((document.getElementById('rr-comp') as HTMLSelectElement).value);
+      const key = (document.getElementById('rr-key') as HTMLSelectElement).value;
+      const bin = (document.getElementById('rr-bin') as HTMLSelectElement).value as Bin;
+      const pick = pickByKey.get(key); if (!components[ci] || !pick) return;
+      components[ci].prereqs.push({ label: pick.label, bin, source_type: pick.source_type, source_key: pick.key, produced_by_team: pick.team });
+      render(); persist(); say('requirement added ✓');
+    });
+
+    mountListControls({
+      container: document.getElementById('rd-ctrls')!,
+      tool: TOOL, filename: 'component_readiness.csv',
+      getCsv: () => toCsv(CSV_COLS, flatten()),
+      applyCsv: (text, mode) => {
+        const { headers, rows } = parseCsv(text);
+        const miss = missingColumns(headers, ['component', 'prerequisite', 'source_key']);
+        if (miss.length) return 'missing column(s): ' + miss.join(', ');
+        const built = rebuild(rows, headers);
+        components = mode === 'append' ? components.concat(built) : built;
+        render(); persist();
+      },
+      getPresetPayload: () => ({ components }),
+      applyPreset: (p: any) => { if (Array.isArray(p?.components)) { components = p.components; render(); persist(); } },
+    });
+  })();
+</script>
