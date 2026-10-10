@@ -1,0 +1,151 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+
+const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
+---
+<Base title="Balance">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('vehicle-dynamics')} style="color:inherit;">VD Workspace</a> / Balance
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Steady-state · where it pushes or gets loose</p>
+    <h1 style="margin-top:0.4rem;">Balance</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
+      Understeer gradient from the bicycle model (K, characteristic/critical speed,
+      static margin, yaw-rate gain vs speed) and the roll-stiffness distribution
+      (springs + ARBs) vs the target TLLTD — the balance knob. Mass, fraction,
+      wheelbase and cornering stiffness come from the Master.
+    </p>
+  </header>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <span class="annot">From Master</span>
+    <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:0.4rem;font-size:var(--fs-300);">
+      <span>Mass (m) <span class="field field-linked mono" data-master="mass_total">—</span> kg</span>
+      <span>Front fraction (ff) <span class="field field-linked mono" data-master="mass_frac_front">—</span></span>
+      <span>Wheelbase (L) <span class="field field-linked mono" data-master="wheelbase">—</span> mm</span>
+      <span>Cornering stiffness (Cα/tyre) <span class="field field-linked mono" data-master="corner_stiffness">—</span> N/deg</span>
+      <span>TLLTD target <span class="field field-linked mono" data-master="tlltd_front">—</span></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct-body">
+      <div class="ct-col">
+        <h3 class="ct-h3">Understeer (bicycle model)</h3>
+        <div class="ct-wrap"><table class="ct-table"><tbody>
+          <tr><td>Front axle cornering stiffness Cαf</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="caF" value="2200" /></td><td class="ct-unit">N/deg</td></tr>
+          <tr><td>Rear axle cornering stiffness Cαr</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="caR" value="2200" /></td><td class="ct-unit">N/deg</td></tr>
+        </tbody></table></div>
+        <div class="ct-stats" style="margin-top:0.6rem;">
+          <div class="ct-stat"><span class="annot">Understeer gradient K</span><div class="val"><span data-out="K">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> deg/g</span></div></div>
+          <div class="ct-stat"><span class="annot">Balance</span><div class="val" style="font-size:var(--fs-500)"><span data-out="balance">—</span></div></div>
+          <div class="ct-stat"><span class="annot">Static margin</span><div class="val"><span data-out="SM">—</span></div></div>
+          <div class="ct-stat"><span class="annot">Char / crit speed</span><div class="val" style="font-size:var(--fs-500)"><span data-out="charSpeed">—</span><span data-out="critSpeed" style="display:none"></span></div><span class="ct-unit">km/h</span></div>
+        </div>
+
+        <h3 class="ct-h3">Roll-stiffness distribution</h3>
+        <p style="color:var(--ink-2);font-size:var(--fs-300);">Front roll-rate fraction (springs + ARBs). Aim near the target TLLTD; the ARB is the balance knob.</p>
+        <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Roll rate (N·m/deg)</th><th class="ct-num">Front</th><th class="ct-num">Rear</th></tr></thead>
+          <tbody>
+            <tr><td>From springs</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="ksF" value="176.8" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="ksR" value="176.8" /></td></tr>
+            <tr><td>ARB contribution</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="arbF" value="0" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="arbR" value="0" /></td></tr>
+          </tbody></table></div>
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem;flex-wrap:wrap;">
+          <span class="mono" style="font-size:var(--fs-300);">Target front fraction <input type="number" step="any" style={ni} data-in="targetFrac" value="0.5" /></span>
+          <span class="mono" style="font-size:var(--fs-300);">→ front ARB needed: <span data-out="arbNeeded">—</span> N·m/deg</span>
+        </div>
+      </div>
+
+      <div class="ct-col">
+        <div class="ct-stats">
+          <div class="ct-stat"><span class="annot">Front roll fraction</span><div class="val"><span data-out="frontFrac">—</span></div></div>
+          <div class="ct-stat"><span class="annot">TLLTD target</span><div class="val"><span data-out="tlltd">—</span></div></div>
+        </div>
+        <h3 class="ct-h3">Yaw-rate gain vs speed</h3>
+        <div style="height:260px;position:relative;"><canvas id="yaw-chart"></canvas></div>
+        <p style="margin-top:0.6rem;"><button class="btn btn-heritage" type="button" id="bal-contribute">Contribute to Master</button>
+          <span class="mono" id="bal-contribute-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span></p>
+      </div>
+    </div>
+    <p class="mono" data-save-status style="margin-top:0.7rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </div>
+</Base>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { understeer, yawGainCurve, rollDistribution, arbForTarget, type BalanceInput, type BalanceMaster } from '../lib/calc/balance';
+  import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+
+  const TOOL = 'balance';
+  const saveStatus = document.querySelector('[data-save-status]') as HTMLElement;
+  let master: Record<string, number> = {};
+  let chart: Chart | null = null;
+  let last: any = {};
+  const gi = (k: string) => Number((document.querySelector(`[data-in="${k}"]`) as HTMLInputElement)?.value);
+  const put = (k: string, v: number, d = 2) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = Number.isFinite(v) ? fmt(v, d) : '—'; };
+  const setText = (k: string, s: string) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = s; };
+
+  function recompute() {
+    const m: BalanceMaster = { mass: master.mass_total, ff: master.mass_frac_front, wheelbase: master.wheelbase };
+    const inp: BalanceInput = { caF: gi('caF'), caR: gi('caR') };
+    const u = understeer(inp, m);
+    last = u;
+    put('K', u.K as number, 3);
+    setText('balance', typeof u.balance === 'string' ? u.balance : '—');
+    put('SM', u.SM as number, 3);
+    // Show char (understeer) or crit (oversteer) speed.
+    const cs = Number.isFinite(u.charSpeed as number) ? u.charSpeed as number : u.critSpeed as number;
+    put('charSpeed', cs, 0);
+
+    const rd = rollDistribution(gi('ksF'), gi('ksR'), gi('arbF'), gi('arbR'));
+    put('frontFrac', rd.frontFraction, 3);
+    put('tlltd', master.tlltd_front, 3);
+    put('arbNeeded', arbForTarget(gi('targetFrac'), gi('ksF'), gi('ksR'), gi('arbR')), 1);
+
+    const p = palette();
+    const speeds = Array.from({ length: 15 }, (_, i) => i * 10);
+    const curve = yawGainCurve(Number(u.K), master.wheelbase || 1550, speeds);
+    const cfg: any = { type: 'line', data: { labels: speeds.map(String), datasets: [{ label: 'Yaw-rate gain', data: curve.map((c) => Number.isFinite(c.gain) ? +c.gain.toFixed(4) : null), borderColor: p.sky, backgroundColor: p.sky, pointRadius: 0, tension: 0.2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'speed (km/h)' } }, y: { title: { display: true, text: 'yaw gain (1/s)' } } } } };
+    if (chart) { chart.data = cfg.data; chart.update(); } else { const cv = document.getElementById('yaw-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
+  }
+
+  const persist = debounce(async () => {
+    const data: Record<string, number> = {};
+    document.querySelectorAll('[data-in]').forEach((el) => { data[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
+    saveStatus.textContent = 'Saving…';
+    const err = await saveToolJson(TOOL, data);
+    saveStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    saveStatus.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  (async () => {
+    applyChartDefaults();
+    master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
+    for (const el of document.querySelectorAll<HTMLElement>('[data-master]')) { const k = el.dataset.master!; if (Number.isFinite(master[k])) el.textContent = fmt(master[k]); }
+    // Prefill axle Cα from the per-tyre Master value (×2).
+    if (Number.isFinite(master.corner_stiffness)) { (document.querySelector('[data-in="caF"]') as HTMLInputElement).value = String(master.corner_stiffness * 2); (document.querySelector('[data-in="caR"]') as HTMLInputElement).value = String(master.corner_stiffness * 2); }
+    const saved = await loadToolJson<Record<string, number>>(TOOL, {});
+    for (const [k, v] of Object.entries(saved)) { const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v); }
+
+    recompute();
+    document.querySelectorAll('[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
+
+    document.getElementById('bal-contribute')!.addEventListener('click', async () => {
+      const st = document.getElementById('bal-contribute-status')!;
+      st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
+      const num = (v: any) => Number.isFinite(v) ? +(+v).toFixed(3) : null;
+      const err = await saveToolOutputs(TOOL, [
+        { key: 'understeer_gradient', label: 'Understeer gradient', value: num(last.K), unit: 'deg/g' },
+        { key: 'static_margin', label: 'Static margin', value: num(last.SM), unit: '-' },
+      ]);
+      st.textContent = err ? 'Failed: ' + err : 'Contributed ✓';
+      st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+    });
+
+    watchTheme(() => { applyChartDefaults(); recompute(); });
+  })();
+</script>
