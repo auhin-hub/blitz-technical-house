@@ -244,10 +244,16 @@ const SYNTH = [
     const sideEl = document.getElementById('geo-side-svg'); if (sideEl) sideEl.innerHTML = buildSide(hp3d(), gi('f_svsa'), Number.isFinite(fAnti) ? fAnti : 0, master.wheelbase);
 
     // Target vs achieved (retained synthesis targets vs the solved geometry).
+    // Solver frame: Y=0 centreline, contact patch outboard. Scrub = distance from
+    // the contact patch to where the kingpin axis (lbj→ubj) meets the ground; KPI
+    // is its lean magnitude from vertical.
     const hpf = hardpoints();
+    const groundInt = solvedScrub(hpf.lbj, hpf.ubj); // kingpin-axis Y at z=0
+    const solScrub = Number.isFinite(groundInt) ? Math.abs(hpf.cp.y - groundInt) : NaN;
+    const solKpi = Math.abs(solvedKpiDeg(hpf.lbj, hpf.ubj));
     put('solRc', sum.staticRc as number, 1);
-    put('solScrub', solvedScrub(hpf.lbj, hpf.ubj), 1);
-    put('solKpi', solvedKpiDeg(hpf.lbj, hpf.ubj), 2);
+    put('solScrub', solScrub, 1);
+    put('solKpi', solKpi, 2);
     setText('tgtRc', targets ? fmt(targets.rcHeight, 1) : '—');
     setText('tgtScrub', targets ? fmt(targets.scrub, 1) : '—');
     setText('tgtKpi', targets ? fmt(targets.kpi, 2) : '—');
@@ -289,8 +295,13 @@ const SYNTH = [
   function generate() {
     const inp = readSynth();
     const r = synthesize(inp);
+    // Frame map: synthesis measures Y from the contact patch toward the centreline
+    // (RC at Y = track/2); the solver has Y = 0 at the car centreline, +Y outboard.
+    // So solverY = track/2 − synthY (z, x unchanged).
+    const half = inp.track / 2;
     const setHp = (key: string, pt: { x: number; y: number; z: number }) => {
-      for (const f of ['x', 'y', 'z'] as const) { const el = document.querySelector(`[data-hp="${key}_${f}"]`) as HTMLInputElement | null; if (el) el.value = String(+pt[f].toFixed(2)); }
+      const coords: Record<string, number> = { x: pt.x, y: half - pt.y, z: pt.z };
+      for (const f of ['x', 'y', 'z'] as const) { const el = document.querySelector(`[data-hp="${key}_${f}"]`) as HTMLInputElement | null; if (el) el.value = String(+coords[f].toFixed(2)); }
     };
     setHp('lip', r.hp.lip); setHp('uip', r.hp.uip); setHp('lbj', r.hp.lbj); setHp('ubj', r.hp.ubj); setHp('wc', r.hp.wc); setHp('cp', r.hp.cp);
     targets = { rcHeight: inp.rcHeight, scrub: inp.scrub, kpi: inp.kpi };
