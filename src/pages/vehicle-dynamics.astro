@@ -46,13 +46,14 @@ const LOADS_INPUTS = [
   { key: 'downforce', label: 'Aero downforce per axle', unit: 'N', vals: [50, 50] },
   { key: 'pushrodAngle', label: 'Pushrod angle to horizontal', unit: 'deg', vals: [45, 45] },
   { key: 'svsaAngle', label: 'Side-view swing-arm angle θ', unit: 'deg', vals: [8, 6] },
-  { key: 'share', label: 'Brake bias / drive share on axle', unit: '-', vals: [0.65, 1] },
+  { key: 'share', label: 'Anti share — F: front brake-bias (anti-dive) · R: drive-torque share (anti-squat, RWD=1)', unit: '-', vals: [0.65, 1] },
 ];
 const LOADS_OUTPUTS = [
   { key: 'staticCorner', label: 'Static corner vertical load', unit: 'N' },
   { key: 'maxVertical', label: 'Max vertical case = static·DMF + DF', unit: 'N' },
   { key: 'pushrodForce', label: 'Pushrod force = vertical / sin θ', unit: 'N' },
-  { key: 'antiPct', label: '% anti-dive (F) / anti-squat (R)', unit: 'fraction' },
+  { key: 'antiPct', label: 'Anti-dive (F) / anti-squat (R) = share·tanθ·L/h', unit: '%' },
+  { key: 'antiNote', label: 'Advisory (>100% = over-compensated)', unit: '' },
 ];
 
 // ---- Steering ------------------------------------------------------------
@@ -213,9 +214,22 @@ const STEER_OUTPUTS = [
 
   mountCalculator({ root: 'setup', tool: 'vd_setup', compute: () => ({}) });
 
+  // Present anti-geometry as a percentage (the workbook core returns a fraction),
+  // with a per-side advisory when it exceeds 100% (over-compensated — valid, not an error).
+  const loadsComputePct = (inp: Record<string, number>, m: Record<string, number>) => {
+    const o = loadsCompute(inp, m) as Record<string, number | string>;
+    for (const p of ['f', 'r'] as const) {
+      const frac = o[`${p}_antiPct`] as number;
+      const pct = frac * 100;
+      o[`${p}_antiPct`] = pct;
+      o[`${p}_antiNote`] = Number.isFinite(pct) && pct > 100 ? '⚠ over 100% anti' : '';
+    }
+    return o;
+  };
+
   mountCalculator({
-    root: 'loads', tool: 'vd_loads', compute: loadsCompute, defaultDigits: 2,
-    digits: { f_antiPct: 3, r_antiPct: 3 },
+    root: 'loads', tool: 'vd_loads', compute: loadsComputePct, defaultDigits: 2,
+    digits: { f_antiPct: 1, r_antiPct: 1 },
     charts: [{
       canvasId: 'loads-chart',
       build: ({ out, pal }) => ({

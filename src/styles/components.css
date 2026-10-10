@@ -135,9 +135,10 @@
   width: 0.9em; height: 0.9em; border-radius: 3px; border: 1px solid;
   flex: none;
 }
-.swatch-input    { background: var(--state-input-fill);    border-color: var(--state-input); }
-.swatch-linked   { background: var(--state-linked-fill);   border-color: var(--state-linked); }
-.swatch-computed { background: var(--state-computed-fill);  border-color: var(--state-computed); }
+/* Solid fills so each key square reads as its field colour (not the pale wash). */
+.swatch-input    { background: var(--state-input);    border-color: var(--state-input); }
+.swatch-linked   { background: var(--state-linked);   border-color: var(--state-linked); }
+.swatch-computed { background: var(--state-computed);  border-color: var(--state-computed); }
 
 /* Field states — applied to the actual value cells/inputs later. */
 .field { border-radius: var(--radius-sm); padding: 0.15em 0.45em; }

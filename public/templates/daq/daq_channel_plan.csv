@@ -1,0 +1,36 @@
+channel_id,channel_name,sensor_type,qty,location,rate_hz,bytes_per_sample,unit,range_min,range_max,subsystem,validates,notes
+CH01,Damper position FL,Linear potentiometer,1,Front-left damper,500,2,mm,0,75,Suspension,motion_ratio / ride_freq_front / roll_gradient,Diff of L-R gives roll angle; slope gives damper velocity
+CH02,Damper position FR,Linear potentiometer,1,Front-right damper,500,2,mm,0,75,Suspension,motion_ratio / ride_freq_front / roll_gradient,Pair with FL for front roll
+CH03,Damper position RL,Linear potentiometer,1,Rear-left damper,500,2,mm,0,75,Suspension,motion_ratio / ride_freq_rear / roll_gradient,Pair with RR for rear roll
+CH04,Damper position RR,Linear potentiometer,1,Rear-right damper,500,2,mm,0,75,Suspension,motion_ratio / ride_freq_rear / roll_gradient,Reference zero at static (no-roll) position
+CH05,IMU acceleration (x y z),3-axis accelerometer,1,Sprung mass near CG,200,6,g,-3,3,Chassis,accel_lat_target / accel_brake_target / g-g,2 bytes per axis; mount rigid and level
+CH06,IMU angular rate (roll pitch yaw),3-axis gyro,1,Sprung mass near CG,200,6,deg/s,-300,300,Chassis,yaw response / understeer_gradient,Yaw rate drives understeer & stability analysis
+CH07,Wheel speed FL,Hall-effect,1,Front-left upright,200,2,km/h,0,150,Brakes/Powertrain,slip ratio / lock detection,Count teeth on an existing ring; needs tooth count in calibration
+CH08,Wheel speed FR,Hall-effect,1,Front-right upright,200,2,km/h,0,150,Brakes/Powertrain,slip ratio / lock detection,Front wheels = closest to true road speed (undriven)
+CH09,Wheel speed RL,Hall-effect,1,Rear-left upright,200,2,km/h,0,150,Powertrain,wheelspin / launch,Compare to GPS speed for drive slip
+CH10,Wheel speed RR,Hall-effect,1,Rear-right upright,200,2,km/h,0,150,Powertrain,wheelspin / launch,
+CH11,Steering angle,Rotary encoder or pot,1,Steering column,100,2,deg,-120,120,Steering,understeer_gradient / Ackermann,Combine with speed+ay for K (deg/g)
+CH12,Throttle position (APPS),Potentiometer,1,Throttle pedal,100,1,%,0,100,Powertrain,driver input / traction,
+CH13,Brake pressure front,Hydraulic pressure transducer,1,Front master-cyl line,200,2,bar,0,100,Brakes,achieved_front_bias,Rear/(F+R) pressure = live brake bias
+CH14,Brake pressure rear,Hydraulic pressure transducer,1,Rear master-cyl line,200,2,bar,0,100,Brakes,achieved_front_bias,
+CH15,Pushrod load FL,Strain gauge / load cell,1,Front-left pushrod,500,2,N,-5000,5000,Suspension,suspension_loads / LLT,Validates computed pushrod force & load transfer
+CH16,Pushrod load FR,Strain gauge / load cell,1,Front-right pushrod,500,2,N,-5000,5000,Suspension,suspension_loads / LLT,L-R diff = lateral load transfer at that axle
+CH17,Pushrod load RL,Strain gauge / load cell,1,Rear-left pushrod,500,2,N,-5000,5000,Suspension,suspension_loads / LLT,
+CH18,Pushrod load RR,Strain gauge / load cell,1,Rear-right pushrod,500,2,N,-5000,5000,Suspension,suspension_loads / LLT,
+CH19,Engine RPM,ECU via CAN,1,ECU,100,2,rpm,0,12000,Powertrain,gear_speed / shift points,From CAN; no extra sensor
+CH20,Manifold pressure (MAP),Pressure sensor / ECU,1,Intake plenum,50,2,kPa,0,120,Powertrain,restrictor / tuning,
+CH21,Intake air temp (IAT),Thermistor / ECU,1,Intake,10,2,degC,-10,80,Powertrain,restrictor density correction,
+CH22,Coolant temp,Thermistor / ECU,1,Engine out,10,2,degC,0,130,Cooling,cooling model,Validates radiator / fan sizing
+CH23,Oil pressure,Pressure sensor,1,Oil gallery,10,2,bar,0,10,Powertrain,engine health,
+CH24,Lambda (AFR),Wideband O2,1,Exhaust pre-cat,20,2,lambda,0.6,1.4,Powertrain,fuel tuning,
+CH25,Gear position,ECU / gear sensor,1,Gearbox,50,1,gear,0,6,Powertrain,shift analysis,
+CH26,Tyre surface temp FL (in/mid/out),IR array x3,3,Over front-left tyre,20,6,degC,0,120,Tyre,camber & pressure tuning,In-mid-out spread reveals camber & inflation; IR is noisy - shroud it
+CH27,Tyre surface temp FR (in/mid/out),IR array x3,3,Over front-right tyre,20,6,degC,0,120,Tyre,camber & pressure tuning,
+CH28,Tyre surface temp RL (in/mid/out),IR array x3,3,Over rear-left tyre,20,6,degC,0,120,Tyre,camber & pressure tuning,
+CH29,Tyre surface temp RR (in/mid/out),IR array x3,3,Over rear-right tyre,20,6,degC,0,120,Tyre,camber & pressure tuning,
+CH30,Tyre pressure (TPMS) x4,TPMS,4,Each wheel,1,8,bar,0,4,Tyre,hot pressure target,Low rate is fine
+CH31,Brake rotor temp x4,IR,4,Each rotor,10,8,degC,0,700,Brakes,brake thermal / fade,Optional; endurance fade check
+CH32,GPS position + speed,GPS,1,Roof / rollhoop,20,16,deg / km/h,0,150,Platform,track map / lap timing,Reference speed for slip; 10-25 Hz typical
+CH33,Battery voltage,Voltage divider,1,Accumulator / battery,10,2,V,0,16,Electronics,power_budget,Validates electrical margin
+CH34,Battery current,Hall current sensor,1,Main feed,10,2,A,0,200,Electronics,total_current_draw,Confirms real draw vs stator output
+CH35,Lap beacon,IR beacon / GPS,1,Side pod,event,2,flag,0,1,Platform,lap timing,Or derive laps from GPS
