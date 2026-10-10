@@ -78,6 +78,7 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
       <button class="btn btn-ghost" type="button" id="wiring-add">+ Add wire</button>
       <span class="mono" id="wiring-status" style="font-size:var(--fs-200);color:var(--ink-3);"></span>
     </div>
+    <div id="wiring-ctrls"></div>
     <p class="mono" style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);">
       Colour code (DIN): bl black · br brown · bu blue · gn green · rd red · ws white · ye yellow · gy grey · og orange · vt violet · pk pink
     </p>
@@ -166,6 +167,8 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
   import { daqCompute, DAQ_CHANNELS } from '../lib/calc/daq';
   import { batteryCompute, wireDropCompute } from '../lib/calc/extras';
   import { loadToolJson, saveToolJson, debounce } from '../lib/store';
+  import { mountListControls } from '../lib/list-controls';
+  import { toCsv, parseCsv } from '../lib/csv';
 
   // ---- Wiring / harness grid (shared editable rows) ----
   type Wire = { srcComp: string; srcName: string; connector: string; pins: string; dstComp: string; dstName: string; pin: string; colour: string };
@@ -203,6 +206,31 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
     if (wires.length === 0) wires = [emptyWire()];
     renderWires();
   })();
+
+  // CSV + presets for the wiring list (P1.5).
+  function wiringGetCsv(): string {
+    return toCsv(WIRE_COLS as string[], wires.map((w) => WIRE_COLS.map((c) => w[c] ?? '')));
+  }
+  function wiringApplyCsv(text: string, mode: 'replace' | 'append'): string | void {
+    const { headers, rows } = parseCsv(text);
+    if (!WIRE_COLS.some((c) => headers.includes(c))) return 'no recognised columns (expected srcName, connector, …)';
+    const idx = (h: string) => headers.indexOf(h);
+    const mapped = rows.map((r) => {
+      const w = emptyWire();
+      for (const c of WIRE_COLS) { const ci = idx(c); if (ci >= 0) (w as any)[c] = (r[ci] ?? '').trim(); }
+      return w;
+    });
+    wires = mode === 'append' ? wires.concat(mapped) : mapped;
+    if (wires.length === 0) wires = [emptyWire()];
+    renderWires(); saveWires();
+  }
+  mountListControls({
+    container: document.getElementById('wiring-ctrls')!,
+    tool: 'elec_wiring', filename: 'wiring_harness.csv',
+    getCsv: wiringGetCsv, applyCsv: wiringApplyCsv,
+    getPresetPayload: () => ({ rows: wires }),
+    applyPreset: (p: any) => { wires = Array.isArray(p?.rows) ? p.rows : []; if (wires.length === 0) wires = [emptyWire()]; renderWires(); saveWires(); },
+  });
 
   const noOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } } };
 

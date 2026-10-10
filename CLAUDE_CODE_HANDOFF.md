@@ -15,7 +15,15 @@ Work the tiers in order. **P0 = bugs (fast, ship first). P1 = requested features
 P2 = new tools (bigger builds).** Each item has **Where / Do / Accept**.
 
 ## Progress log
-- **2026-10-10 — P0 complete** (branch `vd-extras`): P0.1 legend swatches now use
+- **2026-10-10 — P1 infra (P1.4 + P1.5)** (branch `p1-infra` off main): P1.4 shared
+  `decorateLinkedCells()` warns on not-set (solid amber) / not-frozen (dashed
+  amber) linked cells, wired through the engine + all 6 standalone pages. P1.5
+  reusable CSV (`src/lib/csv.ts`, unit-tested) + named presets (`loadPresets`/
+  `saveNamedPreset`/`deletePreset` in store, namespaced `${tool}__presets`) +
+  `mountListControls()` bar (↓CSV / ↑CSV replace-or-append / preset save-load-
+  delete), applied to MassBudget, the wiring list, and the chassis component-mass
+  tracker. DAQ gets the same bar when it becomes an editable list in P2.4. 64 tests.
+- **2026-10-10 — P0 complete** (merged to main, PR #12): P0.1 legend swatches now use
   solid state-colour fills; P0.2 MassBudget `y_cg` tile added + rendered; P0.3
   Brakes sizing target decel links to `accel_brake_target` (read-only/green when
   set, local fallback when blank); P0.4 Suspension-loads anti-geometry relabelled
@@ -335,7 +343,7 @@ Export as CSV and as a printable sheet. Read-only snapshot (doesn't change Maste
 ## Suggested build order
 1. P0.1–P0.4 (an afternoon of fixes). ✅ done 2026-10-10
 2. P1.4 (freeze warnings) + P1.5 (CSV/presets) — they're infrastructure the rest
-   reuses.
+   reuses. ✅ done 2026-10-10 (DAQ's CSV/presets deferred to P2.4 when it lists)
 3. P1.1 / P2.4 (editable components for MassBudget + DAQ) together.
 4. P1.2, P1.3, P1.6, P1.7 (small self-contained calcs).
 5. P2.2 (`.tir`) and P2.3 (DAQ interpretation) — high value, moderate size.
