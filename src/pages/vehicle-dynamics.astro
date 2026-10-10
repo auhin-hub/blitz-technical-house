@@ -118,6 +118,7 @@ const STEER_OUTPUTS = [
     { id: 'springs', title: 'Springs & dampers' },
     { id: 'loads', title: 'Suspension loads' },
     { id: 'steering', title: 'Steering' },
+    { id: 'steereffort', title: 'Steering effort' },
     { id: 'rpsweep', title: 'R&P gear sweep' },
     { id: 'brakes', title: 'Brakes' },
     { id: 'balance', title: 'Balance' },
@@ -146,6 +147,25 @@ const STEER_OUTPUTS = [
   <CalcTool id="steering" title="Steering" spec="TOOL_SPECS §7f"
     blurb="Ackermann split (uses the target turning radius) + rack & pinion gear geometry."
     linked={STEER_LINKED} seed={seed} inputs={STEER_INPUTS} outputs={STEER_OUTPUTS} />
+
+  <CalcTool id="steereffort" title="Steering effort" spec="§9"
+    blurb="Worst-case (max lateral grip) kingpin moment → rack force → steering-wheel torque, to size driver effort. Add a braking force to include the scrub-radius term."
+    linked={[
+      { mkey: 'mu_lat_peak', label: 'Peak lateral μ', sym: 'μ', unit: '-' },
+      { mkey: 'axle_load_front', label: 'Front axle static load', unit: 'N' },
+      { mkey: 'rolling_radius', label: 'Rolling radius', sym: 'Re', unit: 'mm' },
+    ]} seed={seed}
+    inputs={[
+      { key: 'caster', label: 'Caster angle', unit: 'deg', vals: [5] },
+      { key: 'pneumaticTrail', label: 'Pneumatic trail (TTC Mz/Fy)', unit: 'mm', vals: [30], ref: { typ: '20–40' } },
+      { key: 'scrubRadius', label: 'Scrub radius', unit: 'mm', vals: [10] },
+      { key: 'fx', label: 'Braking force per wheel (0 = pure cornering)', unit: 'N', vals: [0] },
+      { key: 'steeringArm', label: 'Steering-arm length', unit: 'mm', vals: [90] },
+      { key: 'steeringRatio', label: 'Overall steering ratio i (SW°/road°)', unit: '-', vals: [5] },
+      { key: 'efficiency', label: 'Steering efficiency η', unit: '-', vals: [0.9] },
+    ]}
+    outputs={[{ key: 'fyTyre', label: 'Lateral force / tyre', unit: 'N' }, { key: 'kingpinMoment', label: 'Kingpin moment / tyre', unit: 'N·m' }, { key: 'rackForce', label: 'Rack force', unit: 'N' }]}
+    stats={[{ key: 'swTorque', label: 'Steering-wheel torque', unit: 'N·m' }]} />
 
   <!-- R&P gear sweep: standard tooth counts at a fixed pinion PCD, so you can
        pick the number of teeth against module / tooth-thickness — a companion to
@@ -207,7 +227,7 @@ const STEER_OUTPUTS = [
 <script>
   import { mountCalculator } from '../lib/calc/engine';
   import { loadsCompute } from '../lib/calc/vd-loads';
-  import { steeringCompute } from '../lib/calc/vd-steering';
+  import { steeringCompute, steeringEffortCompute } from '../lib/calc/vd-steering';
   import { rpSweep, rackTravelPerRev } from '../lib/calc/extras';
 
   const noOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } } };
@@ -247,6 +267,8 @@ const STEER_OUTPUTS = [
     root: 'steering', tool: 'vd_steering', compute: steeringCompute, defaultDigits: 3,
     digits: { baseDia: 2, rackTravelPerRev: 2 },
   });
+
+  mountCalculator({ root: 'steereffort', tool: 'vd_steereffort', compute: steeringEffortCompute, digits: { fyTyre: 0, kingpinMoment: 1, rackForce: 0, swTorque: 1 } });
 
   // ---- R&P gear sweep (local only; no shared state) ----
   const rpPcd = document.getElementById('rp-pcd') as HTMLInputElement | null;
