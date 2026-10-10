@@ -1,11 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { url } from '../lib/config';
-import { MB_COMPONENTS } from '../lib/calc/massbudget';
 
-const td = 'padding:0.3rem 0.5rem;';
-const th = 'padding:0.4rem 0.5rem;';
-const ni = 'width:76px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
 const LINKED = [
   { mkey: 'wheelbase', label: 'Wheelbase', sym: 'L', unit: 'mm' },
   { mkey: 'track_front', label: 'Front track', sym: 'tf', unit: 'mm' },
@@ -21,7 +17,9 @@ const LINKED = [
     <h1 style="margin-top:0.4rem;">MassBudget &amp; weight / balance</h1>
     <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
       Log every component's mass and position; the tool computes total mass, CG,
-      yaw inertia and front fraction, then contributes them to the Master. Shared
+      yaw inertia and front fraction, then contributes them to the Master. Rows are
+      fully editable — rename, regroup, add or delete — and grouped into
+      <strong>assemblies</strong> (with a sub-assembly tier) for subtotals. Shared
       with the team. <strong>Coordinates:</strong> x from the front axle (0 → wheelbase),
       y from centreline (+ right), z from ground — all mm.
     </p>
@@ -38,32 +36,30 @@ const LINKED = [
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:1.25rem;align-items:start;" class="mb-grid">
+  <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:1.25rem;align-items:start;" class="mb-grid">
     <!-- Component table -->
     <div class="card">
       <h2 style="font-size:var(--fs-600);">Components</h2>
       <div id="mb-ctrls"></div>
       <div style="overflow-x:auto;margin-top:0.5rem;">
-        <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:460px;">
+        <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:720px;">
           <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
-            <th style={th} class="annot">Component</th>
-            <th style={th + 'text-align:right;'} class="annot">Mass kg</th>
-            <th style={th + 'text-align:right;'} class="annot">x</th>
-            <th style={th + 'text-align:right;'} class="annot">y</th>
-            <th style={th + 'text-align:right;'} class="annot">z</th>
+            <th style="padding:0.4rem 0.5rem;" class="annot">Component</th>
+            <th style="padding:0.4rem 0.5rem;" class="annot">Assembly</th>
+            <th style="padding:0.4rem 0.5rem;" class="annot">Sub-assembly</th>
+            <th style="padding:0.4rem 0.5rem;text-align:center;" class="annot" title="Unsprung mass (wheel-side of the spring)">U</th>
+            <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Mass kg</th>
+            <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">x</th>
+            <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">y</th>
+            <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">z</th>
+            <th style="padding:0.4rem 0.5rem;"></th>
           </tr></thead>
-          <tbody>
-            {MB_COMPONENTS.map((c) => (
-              <tr style="border-bottom:1px solid var(--rule);">
-                <td style={td}>{c.name}<br><span class="mono" style="font-size:var(--fs-200);color:var(--ink-3);">{c.subsystem}{c.unsprung ? ' · unsprung' : ''}</span></td>
-                <td style={td + 'text-align:right;'}><input type="number" step="any" style={ni} data-row={c.key} data-field="mass" aria-label={`${c.name} mass`} /></td>
-                <td style={td + 'text-align:right;'}><input type="number" step="any" style={ni} data-row={c.key} data-field="x" aria-label={`${c.name} x`} /></td>
-                <td style={td + 'text-align:right;'}><input type="number" step="any" style={ni} data-row={c.key} data-field="y" aria-label={`${c.name} y`} /></td>
-                <td style={td + 'text-align:right;'}><input type="number" step="any" style={ni} data-row={c.key} data-field="z" aria-label={`${c.name} z`} /></td>
-              </tr>
-            ))}
-          </tbody>
+          <tbody id="mb-body"></tbody>
         </table>
+      </div>
+      <div style="display:flex;gap:0.6rem;align-items:center;margin-top:0.6rem;">
+        <button class="btn btn-ghost" type="button" id="mb-add">+ Add component</button>
+        <button class="btn btn-ghost" type="button" id="mb-reset" style="font-size:var(--fs-200);">Reset to default set</button>
       </div>
       <p class="mono" data-save-status style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
     </div>
@@ -80,7 +76,21 @@ const LINKED = [
         <div class="ct-stat"><span class="annot">Sprung / unsprung</span><div class="val" style="font-size:var(--fs-500)"><span data-out="sprung">—</span> / <span data-out="unsprung">—</span></div></div>
       </div>
 
-      <h3 class="ct-h3" style="margin-top:0.9rem;">Mass breakdown by subsystem</h3>
+      <h3 class="ct-h3" style="margin-top:0.9rem;">Subtotals by assembly</h3>
+      <div style="overflow-x:auto;">
+        <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:360px;" id="mb-subtotals">
+          <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+            <th style="padding:0.3rem 0.5rem;" class="annot">Assembly</th>
+            <th style="padding:0.3rem 0.5rem;text-align:right;" class="annot">Mass kg</th>
+            <th style="padding:0.3rem 0.5rem;text-align:right;" class="annot">x_cg</th>
+            <th style="padding:0.3rem 0.5rem;text-align:right;" class="annot">y_cg</th>
+            <th style="padding:0.3rem 0.5rem;text-align:right;" class="annot">z_cg</th>
+          </tr></thead>
+          <tbody id="mb-subtotals-body"></tbody>
+        </table>
+      </div>
+
+      <h3 class="ct-h3" style="margin-top:0.9rem;">Mass breakdown by assembly</h3>
       <div style="height:200px;position:relative;"><canvas id="mb-breakdown"></canvas></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.6rem;">
         <div><h3 class="ct-h3">Front / rear</h3><div style="height:170px;position:relative;"><canvas id="mb-dist"></canvas></div></div>
@@ -109,67 +119,79 @@ const LINKED = [
   const TOOL = 'massbudget';
   const saveStatus = document.getElementById('mb-contribute-status')!;
   const rowStatus = document.querySelector('[data-save-status]') as HTMLElement;
+  const body = document.getElementById('mb-body')!;
   let master: Record<string, number> = {};
   const charts = new Map<string, Chart>();
   let last = massBudget([], NaN);
 
-  function readRows(): MbRow[] {
-    return MB_COMPONENTS.map((c) => {
-      const get = (f: string) => {
-        const el = document.querySelector(`[data-row="${c.key}"][data-field="${f}"]`) as HTMLInputElement | null;
-        return el && el.value.trim() !== '' ? Number(el.value) : NaN;
-      };
-      return { mass: get('mass'), x: get('x'), y: get('y'), z: get('z'), unsprung: c.unsprung, subsystem: c.subsystem };
-    });
-  }
+  // Editable row model (P1.1). Numbers are null when blank.
+  interface Row { name: string; assembly: string; subassembly: string; unsprung: boolean; mass: number | null; x: number | null; y: number | null; z: number | null; }
+  const NUMF = ['mass', 'x', 'y', 'z'] as const;
+  let rows: Row[] = [];
 
-  // ---- CSV + presets (P1.5) ----
-  const FIELD = (key: string, f: string) => document.querySelector(`[data-row="${key}"][data-field="${f}"]`) as HTMLInputElement | null;
-  const MB_CSV_COLS = ['component', 'assembly', 'unsprung', 'mass_kg', 'x_mm', 'y_mm', 'z_mm'];
-  function mbGetCsv(): string {
-    const rows = MB_COMPONENTS.map((c) => {
-      const g = (f: string) => { const el = FIELD(c.key, f); return el && el.value.trim() !== '' ? el.value : ''; };
-      return [c.name, c.subsystem, c.unsprung ? 'yes' : 'no', g('mass'), g('x'), g('y'), g('z')];
+  const seedRows = (): Row[] => MB_COMPONENTS.map((c) => ({ name: c.name, assembly: c.subsystem, subassembly: '', unsprung: c.unsprung, mass: null, x: null, y: null, z: null }));
+  const emptyRow = (): Row => ({ name: '', assembly: '', subassembly: '', unsprung: false, mass: null, x: null, y: null, z: null });
+  const toMbRows = (): MbRow[] => rows.map((r) => ({
+    mass: r.mass == null ? NaN : r.mass, x: r.x == null ? NaN : r.x, y: r.y == null ? NaN : r.y, z: r.z == null ? NaN : r.z,
+    unsprung: r.unsprung, subsystem: r.assembly || '—',
+  }));
+
+  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  const txt = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;font-size:var(--fs-200);';
+  const num = txt + 'width:70px;text-align:right;font-family:var(--font-mono);';
+
+  function renderRows() {
+    body.innerHTML = rows.map((r, i) => `
+      <tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.25rem 0.4rem;"><input data-i="${i}" data-k="name" value="${esc(r.name)}" style="${txt}width:130px;" aria-label="name"></td>
+        <td style="padding:0.25rem 0.4rem;"><input data-i="${i}" data-k="assembly" value="${esc(r.assembly)}" list="mb-assemblies" style="${txt}width:120px;" aria-label="assembly"></td>
+        <td style="padding:0.25rem 0.4rem;"><input data-i="${i}" data-k="subassembly" value="${esc(r.subassembly)}" style="${txt}width:120px;" aria-label="sub-assembly"></td>
+        <td style="padding:0.25rem 0.4rem;text-align:center;"><input type="checkbox" data-i="${i}" data-k="unsprung" ${r.unsprung ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--state-linked);" aria-label="unsprung"></td>
+        <td style="padding:0.25rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="mass" value="${r.mass ?? ''}" style="${num}" aria-label="mass"></td>
+        <td style="padding:0.25rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="x" value="${r.x ?? ''}" style="${num}" aria-label="x"></td>
+        <td style="padding:0.25rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="y" value="${r.y ?? ''}" style="${num}" aria-label="y"></td>
+        <td style="padding:0.25rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="z" value="${r.z ?? ''}" style="${num}" aria-label="z"></td>
+        <td style="padding:0.25rem 0.4rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-200);padding:0.15rem 0.45rem;" aria-label="delete row">✕</button></td>
+      </tr>`).join('') +
+      `<datalist id="mb-assemblies">${[...new Set(rows.map((r) => r.assembly).filter(Boolean))].map((a) => `<option value="${esc(a)}">`).join('')}</datalist>`;
+
+    body.querySelectorAll<HTMLInputElement>('input[data-i]').forEach((inp) => {
+      const i = +inp.dataset.i!, k = inp.dataset.k! as keyof Row;
+      const ev = inp.type === 'checkbox' ? 'change' : 'input';
+      inp.addEventListener(ev, () => {
+        if (k === 'unsprung') (rows[i] as any)[k] = inp.checked;
+        else if ((NUMF as readonly string[]).includes(k)) (rows[i] as any)[k] = inp.value.trim() === '' ? null : Number(inp.value);
+        else (rows[i] as any)[k] = inp.value;
+        recompute(); persist();
+      });
     });
-    return toCsv(MB_CSV_COLS, rows);
-  }
-  function mbApplyCsv(text: string, mode: 'replace' | 'append'): string | void {
-    const { headers, rows } = parseCsv(text);
-    const miss = missingColumns(headers, ['component', 'mass_kg']);
-    if (miss.length) return 'missing column(s): ' + miss.join(', ');
-    const idx = (h: string) => headers.indexOf(h);
-    const byName = new Map(MB_COMPONENTS.map((c) => [c.name.toLowerCase(), c.key]));
-    if (mode === 'replace') for (const c of MB_COMPONENTS) for (const f of ['mass', 'x', 'y', 'z']) { const el = FIELD(c.key, f); if (el) el.value = ''; }
-    let matched = 0;
-    for (const r of rows) {
-      const key = byName.get((r[idx('component')] ?? '').trim().toLowerCase());
-      if (!key) continue;
-      matched++;
-      const set = (f: string, col: string) => { const ci = idx(col); if (ci < 0) return; const v = (r[ci] ?? '').trim(); const el = FIELD(key, f); if (el && v !== '') el.value = v; };
-      set('mass', 'mass_kg'); set('x', 'x_mm'); set('y', 'y_mm'); set('z', 'z_mm');
-    }
-    recompute(); persist();
-    if (!matched) return 'no component names matched';
-  }
-  function mbGetRecord(): Record<string, { mass: number | null; x: number | null; y: number | null; z: number | null }> {
-    const rec: Record<string, any> = {};
-    for (const c of MB_COMPONENTS) {
-      const g = (f: string) => { const el = FIELD(c.key, f); return el && el.value.trim() !== '' ? Number(el.value) : null; };
-      rec[c.key] = { mass: g('mass'), x: g('x'), y: g('y'), z: g('z') };
-    }
-    return rec;
-  }
-  function mbApplyRecord(rec: Record<string, any>) {
-    for (const c of MB_COMPONENTS) {
-      const row = rec?.[c.key];
-      for (const f of ['mass', 'x', 'y', 'z']) { const el = FIELD(c.key, f); if (el) el.value = row && row[f] != null ? String(row[f]) : ''; }
-    }
-    recompute(); persist();
+    body.querySelectorAll<HTMLButtonElement>('[data-del]').forEach((b) =>
+      b.addEventListener('click', () => { rows.splice(+b.dataset.del!, 1); if (!rows.length) rows = [emptyRow()]; renderRows(); recompute(); persist(); }));
   }
 
   function put(id: string, v: number) {
     const el = document.querySelector(`[data-out="${id}"]`);
     if (el) el.textContent = v === null || !Number.isFinite(v) ? '—' : fmt(v, id === 'ff' ? 3 : id === 'izz' ? 1 : 0);
+  }
+
+  function renderSubtotals() {
+    const by: Record<string, { mass: number; mx: number; my: number; mz: number }> = {};
+    for (const r of rows) {
+      if (!(typeof r.mass === 'number' && r.mass > 0)) continue;
+      const a = r.assembly || '—';
+      (by[a] ||= { mass: 0, mx: 0, my: 0, mz: 0 });
+      by[a].mass += r.mass; by[a].mx += r.mass * (r.x ?? 0); by[a].my += r.mass * (r.y ?? 0); by[a].mz += r.mass * (r.z ?? 0);
+    }
+    const sb = document.getElementById('mb-subtotals-body')!;
+    const names = Object.keys(by).sort();
+    sb.innerHTML = names.map((a) => {
+      const g = by[a];
+      return `<tr style="border-bottom:1px solid var(--rule);"><td style="padding:0.25rem 0.5rem;">${a}</td>
+        <td style="padding:0.25rem 0.5rem;text-align:right;" class="mono">${g.mass.toFixed(2)}</td>
+        <td style="padding:0.25rem 0.5rem;text-align:right;" class="mono">${(g.mx / g.mass).toFixed(0)}</td>
+        <td style="padding:0.25rem 0.5rem;text-align:right;" class="mono">${(g.my / g.mass).toFixed(0)}</td>
+        <td style="padding:0.25rem 0.5rem;text-align:right;" class="mono">${(g.mz / g.mass).toFixed(0)}</td></tr>`;
+    }).join('') || `<tr><td colspan="5" style="padding:0.4rem 0.5rem;color:var(--ink-3);">Enter component masses to see subtotals.</td></tr>`;
   }
 
   function renderCharts(r: ReturnType<typeof massBudget>) {
@@ -186,7 +208,6 @@ const LINKED = [
       data: { labels: ['Front', 'Rear'], datasets: [{ data: Number.isFinite(ff) ? [+(ff * 100).toFixed(1), +((1 - ff) * 100).toFixed(1)] : [0, 0], backgroundColor: [p.amber, p.sky] }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
     });
-    // CG plan view: wheel corners (from Master track/wheelbase) + CG point.
     const L = master.wheelbase, tf = master.track_front, tr = master.track_rear;
     const corners = Number.isFinite(L) && Number.isFinite(tf) && Number.isFinite(tr)
       ? [{ x: 0, y: -tf / 2 }, { x: 0, y: tf / 2 }, { x: L, y: -tr / 2 }, { x: L, y: tr / 2 }] : [];
@@ -208,50 +229,75 @@ const LINKED = [
   }
 
   function recompute() {
-    const r = massBudget(readRows(), master.wheelbase);
+    const r = massBudget(toMbRows(), master.wheelbase);
     last = r;
     put('total', r.total); put('ff', r.frontFraction); put('zcg', r.zCg);
     put('izz', r.izz); put('xcg', r.xCg); put('ycg', r.yCg); put('sprung', r.sprung); put('unsprung', r.unsprung);
+    renderSubtotals();
     renderCharts(r);
   }
 
   const persist = debounce(async () => {
-    const data: Record<string, any> = {};
-    for (const c of MB_COMPONENTS) {
-      const get = (f: string) => { const el = document.querySelector(`[data-row="${c.key}"][data-field="${f}"]`) as HTMLInputElement | null; return el && el.value.trim() !== '' ? Number(el.value) : null; };
-      data[c.key] = { mass: get('mass'), x: get('x'), y: get('y'), z: get('z') };
-    }
     rowStatus.textContent = 'Saving…';
-    const err = await saveToolJson(TOOL, { rows: data });
+    const err = await saveToolJson(TOOL, { components: rows });
     rowStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
     rowStatus.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
   }, 600);
 
+  // ---- CSV + presets (P1.5) ----
+  const MB_CSV_COLS = ['name', 'assembly', 'subassembly', 'unsprung', 'mass_kg', 'x_mm', 'y_mm', 'z_mm'];
+  function mbGetCsv(): string {
+    return toCsv(MB_CSV_COLS, rows.map((r) => [r.name, r.assembly, r.subassembly, r.unsprung ? 'yes' : 'no', r.mass ?? '', r.x ?? '', r.y ?? '', r.z ?? '']));
+  }
+  const yes = (s: string) => /^(y|yes|true|1|unsprung)$/i.test((s ?? '').trim());
+  const nnum = (s: string) => { const v = (s ?? '').trim(); return v === '' ? null : Number(v); };
+  function mbApplyCsv(text: string, mode: 'replace' | 'append'): string | void {
+    const { headers, rows: recs } = parseCsv(text);
+    const miss = missingColumns(headers, ['name']);
+    if (miss.length) return 'missing column(s): ' + miss.join(', ');
+    const idx = (h: string) => headers.indexOf(h);
+    const get = (r: string[], h: string) => { const i = idx(h); return i < 0 ? '' : (r[i] ?? ''); };
+    const parsed: Row[] = recs.filter((r) => (get(r, 'name') ?? '').trim() !== '').map((r) => ({
+      name: get(r, 'name').trim(), assembly: get(r, 'assembly').trim(), subassembly: get(r, 'subassembly').trim(),
+      unsprung: yes(get(r, 'unsprung')), mass: nnum(get(r, 'mass_kg')), x: nnum(get(r, 'x_mm')), y: nnum(get(r, 'y_mm')), z: nnum(get(r, 'z_mm')),
+    }));
+    if (!parsed.length) return 'no rows with a name';
+    rows = mode === 'append' ? rows.concat(parsed) : parsed;
+    renderRows(); recompute(); persist();
+  }
+
   (async () => {
     applyChartDefaults();
-    const rows = await loadMaster();
-    master = Object.fromEntries(Object.entries(rows).map(([k, v]) => {
+    const mrows = await loadMaster();
+    master = Object.fromEntries(Object.entries(mrows).map(([k, v]) => {
       const val = (v as any).value;
       return [k, val === null || val === undefined ? NaN : Number(val)];
     }));
-    decorateLinkedCells(document, rows);
-    const saved = await loadToolJson<{ rows: Record<string, any> }>(TOOL, { rows: {} });
-    for (const c of MB_COMPONENTS) {
-      const row = saved.rows?.[c.key]; if (!row) continue;
-      for (const f of ['mass', 'x', 'y', 'z']) {
-        const el = document.querySelector(`[data-row="${c.key}"][data-field="${f}"]`) as HTMLInputElement | null;
-        if (el && row[f] != null) el.value = String(row[f]);
-      }
+    decorateLinkedCells(document, mrows);
+
+    // Load saved rows; migrate the old keyed shape ({rows:{key:{mass,x,y,z}}}).
+    const saved = await loadToolJson<any>(TOOL, {});
+    if (Array.isArray(saved?.components)) {
+      rows = saved.components.map((r: any) => ({ name: r.name ?? '', assembly: r.assembly ?? '', subassembly: r.subassembly ?? '', unsprung: !!r.unsprung, mass: r.mass ?? null, x: r.x ?? null, y: r.y ?? null, z: r.z ?? null }));
+    } else if (saved?.rows && typeof saved.rows === 'object') {
+      rows = MB_COMPONENTS.map((c) => { const o = saved.rows[c.key] ?? {}; return { name: c.name, assembly: c.subsystem, subassembly: '', unsprung: c.unsprung, mass: o.mass ?? null, x: o.x ?? null, y: o.y ?? null, z: o.z ?? null }; });
+    } else {
+      rows = seedRows();
     }
+    if (!rows.length) rows = seedRows();
+
+    renderRows();
     recompute();
-    document.querySelectorAll('[data-row]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
+
+    document.getElementById('mb-add')!.addEventListener('click', () => { rows.push(emptyRow()); renderRows(); persist(); });
+    document.getElementById('mb-reset')!.addEventListener('click', () => { if (!confirm('Replace all rows with the default component set?')) return; rows = seedRows(); renderRows(); recompute(); persist(); });
 
     mountListControls({
       container: document.getElementById('mb-ctrls')!,
       tool: TOOL, filename: 'massbudget.csv',
       getCsv: mbGetCsv, applyCsv: mbApplyCsv,
-      getPresetPayload: () => ({ rows: mbGetRecord() }),
-      applyPreset: (p: any) => mbApplyRecord(p?.rows ?? {}),
+      getPresetPayload: () => ({ components: rows }),
+      applyPreset: (p: any) => { if (Array.isArray(p?.components)) { rows = p.components; if (!rows.length) rows = [emptyRow()]; renderRows(); recompute(); persist(); } },
     });
 
     document.getElementById('mb-contribute')!.addEventListener('click', async () => {
