@@ -119,11 +119,59 @@ export const TOP_NAV = [
   { href: 'vehicle-dynamics', label: 'VD Workspace' },
   { href: 'vehicle-spec', label: 'Vehicle Spec' },
   { href: 'validation', label: 'Validation' },
+  { href: 'readiness', label: 'Design Readiness' },
   { href: 'tyre', label: 'Tyre' },
   { href: 'gates', label: 'Gates / Phases' },
   { href: 'resources', label: 'Resources' },
   { href: 'change-log', label: 'Change Log' },
 ] as const;
+
+/**
+ * Every tool_outputs key the workspace can produce, with the owning tool/team
+ * (Handoff v2 Part 0.2). The Component Readiness requirement picker (P4) is the
+ * union of these + all `vehicle_spec` keys — so a requirement can only reference
+ * something the workspace actually produces.
+ */
+export const TOOL_OUTPUT_KEYS: { key: string; label: string; team: string }[] = [
+  { key: 'cl_a', label: 'Cl·A (downforce)', team: 'Aero' },
+  { key: 'cd_a', label: 'Cd·A (drag)', team: 'Aero' },
+  { key: 'aero_balance_front', label: 'Aero balance (front)', team: 'Aero' },
+  { key: 'engine_peak_power', label: 'Engine peak power', team: 'Powertrain' },
+  { key: 'final_drive', label: 'Final drive ratio', team: 'Powertrain' },
+  { key: 'max_wheel_torque', label: 'Max wheel torque', team: 'Powertrain' },
+  { key: 'battery_mass', label: 'Battery mass', team: 'ECS' },
+  { key: 'total_current_draw', label: 'Total current draw', team: 'ECS' },
+  { key: 'bus_utilisation', label: 'CAN bus utilisation', team: 'ECS' },
+  { key: 'driver_mass', label: 'Driver mass', team: 'Ergonomics' },
+  { key: 'driver_cog_height', label: 'Driver CoG height', team: 'Ergonomics' },
+  { key: 'seat_back_angle', label: 'Seat-back angle', team: 'Ergonomics' },
+  { key: 'torsional_stiffness', label: 'Torsional stiffness', team: 'Chassis' },
+  { key: 'chassis_mass_built', label: 'Chassis mass (as built)', team: 'Chassis' },
+  { key: 'brake_torque_front', label: 'Front brake torque / wheel', team: 'Brake' },
+  { key: 'brake_torque_rear', label: 'Rear brake torque / wheel', team: 'Brake' },
+  { key: 'achieved_front_bias', label: 'Achieved front brake bias', team: 'Brake' },
+  { key: 'spring_rate_front', label: 'Front spring rate', team: 'VD' },
+  { key: 'spring_rate_rear', label: 'Rear spring rate', team: 'VD' },
+  { key: 'roll_gradient', label: 'Roll gradient (springs)', team: 'VD' },
+  { key: 'rc_height_static', label: 'Static roll-centre height', team: 'VD' },
+  { key: 'rc_migration', label: 'RC migration over travel', team: 'VD' },
+  { key: 'camber_gain_bump', label: 'Camber gain per 10 mm bump', team: 'VD' },
+  { key: 'understeer_gradient', label: 'Understeer gradient', team: 'VD' },
+  { key: 'static_margin', label: 'Static margin', team: 'VD' },
+  { key: 'arb_front_needed', label: 'Front ARB needed', team: 'VD' },
+  { key: 'tlltd_front', label: 'Front TLLTD (derived)', team: 'VD' },
+  { key: 'pushrod_force_front', label: 'Pushrod force (front)', team: 'VD' },
+  { key: 'pushrod_force_rear', label: 'Pushrod force (rear)', team: 'VD' },
+  { key: 'anti_pct_front', label: 'Anti-dive (front)', team: 'VD' },
+  { key: 'anti_pct_rear', label: 'Anti-squat (rear)', team: 'VD' },
+  { key: 'ackermann_split', label: 'Ackermann split', team: 'VD' },
+  { key: 'steering_wheel_torque', label: 'Steering-wheel torque', team: 'VD' },
+  { key: 'rack_force', label: 'Rack force', team: 'VD' },
+  { key: 'lap_time_s', label: 'Lap time', team: 'VD' },
+  { key: 'endurance_fuel_l', label: 'Endurance fuel', team: 'Powertrain' },
+  { key: 'radiator_area', label: 'Radiator area', team: 'Powertrain' },
+  { key: 'heat_rejection_kw', label: 'Heat rejection', team: 'Powertrain' },
+];
 
 /**
  * Coupling knock-ons per Master parameter (handbook Table H-1), shown when a
