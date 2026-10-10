@@ -1,0 +1,88 @@
+---
+import Base from '../layouts/Base.astro';
+import { url, VALIDATION_ROWS } from '../lib/config';
+
+const td = 'padding:0.5rem 0.75rem;';
+const cmpText = { approx: '≈ target', max: '≤ limit', min: '≥ limit' };
+---
+<Base title="Validation">
+  <p class="annot annot-tick">Cross-cutting · governance</p>
+  <h1 style="margin-top:0.4rem;">Targets &amp; Validation</h1>
+  <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">
+    Target vs achieved for the car's key design metrics — the destination for each
+    tool's <strong>Contribute to Master</strong>. Targets come from the Master or
+    the handbook's design-evaluation (EDP) limits; achieved values are whatever the
+    tools have last contributed. Use it to see, at a glance, what's on target and
+    what still needs work (predicted now; cross-check measured on the car).
+  </p>
+
+  <div class="notice" style="margin:1.25rem 0;" data-note>Sign in to load live targets and achieved values.</div>
+
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);min-width:680px;">
+      <thead>
+        <tr style="text-align:left;border-bottom:1px solid var(--rule-strong);">
+          <th style={td} class="annot">Metric</th>
+          <th style={td} class="annot">Target</th>
+          <th style={td + 'text-align:right;'} class="annot">Achieved</th>
+          <th style={td} class="annot">Unit</th>
+          <th style={td} class="annot">Rule</th>
+          <th style={td} class="annot">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {VALIDATION_ROWS.map((r, i) => (
+          <tr data-row={i} style="border-bottom:1px solid var(--rule);">
+            <td style={td}>{r.label}</td>
+            <td style={td} class="mono" data-target>—</td>
+            <td style={td + 'text-align:right;'} class="mono" data-achieved>—</td>
+            <td style={td} class="mono">{r.unit}</td>
+            <td style={td + 'color:var(--ink-3);'} class="mono">{cmpText[r.cmp]}</td>
+            <td style={td}><span data-status class="mono" style="color:var(--ink-3);">—</span></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <p class="mono" style="margin-top:1.5rem;font-size:var(--fs-200);color:var(--ink-3);">
+    Contribute from a tool (Brakes, Springs, Geometry, Balance, …) to populate the
+    achieved column. Freeze governed numbers in <a href={url('vehicle-spec')}>Vehicle Spec</a>;
+    sign gates off in <a href={url('gates')}>Gates</a>.
+  </p>
+</Base>
+
+<script>
+  import { loadMaster, loadToolOutputsMap, fmt } from '../lib/store';
+  import { VALIDATION_ROWS } from '../lib/config';
+
+  const note = document.querySelector('[data-note]') as HTMLElement;
+
+  (async () => {
+    const master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
+    const outputs = await loadToolOutputsMap();
+    if (!Object.keys(master).length) return;
+    note.innerHTML = 'Live targets (Master / EDP limits) vs achieved (tool contributions). Predicted — cross-check measured on the car.';
+
+    VALIDATION_ROWS.forEach((r, i) => {
+      const tr = document.querySelector(`tr[data-row="${i}"]`);
+      if (!tr) return;
+      const target = r.targetMaster ? master[r.targetMaster] : (r.targetFixed ?? NaN);
+      const achieved = r.achievedKey ? outputs[r.achievedKey]?.value : null;
+      const tEl = tr.querySelector('[data-target]')!;
+      const aEl = tr.querySelector('[data-achieved]')!;
+      const sEl = tr.querySelector('[data-status]') as HTMLElement;
+      tEl.textContent = Number.isFinite(target) ? fmt(target, 2) : '—';
+      aEl.textContent = achieved === null || achieved === undefined || !Number.isFinite(achieved) ? '—' : fmt(achieved, 3);
+
+      if (achieved === null || achieved === undefined || !Number.isFinite(achieved)) { sEl.textContent = '— not yet'; return; }
+      if (!Number.isFinite(target)) { sEl.textContent = 'recorded'; sEl.style.color = 'var(--state-linked)'; return; }
+      let met: boolean, label: string;
+      if (r.cmp === 'max') { met = achieved <= target; label = met ? '✓ within' : '✗ over'; }
+      else if (r.cmp === 'min') { met = achieved >= target; label = met ? '✓ met' : '✗ under'; }
+      else { const err = ((achieved - target) / target) * 100; met = Math.abs(err) <= 10; label = `${err >= 0 ? '+' : ''}${fmt(err, 1)}%`; }
+      sEl.textContent = label;
+      sEl.style.color = met ? 'var(--state-linked)' : 'var(--heritage)';
+    });
+  })();
+</script>

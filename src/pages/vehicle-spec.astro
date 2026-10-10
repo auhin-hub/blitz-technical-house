@@ -92,6 +92,7 @@ const td = 'padding:0.45rem 0.7rem;';
 
 <script>
   import { loadMaster, setMasterValue, setFrozen, editFrozenParam, fmt, debounce } from '../lib/store';
+  import { COUPLING_BY_KEY } from '../lib/config';
 
   const G = 9.81;
   const note = document.querySelector('[data-source-note]') as HTMLElement | null;
@@ -159,7 +160,12 @@ const td = 'padding:0.45rem 0.7rem;';
     }, 500);
 
     async function saveFrozen(key: string, value: number) {
-      const reason = window.prompt(`"${key}" is frozen. Enter a reason for this change (recorded in the Change Log):`);
+      // Coupling prompt (handbook §H): surface the knock-ons before logging.
+      const knock = COUPLING_BY_KEY[key];
+      const msg = `"${key}" is frozen.` +
+        (knock ? `\n\nThis also affects: ${knock}\n\nVerify those, then` : '\n\n') +
+        ` enter a reason for this change (recorded in the Change Log):`;
+      const reason = window.prompt(msg);
       if (reason === null || reason.trim() === '') { setStatus('Frozen edit cancelled — a reason is required.', 'var(--heritage)'); return false; }
       setStatus('Saving…');
       const err = await editFrozenParam(key, value, reason.trim());

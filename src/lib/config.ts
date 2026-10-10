@@ -118,11 +118,57 @@ export const TOP_NAV = [
   { href: '', label: 'Home' },
   { href: 'vehicle-dynamics', label: 'VD Workspace' },
   { href: 'vehicle-spec', label: 'Vehicle Spec' },
+  { href: 'validation', label: 'Validation' },
   { href: 'tyre', label: 'Tyre' },
   { href: 'gates', label: 'Gates / Phases' },
   { href: 'resources', label: 'Resources' },
   { href: 'change-log', label: 'Change Log' },
 ] as const;
+
+/**
+ * Coupling knock-ons per Master parameter (handbook Table H-1), shown when a
+ * FROZEN value is edited (MASTER_BUILD_PLAN §5.1/§8) so the member sees what else
+ * moves before the change is logged.
+ */
+export const COUPLING_BY_KEY: Record<string, string> = {
+  cog_height: 'Lower CoG = more grip, less dive/squat/roll (all-positive). Raising it hurts everything — re-check load transfer, brakes, g–g.',
+  track_front: 'Wider track = less lateral load transfer (more grip) but more drag, worse packaging, line changes. Re-check balance (TLLTD) and steering.',
+  track_rear: 'Wider track = less lateral load transfer (more grip) but more drag/packaging. Re-check balance (TLLTD).',
+  wheelbase: 'Longer = more stable, less pitch transfer; but heavier, larger turning radius. Re-check kinematics, steering, Ackermann.',
+  mass_total: 'Mass drives every load-transfer & balance number — re-check axle loads, brakes, springs, g–g.',
+  mass_frac_front: 'Front fraction shifts balance and axle loads — re-check brakes (bias), springs, understeer.',
+  unsprung_corner: 'Lighter unsprung = better bump following + less yaw inertia (two gains). Re-check ride/damping.',
+  mu_lat_peak: 'Grip propagates to brakes, traction, g–g and lap time — re-check all of them.',
+  tlltd_front: 'Shifts balance: more front → understeer; more rear → oversteer. Tie to ARB / roll-stiffness distribution.',
+  ride_freq_front: 'Stiffer = less roll but less mechanical grip on bumps. Re-check spring rate, damping, roll gradient.',
+  ride_freq_rear: 'Stiffer = less roll but less mechanical grip on bumps. Re-check spring rate, damping, roll gradient.',
+  motion_ratio: 'Changes wheel rate for a given spring — re-check spring sizing and damping.',
+  rolling_radius: 'Affects wheel torque, traction, brake torque and speed-from-rpm — re-check powertrain & brakes.',
+  corner_stiffness: 'Drives the understeer gradient and yaw response — re-check Balance.',
+};
+
+export interface ValidationRow {
+  label: string;
+  targetMaster?: string;   // Master key holding the target
+  targetFixed?: number;    // or a fixed EDP limit
+  achievedKey?: string;    // tool_outputs key holding the achieved value
+  cmp: 'approx' | 'max' | 'min';
+  unit: string;
+}
+
+/** Targets & Validation rows (MASTER_BUILD_PLAN §8 + §6.4/§6.5 EDP targets). */
+export const VALIDATION_ROWS: ValidationRow[] = [
+  { label: 'Roll gradient', targetMaster: 'roll_grad_target', achievedKey: 'roll_gradient', cmp: 'approx', unit: 'deg/g' },
+  { label: 'Understeer gradient (≥0 = understeer)', targetFixed: 0, achievedKey: 'understeer_gradient', cmp: 'min', unit: 'deg/g' },
+  { label: 'Camber gain / 10 mm bump', targetFixed: 0.5, achievedKey: 'camber_gain_bump', cmp: 'max', unit: 'deg' },
+  { label: 'RC migration over travel', targetFixed: 60, achievedKey: 'rc_migration', cmp: 'max', unit: 'mm' },
+  { label: 'Torsional stiffness', targetFixed: 1600, achievedKey: 'torsional_stiffness', cmp: 'min', unit: 'N·m/deg' },
+  { label: 'Front spring rate', achievedKey: 'spring_rate_front', cmp: 'approx', unit: 'N/mm' },
+  { label: 'Rear spring rate', achievedKey: 'spring_rate_rear', cmp: 'approx', unit: 'N/mm' },
+  { label: 'Achieved front brake bias', achievedKey: 'achieved_front_bias', cmp: 'approx', unit: '-' },
+  { label: 'Static RC height', achievedKey: 'rc_height_static', cmp: 'approx', unit: 'mm' },
+  { label: 'CAN bus utilisation', targetFixed: 70, achievedKey: 'bus_utilisation', cmp: 'max', unit: '%' },
+];
 
 // ============================================================================
 // VD Workspace (MASTER_BUILD_PLAN §5) — the guided design sequence + coupling map,
