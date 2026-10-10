@@ -139,6 +139,7 @@
 .swatch-input    { background: var(--state-input);    border-color: var(--state-input); }
 .swatch-linked   { background: var(--state-linked);   border-color: var(--state-linked); }
 .swatch-computed { background: var(--state-computed);  border-color: var(--state-computed); }
+.legend-chip .swatch-unfrozen { background: transparent; border: 1px dashed var(--amber); }
 
 /* Field states — applied to the actual value cells/inputs later. */
 .field { border-radius: var(--radius-sm); padding: 0.15em 0.45em; }
