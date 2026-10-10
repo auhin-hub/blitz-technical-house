@@ -861,8 +861,9 @@ td input:focus { background: var(--white); box-shadow: none; border-radius: 0; }
 <div class="page">
   <div id="vspec-link" style="margin-bottom:14px;padding:10px 14px;border:1px solid var(--rule);border-left:3px solid var(--red);border-radius:var(--radius);background:var(--white);font-family:var(--sans);font-size:12px;color:var(--ink2);display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
     <strong style="font-family:var(--serif);">From Vehicle Spec</strong>
-    <span>Rolling radius <strong id="vs-rr">—</strong> mm · Total mass <strong id="vs-mass">—</strong> kg</span>
+    <span>Rolling radius <strong id="vs-rr">—</strong> mm · Total mass <strong id="vs-mass">—</strong> kg · Final drive <strong id="vs-fd">—</strong></span>
     <button type="button" id="vs-apply" class="btn btn-ghost" style="font-size:10px;padding:5px 12px;">Use rolling radius → tyre Ø</button>
+    <button type="button" id="vs-apply-fd" class="btn btn-ghost" style="font-size:10px;padding:5px 12px;">Use final drive → rear sprocket</button>
     <span id="vs-note" style="color:var(--ink3);font-style:italic;"></span>
   </div>
   <div class="grid-main">
@@ -1983,8 +1984,11 @@ renderTable();
 </script>
 <!-- Link to the shared Vehicle Spec (Master). Same origin as the workspace, so
      the signed-in session in localStorage is reused; RLS returns nothing if not
-     signed in. The app has no mass input and computes speed itself, so the one
-     sensible link is rolling radius → tyre diameter (user-triggered, labelled). -->
+     signed in. The speed axis the heat model runs on is set by gearing + tyre, so
+     the two physically-used links are rolling radius → tyre diameter (vehicle_spec)
+     and final drive → rear sprocket (tool_outputs, written by Powertrain → traction).
+     Both are user-triggered and labelled; total mass is shown for context only —
+     the model has no mass input, so there is nothing to apply it to. -->
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
   const sb = createClient(
@@ -1993,12 +1997,20 @@ renderTable();
     { auth: { persistSession: true, autoRefreshToken: true } }
   );
   const note = document.getElementById('vs-note');
+  const reRun = () => { try { if (typeof window.runAnalysis === 'function') window.runAnalysis(); } catch (e) {} };
   try {
-    const { data } = await sb.from('vehicle_spec').select('key,value').in('key', ['rolling_radius', 'mass_total']);
-    const m = Object.fromEntries((data || []).map((r) => [r.key, r.value]));
-    const rr = m.rolling_radius, mass = m.mass_total;
+    // Rolling radius + mass live in vehicle_spec; final drive is a tool output.
+    const [spec, outs] = await Promise.all([
+      sb.from('vehicle_spec').select('key,value').in('key', ['rolling_radius', 'mass_total']),
+      sb.from('tool_outputs').select('key,value').eq('key', 'final_drive'),
+    ]);
+    const m = Object.fromEntries((spec.data || []).map((r) => [r.key, r.value]));
+    const o = Object.fromEntries((outs.data || []).map((r) => [r.key, r.value]));
+    const rr = m.rolling_radius, mass = m.mass_total, fd = o.final_drive;
     if (rr != null) document.getElementById('vs-rr').textContent = rr;
     if (mass != null) document.getElementById('vs-mass').textContent = mass;
+    if (fd != null) document.getElementById('vs-fd').textContent = (+fd).toFixed(3);
+
     const btn = document.getElementById('vs-apply');
     if (rr != null) {
       btn.addEventListener('click', () => {
@@ -2006,13 +2018,31 @@ renderTable();
         const el = document.getElementById('p-tyreDia');
         el.value = dia;
         el.dispatchEvent(new Event('input', { bubbles: true }));
-        try { if (typeof window.runAnalysis === 'function') window.runAnalysis(); } catch (e) {}
+        reRun();
         note.textContent = `set tyre Ø = ${dia} mm (≈ 2 × loaded rolling radius ${rr} mm) — adjust if needed`;
       });
     } else {
       btn.disabled = true;
-      note.textContent = 'Sign in on the workspace to pull live values.';
     }
+
+    const btnFd = document.getElementById('vs-apply-fd');
+    if (fd != null) {
+      btnFd.addEventListener('click', () => {
+        const frontEl = document.getElementById('p-sprF');
+        const rearEl = document.getElementById('p-sprR');
+        const front = +frontEl.value || 14;
+        const rear = Math.round(front * (+fd));   // final drive = rear / front
+        rearEl.value = rear;
+        rearEl.dispatchEvent(new Event('input', { bubbles: true }));
+        reRun();
+        const actual = (rear / front);
+        note.textContent = `set rear sprocket = ${rear} T (front ${front} T → ratio ${actual.toFixed(3)} vs target ${(+fd).toFixed(3)}) — tweak sprockets for an exact match`;
+      });
+    } else {
+      btnFd.disabled = true;
+    }
+
+    if (rr == null && fd == null) note.textContent = 'Sign in on the workspace (and contribute from Powertrain) to pull live values.';
   } catch (e) {
     if (note) note.textContent = 'Live values unavailable (offline or not signed in).';
   }

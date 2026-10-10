@@ -1,0 +1,67 @@
+---
+import Base from '../layouts/Base.astro';
+import CockpitShell from '../components/CockpitShell.astro';
+import CalcTool from '../components/CalcTool.astro';
+import LegendKey from '../components/LegendKey.astro';
+import { url } from '../lib/config';
+---
+<Base title="Measurement">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Measurement
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">On-car measurement helpers</p>
+    <h1 style="margin-top:0.4rem;">Measurement</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">
+      Turn test-day measurements into the numbers that validate the design:
+      CoG height from a tilt test, corner-weight balance, and quarter-car
+      frequencies. Feed the results back into Vehicle Spec / Validation.
+    </p>
+  </header>
+  <LegendKey />
+  <div style="margin-top:1rem;"></div>
+  <CockpitShell tools={[{ id: 'cog', title: 'CoG tilt-test' }, { id: 'corner', title: 'Corner-weight' }, { id: 'quarter', title: 'Quarter-car ride' }]} railLabel="Measurement">
+    <CalcTool id="cog" title="CoG height — tilt test" spec="§9"
+      blurb="Raise one axle by θ; the load that shifts off the other axle gives the CoG height. h = ΔW·L/(W·tanθ) + wheel radius."
+      inputs={[
+        { key: 'dWeight', label: 'Axle load change ΔW', unit: 'N', vals: [200] },
+        { key: 'wheelbase', label: 'Wheelbase L', unit: 'mm', vals: [1550] },
+        { key: 'totalWeight', label: 'Total weight W', unit: 'N', vals: [2590] },
+        { key: 'tiltDeg', label: 'Tilt angle θ', unit: 'deg', vals: [30] },
+        { key: 'wheelRadius', label: 'Wheel radius', unit: 'mm', vals: [228] },
+      ]}
+      outputs={[{ key: 'cogAboveAxle', label: 'CoG above axle line', unit: 'mm' }]}
+      stats={[{ key: 'cogHeight', label: 'CoG height', unit: 'mm' }]} />
+    <CalcTool id="corner" title="Corner-weight balance" spec="§9"
+      blurb="Front %, left % and cross-weight (diagonal) % from the four corner scales."
+      cols={[{ prefix: 'l', label: 'Left' }, { prefix: 'r', label: 'Right' }]}
+      inputs={[{ key: 'f', label: 'Front', unit: 'N', vals: [600, 620] }, { key: 'r', label: 'Rear', unit: 'N', vals: [650, 640] }]}
+      outputs={[]}
+      stats={[{ key: 'frontPct', label: 'Front %', unit: '%' }, { key: 'leftPct', label: 'Left %', unit: '%' }, { key: 'crossPct', label: 'Cross-weight %', unit: '%' }]} />
+    <CalcTool id="quarter" title="Quarter-car ride" spec="§9"
+      blurb="Sprung ride frequency (tyre in series) and unsprung hop frequency."
+      inputs={[
+        { key: 'springRate', label: 'Spring rate (at wheel)', unit: 'N/mm', vals: [30] },
+        { key: 'tyreRate', label: 'Tyre vertical rate', unit: 'N/mm', vals: [100] },
+        { key: 'mSprung', label: 'Sprung corner mass', unit: 'kg', vals: [50] },
+        { key: 'mUnsprung', label: 'Unsprung corner mass', unit: 'kg', vals: [12] },
+      ]}
+      outputs={[]}
+      stats={[{ key: 'fnSprung', label: 'Ride frequency', unit: 'Hz' }, { key: 'fnHop', label: 'Wheel hop', unit: 'Hz' }]} />
+  </CockpitShell>
+</Base>
+
+<script>
+  import { mountCalculator } from '../lib/calc/engine';
+  import { cogTiltCompute, cornerWeightCompute, quarterCarCompute } from '../lib/calc/extras';
+
+  mountCalculator({ root: 'cog', tool: 'ms_cog', compute: cogTiltCompute, digits: { cogAboveAxle: 1, cogHeight: 1 } });
+
+  // Corner-weight inputs are l_f/r_f/l_r/r_r → map to fl/fr/rl/rr.
+  mountCalculator({
+    root: 'corner', tool: 'ms_corner', defaultDigits: 1,
+    compute: (inp) => cornerWeightCompute({ fl: inp.l_f, fr: inp.r_f, rl: inp.l_r, rr: inp.r_r }),
+  });
+
+  mountCalculator({ root: 'quarter', tool: 'ms_quarter', compute: quarterCarCompute, digits: { fnSprung: 2, fnHop: 2 } });
+</script>

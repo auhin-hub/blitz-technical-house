@@ -49,7 +49,7 @@ const OUTPUTS = [
   <LegendKey />
 
   <div style="margin-top:1.25rem;"></div>
-  <CockpitShell tools={[{ id: 'traction', title: 'Drivetrain & traction' }, { id: 'cooling', title: 'Cooling — Dyno Analyzer' }]} railLabel="Powertrain">
+  <CockpitShell tools={[{ id: 'traction', title: 'Drivetrain & traction' }, { id: 'cooling', title: 'Cooling — Dyno Analyzer' }, { id: 'gearspeed', title: 'Gear speed' }, { id: 'restrictor', title: 'Intake restrictor' }]} railLabel="Powertrain">
   <CalcTool id="traction" title="Drivetrain & traction" spec="TOOL_SPECS §6"
     blurb="1st-gear wheel torque, tractive force vs the traction limit, and launch acceleration."
     linked={LINKED} seed={seed} inputs={INPUTS} outputs={OUTPUTS}
@@ -79,16 +79,44 @@ const OUTPUTS = [
         loading="lazy" style="width:100%;height:1600px;border:0;display:block;background:var(--surface);"></iframe>
     </div>
     <p class="mono" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);">
-      Linking its vehicle mass/speeds to Vehicle Spec is a quick follow-up; it
-      currently uses its own inputs with KTM 390 RC defaults.
+      Its "From Vehicle Spec" strip pulls the live rolling radius → tyre Ø and
+      final drive → rear sprocket (one click each, labelled); other inputs keep
+      their KTM 390 RC defaults.
     </p>
   </section>
+
+  <CalcTool id="gearspeed" title="Gear speed" spec="§9"
+    blurb="Road speed at an engine rpm in a gear, from the ratios and rolling radius."
+    linked={[{ mkey: 'rolling_radius', label: 'Rolling radius', sym: 'Re', unit: 'mm' }]} seed={seed}
+    inputs={[
+      { key: 'rpm', label: 'Engine rpm', unit: 'rpm', vals: [9500] },
+      { key: 'primary', label: 'Primary reduction', unit: '-', vals: [3] },
+      { key: 'gear', label: 'Gear ratio', unit: '-', vals: [2.5] },
+      { key: 'final', label: 'Final drive', unit: '-', vals: [3] },
+    ]}
+    outputs={[{ key: 'wheelRpm', label: 'Wheel rpm', unit: 'rpm' }]}
+    stats={[{ key: 'speed', label: 'Road speed', unit: 'km/h' }]} />
+
+  <CalcTool id="restrictor" title="Intake restrictor" spec="§9 ⚖"
+    blurb="Choked air mass flow through the restrictor → a power ceiling. Ø is a rulebook value (20 mm petrol / 19 mm E85)."
+    inputs={[
+      { key: 'dia', label: 'Restrictor Ø', unit: 'mm', vals: [20], ref: { typ: '20 (⚖ rulebook)' } },
+      { key: 'cd', label: 'Discharge coeff Cd', unit: '-', vals: [0.95] },
+      { key: 'p0', label: 'Upstream pressure', unit: 'kPa', vals: [101.3] },
+      { key: 't0', label: 'Upstream temp', unit: 'K', vals: [298] },
+      { key: 'afr', label: 'Air/fuel ratio', unit: '-', vals: [14.7] },
+      { key: 'lhv', label: 'Fuel LHV', unit: 'MJ/kg', vals: [44] },
+      { key: 'thermalEff', label: 'Thermal efficiency', unit: '-', vals: [0.3] },
+    ]}
+    outputs={[{ key: 'mdotAir', label: 'Choked air flow', unit: 'g/s' }]}
+    stats={[{ key: 'maxPower', label: 'Power ceiling', unit: 'kW' }]} />
   </CockpitShell>
 </Base>
 
 <script>
   import { mountCalculator } from '../lib/calc/engine';
   import { tractionCompute } from '../lib/calc/pt-traction';
+  import { gearSpeedCompute, restrictorCompute } from '../lib/calc/extras';
 
   mountCalculator({
     root: 'traction', tool: 'pt_traction', compute: tractionCompute, defaultDigits: 1,
@@ -117,4 +145,7 @@ const OUTPUTS = [
       { key: 'max_wheel_torque', label: 'Max torque per wheel', unit: 'N·m', from: 'wheelTorque' },
     ],
   });
+
+  mountCalculator({ root: 'gearspeed', tool: 'pt_gearspeed', compute: gearSpeedCompute, digits: { wheelRpm: 0, speed: 1 } });
+  mountCalculator({ root: 'restrictor', tool: 'pt_restrictor', compute: restrictorCompute, digits: { mdotAir: 1, maxPower: 1 } });
 </script>
