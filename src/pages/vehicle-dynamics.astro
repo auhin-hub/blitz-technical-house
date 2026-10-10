@@ -32,41 +32,6 @@ const SETUP_INPUTS = [
   { key: 'toeR', label: 'Toe rear', unit: 'deg', vals: [0.1] },
 ];
 
-// ---- Suspension geometry -------------------------------------------------
-const GEOM_INPUTS = [
-  { key: 'rcHeight', label: 'Roll-centre height from ground', unit: 'mm', vals: [50] },
-  { key: 'vsal', label: 'Virtual swing-arm length (VSAL)', unit: 'mm', vals: [3000] },
-  { key: 'scrub', label: 'Scrub radius', unit: 'mm', vals: [20] },
-  { key: 'kpi', label: 'Kingpin inclination (KPI)', unit: 'deg', vals: [6] },
-  { key: 'caster', label: 'Caster angle', unit: 'deg', vals: [5] },
-  { key: 'trail', label: 'Mechanical trail', unit: 'mm', vals: [25] },
-  { key: 'lbjHeight', label: 'Lower outer ball-joint height', unit: 'mm', vals: [135] },
-  { key: 'ubjHeight', label: 'Upper outer ball-joint height', unit: 'mm', vals: [365] },
-  { key: 'lowerArm', label: 'Lower arm length', unit: 'mm', vals: [493] },
-  { key: 'upperArm', label: 'Upper arm length', unit: 'mm', vals: [360] },
-];
-const GEOM_OUTPUTS = [
-  { key: 'casterRad', label: 'Caster (rad, for geometry)', unit: 'rad' },
-  { key: 'kpiRad', label: 'KPI (rad, for geometry)', unit: 'rad' },
-];
-
-// ---- Hardpoint coordinates (freeze at G3) --------------------------------
-const HP_COLS = [{ prefix: 'x', label: 'x (mm)' }, { prefix: 'y', label: 'y (mm)' }, { prefix: 'z', label: 'z (mm)' }];
-const HP_POINTS = [
-  'lowerArmFront', 'lowerArmRear', 'lowerOuterBJ', 'upperArmFront', 'upperArmRear',
-  'upperOuterBJ', 'tieRodInner', 'tieRodOuter', 'pushrodInner', 'pushrodOuter',
-  'bellcrankPivot', 'damperInboard', 'damperOutboard', 'wheelCentre', 'contactPatch',
-];
-const HP_LABELS: Record<string, string> = {
-  lowerArmFront: 'Lower arm front pivot', lowerArmRear: 'Lower arm rear pivot',
-  lowerOuterBJ: 'Lower outer ball joint', upperArmFront: 'Upper arm front pivot',
-  upperArmRear: 'Upper arm rear pivot', upperOuterBJ: 'Upper outer ball joint',
-  tieRodInner: 'Tie-rod inner', tieRodOuter: 'Tie-rod outer',
-  pushrodInner: 'Pushrod inner', pushrodOuter: 'Pushrod outer',
-  bellcrankPivot: 'Bell-crank pivot', damperInboard: 'Damper inboard',
-  damperOutboard: 'Damper outboard', wheelCentre: 'Wheel centre', contactPatch: 'Contact patch',
-};
-const HP_INPUTS = HP_POINTS.map((k) => ({ key: k, label: HP_LABELS[k], unit: 'mm', vals: [0, 0, 0] }));
 
 // ---- Springs & dampers ---------------------------------------------------
 // ---- Suspension loads ----------------------------------------------------
@@ -149,7 +114,6 @@ const STEER_OUTPUTS = [
   <CockpitShell tools={[
     { id: 'setup', title: 'Setup / kinematics' },
     { id: 'geometry', title: 'Suspension geometry' },
-    { id: 'hardpoints', title: 'Hardpoint coordinates' },
     { id: 'springs', title: 'Springs & dampers' },
     { id: 'loads', title: 'Suspension loads' },
     { id: 'steering', title: 'Steering' },
@@ -159,13 +123,11 @@ const STEER_OUTPUTS = [
     blurb="Kinematic targets; platform values pulled from Master. A target sheet — no computed outputs."
     linked={SETUP_LINKED} seed={seed} inputs={SETUP_INPUTS} />
 
-  <CalcTool id="geometry" title="Suspension geometry" spec="TOOL_SPECS §7c"
-    blurb="Front-view geometry and the derived caster/KPI angles."
-    inputs={GEOM_INPUTS} outputs={GEOM_OUTPUTS} />
-
-  <CalcTool id="hardpoints" title="Hardpoint coordinates" spec="TOOL_SPECS §7c"
-    blurb="One corner's hardpoints (x, y, z). Data entry — freeze at G3. Saved for the whole team."
-    cols={HP_COLS} inputs={HP_INPUTS} />
+  <section id="geometry" class="ct">
+    <header class="ct-head"><h2>Suspension geometry</h2><span class="badge">§6.4</span></header>
+    <p class="ct-sub">Roll-centre / camber / scrub through travel (instant-centre reconstruction), the hardpoint table, and anti-dive/anti-squat — on its own page. Freeze hardpoints at G3.</p>
+    <p style="margin-top:0.9rem;"><a class="btn btn-halftone" href={url('geometry')}>Open Suspension geometry ↗</a></p>
+  </section>
 
   <section id="springs" class="ct">
     <header class="ct-head"><h2>Springs &amp; dampers</h2><span class="badge">§6.5</span></header>
@@ -194,18 +156,10 @@ const STEER_OUTPUTS = [
   import { mountCalculator } from '../lib/calc/engine';
   import { loadsCompute } from '../lib/calc/vd-loads';
   import { steeringCompute } from '../lib/calc/vd-steering';
-  import { geometryCompute } from '../lib/calc/vd-geometry';
 
   const noOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } } };
 
   mountCalculator({ root: 'setup', tool: 'vd_setup', compute: () => ({}) });
-
-  mountCalculator({
-    root: 'geometry', tool: 'vd_geometry', compute: geometryCompute,
-    digits: { casterRad: 4, kpiRad: 4 },
-  });
-
-  mountCalculator({ root: 'hardpoints', tool: 'vd_hardpoints', compute: () => ({}), defaultDigits: 1 });
 
   mountCalculator({
     root: 'loads', tool: 'vd_loads', compute: loadsCompute, defaultDigits: 2,
