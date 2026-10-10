@@ -12,6 +12,7 @@ import { PARAM_SEED } from '../lib/master';
 const vd = DISCIPLINES.find((d) => d.slug === 'vehicle-dynamics')!;
 const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
 const FR = [{ prefix: 'f', label: 'Front' }, { prefix: 'r', label: 'Rear' }];
+const ltNi = 'width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
 
 // ---- Setup (targets; no computed outputs) --------------------------------
 const SETUP_LINKED = [
@@ -122,6 +123,7 @@ const STEER_OUTPUTS = [
     { id: 'rpsweep', title: 'R&P gear sweep' },
     { id: 'brakes', title: 'Brakes' },
     { id: 'balance', title: 'Balance' },
+    { id: 'loadtransfer', title: 'Load transfer' },
   ]} railLabel="VD tools">
   <CalcTool id="setup" title="Setup / kinematics" spec="TOOL_SPECS §7a"
     blurb="Kinematic targets; platform values pulled from Master. A target sheet — no computed outputs."
@@ -221,6 +223,48 @@ const STEER_OUTPUTS = [
     <p class="ct-sub">Understeer gradient (bicycle model) + roll-stiffness distribution / ARB vs TLLTD — where the car pushes or gets loose.</p>
     <p style="margin-top:0.9rem;"><a class="btn btn-halftone" href={url('balance')}>Open Balance ↗</a></p>
   </section>
+
+  <!-- Load transfer (P2.5): geometric + elastic + unsprung → achieved TLLTD,
+       written to Master so the guessed TLLTD becomes a derived one (feeds Balance). -->
+  <section id="loadtransfer" class="ct">
+    <header class="ct-head"><h2>Lateral load transfer</h2><span class="badge">§9</span></header>
+    <p class="ct-sub">Per-corner vertical loads at a lateral accel, split into geometric (roll centre), elastic (roll stiffness) and unsprung terms → the <strong>achieved TLLTD</strong>. Writing it to Master turns the guessed front TLLTD into a derived one that Balance reads.</p>
+    <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:0.5rem;font-size:var(--fs-300);">
+      <span>Mass <span class="mono" style="color:var(--ink-3)">(m)</span> <span class="field field-linked mono" data-master="mass_total">—</span> kg</span>
+      <span>Front frac <span class="field field-linked mono" data-master="mass_frac_front">—</span></span>
+      <span>CoG h <span class="field field-linked mono" data-master="cog_height">—</span> mm</span>
+      <span>Track F/R <span class="field field-linked mono" data-master="track_front">—</span>/<span class="field field-linked mono" data-master="track_rear">—</span> mm</span>
+      <span>Unsprung/corner <span class="field field-linked mono" data-master="unsprung_corner">—</span> kg</span>
+    </div>
+    <div class="ct-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem 1.5rem;align-items:start;margin-top:0.7rem;">
+      <div>
+        <h3 class="ct-h3">Inputs</h3>
+        <table class="ct-table"><tbody>
+          <tr><td>Lateral accel ay</td><td class="ct-num"><input type="number" step="any" data-in="ay" value="1.5" style={ltNi} /></td><td class="ct-unit">g</td></tr>
+          <tr><td>RC height front</td><td class="ct-num"><input type="number" step="any" data-in="rcFront" value="30" style={ltNi} /></td><td class="ct-unit">mm</td></tr>
+          <tr><td>RC height rear</td><td class="ct-num"><input type="number" step="any" data-in="rcRear" value="45" style={ltNi} /></td><td class="ct-unit">mm</td></tr>
+          <tr><td>Roll stiffness front</td><td class="ct-num"><input type="number" step="any" data-in="kRollFront" value="450" style={ltNi} /></td><td class="ct-unit">N·m/deg</td></tr>
+          <tr><td>Roll stiffness rear</td><td class="ct-num"><input type="number" step="any" data-in="kRollRear" value="350" style={ltNi} /></td><td class="ct-unit">N·m/deg</td></tr>
+          <tr><td>Unsprung CG height</td><td class="ct-num"><input type="number" step="any" data-in="unsprungCog" value="228" style={ltNi} /></td><td class="ct-unit">mm</td></tr>
+        </tbody></table>
+        <p class="ct-ref" style="margin-top:0.4rem;">RC heights from Geometry; roll stiffness from Springs (roll gradient / rates).</p>
+      </div>
+      <div>
+        <div class="ct-stats"><div class="ct-stat"><span class="annot">Achieved TLLTD (front)</span><div class="val"><span class="field field-computed mono" data-out="tlltdFront">—</span></div><span class="ct-ref">typ 0.45–0.55</span></div></div>
+        <h3 class="ct-h3" style="margin-top:0.5rem;">Load transfer / corner loads</h3>
+        <table class="ct-table"><tbody>
+          <tr><td>ΔW front / rear</td><td class="ct-num"><span class="field field-computed mono" data-out="dWFront">—</span></td><td class="ct-num"><span class="field field-computed mono" data-out="dWRear">—</span></td><td class="ct-unit">N</td></tr>
+          <tr><td>Front outer / inner</td><td class="ct-num"><span class="field field-computed mono" data-out="frontOuter">—</span></td><td class="ct-num"><span class="field field-computed mono" data-out="frontInner">—</span></td><td class="ct-unit">N</td></tr>
+          <tr><td>Rear outer / inner</td><td class="ct-num"><span class="field field-computed mono" data-out="rearOuter">—</span></td><td class="ct-num"><span class="field field-computed mono" data-out="rearInner">—</span></td><td class="ct-unit">N</td></tr>
+        </tbody></table>
+        <h3 class="ct-h3" style="margin-top:0.5rem;">Write to Master</h3>
+        <p style="color:var(--ink-2);font-size:var(--fs-300);">Sets <span class="mono">tlltd_front</span> to the achieved value (unfreeze first if locked).</p>
+        <button class="btn btn-heritage" type="button" id="lt-write" style="margin-top:0.4rem;">Write TLLTD → Master</button>
+        <span class="mono" id="lt-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+        <p class="mono" data-save-status style="margin-top:0.5rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+      </div>
+    </div>
+  </section>
   </CockpitShell>
 </Base>
 
@@ -228,7 +272,9 @@ const STEER_OUTPUTS = [
   import { mountCalculator } from '../lib/calc/engine';
   import { loadsCompute } from '../lib/calc/vd-loads';
   import { steeringCompute, steeringEffortCompute } from '../lib/calc/vd-steering';
+  import { loadTransfer } from '../lib/calc/vd-loadtransfer';
   import { rpSweep, rackTravelPerRev } from '../lib/calc/extras';
+  import { loadMaster, setMasterValue } from '../lib/store';
 
   const noOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } } };
 
@@ -269,6 +315,29 @@ const STEER_OUTPUTS = [
   });
 
   mountCalculator({ root: 'steereffort', tool: 'vd_steereffort', compute: steeringEffortCompute, digits: { fyTyre: 0, kingpinMoment: 1, rackForce: 0, swTorque: 1 } });
+
+  // Load transfer: map Master keys + inputs into loadTransfer's shapes.
+  const ltCompute = (inp: Record<string, number>, m: Record<string, number>) => loadTransfer(
+    { ay: inp.ay, rcFront: inp.rcFront, rcRear: inp.rcRear, kRollFront: inp.kRollFront, kRollRear: inp.kRollRear, unsprungCog: inp.unsprungCog },
+    { mass: m.mass_total, ff: m.mass_frac_front, cogHeight: m.cog_height, trackFront: m.track_front, trackRear: m.track_rear, unsprungCorner: m.unsprung_corner },
+  ) as unknown as Record<string, number>;
+  mountCalculator({ root: 'loadtransfer', tool: 'vd_loadtransfer', compute: ltCompute, defaultDigits: 0, digits: { tlltdFront: 3 } });
+
+  document.getElementById('lt-write')!.addEventListener('click', async () => {
+    const st = document.getElementById('lt-status')!;
+    const gi = (k: string) => Number((document.querySelector(`#loadtransfer [data-in="${k}"]`) as HTMLInputElement)?.value);
+    const mm = await loadMaster();
+    const mv = (k: string) => { const v = mm[k]?.value; return v === null || v === undefined ? NaN : Number(v); };
+    const r = loadTransfer(
+      { ay: gi('ay'), rcFront: gi('rcFront'), rcRear: gi('rcRear'), kRollFront: gi('kRollFront'), kRollRear: gi('kRollRear'), unsprungCog: gi('unsprungCog') },
+      { mass: mv('mass_total'), ff: mv('mass_frac_front'), cogHeight: mv('cog_height'), trackFront: mv('track_front'), trackRear: mv('track_rear'), unsprungCorner: mv('unsprung_corner') },
+    );
+    if (!Number.isFinite(r.tlltdFront)) { st.textContent = 'Fill in Master (mass, ff, tracks…) first.'; st.style.color = 'var(--heritage)'; return; }
+    st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
+    const err = await setMasterValue('tlltd_front', +r.tlltdFront.toFixed(4));
+    st.textContent = err ? 'Failed (frozen?): ' + err : 'Written to Master ✓';
+    st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  });
 
   // ---- R&P gear sweep (local only; no shared state) ----
   const rpPcd = document.getElementById('rp-pcd') as HTMLInputElement | null;
