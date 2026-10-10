@@ -1,0 +1,199 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+---
+<Base title="Season Gantt">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Season Gantt
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Technical-team schedule vs build gates</p>
+    <h1 style="margin-top:0.4rem;">Season Gantt</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:76ch;">
+      Swimlanes are the seven technical teams, laid against the build gates G0–G9.
+      Subteam leads add tasks with dates and dependencies; bars render in the team
+      lane, dependency arrows link them, a "today" line and gate markers sit over
+      the top, and overdue tasks flag red. A task may name a Master key it will
+      freeze, so the readiness board can cross-reference it.
+    </p>
+  </header>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <div id="gt-ctrls"></div>
+    <details open style="margin-top:0.4rem;"><summary class="annot" style="cursor:pointer;">Gate target dates</summary>
+      <div id="gt-gates" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.4rem;"></div>
+    </details>
+  </div>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <h2 style="font-size:var(--fs-600);">Timeline</h2>
+    <div style="overflow-x:auto;margin-top:0.4rem;"><div id="gt-svg" style="min-width:680px;"></div></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+      <h2 style="font-size:var(--fs-600);">Tasks</h2>
+      <button class="btn btn-ghost" type="button" id="gt-add">+ Task</button>
+    </div>
+    <div style="overflow-x:auto;margin-top:0.5rem;">
+      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:860px;">
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+          <th style="padding:0.4rem 0.5rem;" class="annot">Task</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Team</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Owner</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Start</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">End</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Depends on</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Gate</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Status</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">%</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot" title="Master key this task will freeze (optional)">Freezes</th>
+          <th style="padding:0.4rem 0.5rem;"></th>
+        </tr></thead>
+        <tbody id="gt-body"></tbody>
+      </table>
+    </div>
+    <p class="mono" id="gt-save" style="margin-top:0.5rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </div>
+</Base>
+
+<script>
+  import { TECH_TEAMS, parseDate, bounds, isOverdue, DAY, type GanttTask } from '../lib/calc/gantt';
+  import { PARAM_SEED } from '../lib/master';
+  import { loadToolJson, saveToolJson, debounce } from '../lib/store';
+  import { mountListControls } from '../lib/list-controls';
+  import { toCsv, parseCsv, missingColumns } from '../lib/csv';
+  import { palette, watchTheme } from '../lib/chart-theme';
+
+  const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
+  const STATUS = ['not started', 'in progress', 'blocked', 'done'];
+  const TOOL = 'gantt';
+  const body = document.getElementById('gt-body')!;
+  const svgEl = document.getElementById('gt-svg')!;
+  const saveEl = document.getElementById('gt-save')!;
+  let tasks: GanttTask[] = [];
+  let gateDates: Record<string, string> = {};
+
+  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  const inp = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;font-size:var(--fs-200);';
+  const MASTER_KEYS = PARAM_SEED.map((p) => p.key);
+
+  const persist = debounce(async () => {
+    saveEl.textContent = 'Saving…';
+    const err = await saveToolJson(TOOL, { tasks, gateDates });
+    saveEl.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    saveEl.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  function renderGates() {
+    const el = document.getElementById('gt-gates')!;
+    el.innerHTML = GATES.map((g) => `<label style="font-size:var(--fs-200);">${g} <input type="date" data-gate="${g}" value="${esc(gateDates[g] ?? '')}" style="${inp}"></label>`).join('');
+    el.querySelectorAll<HTMLInputElement>('[data-gate]').forEach((i) => i.addEventListener('input', () => { gateDates[i.dataset.gate!] = i.value; draw(); persist(); }));
+  }
+
+  function renderRows() {
+    body.innerHTML = tasks.map((t, i) => `
+      <tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="task" value="${esc(t.task)}" style="${inp}width:140px;"></td>
+        <td style="padding:0.2rem 0.4rem;"><select data-i="${i}" data-k="team" style="${inp}">${TECH_TEAMS.map((x) => `<option${x === t.team ? ' selected' : ''}>${x}</option>`).join('')}</select></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="owner" value="${esc(t.owner)}" style="${inp}width:80px;"></td>
+        <td style="padding:0.2rem 0.4rem;"><input type="date" data-i="${i}" data-k="start" value="${esc(t.start)}" style="${inp}"></td>
+        <td style="padding:0.2rem 0.4rem;"><input type="date" data-i="${i}" data-k="end" value="${esc(t.end)}" style="${inp}"></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="depends_on" value="${esc(t.depends_on)}" list="gt-tasknames" style="${inp}width:120px;"></td>
+        <td style="padding:0.2rem 0.4rem;"><select data-i="${i}" data-k="gate" style="${inp}"><option value=""></option>${GATES.map((x) => `<option${x === t.gate ? ' selected' : ''}>${x}</option>`).join('')}</select></td>
+        <td style="padding:0.2rem 0.4rem;"><select data-i="${i}" data-k="status" style="${inp}">${STATUS.map((x) => `<option${x === t.status ? ' selected' : ''}>${x}</option>`).join('')}</select></td>
+        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="percent" value="${t.percent ?? ''}" style="${inp}width:52px;text-align:right;"></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="masterKey" value="${esc(t.masterKey ?? '')}" list="gt-masterkeys" style="${inp}width:120px;"></td>
+        <td style="padding:0.2rem 0.4rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-100);padding:0.1rem 0.4rem;">✕</button></td>
+      </tr>`).join('') +
+      `<datalist id="gt-tasknames">${tasks.map((t) => `<option value="${esc(t.task)}">`).join('')}</datalist>` +
+      `<datalist id="gt-masterkeys">${MASTER_KEYS.map((k) => `<option value="${k}">`).join('')}</datalist>`;
+    body.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-i]').forEach((el) => {
+      const i = +el.dataset.i!, k = el.dataset.k! as keyof GanttTask;
+      const ev = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(ev, () => { (tasks[i] as any)[k] = k === 'percent' ? ((el as HTMLInputElement).value.trim() === '' ? null : Number((el as HTMLInputElement).value)) : (el as HTMLInputElement).value; if (k === 'task' || k === 'team' || k === 'start' || k === 'end' || k === 'depends_on' || k === 'percent' || k === 'status') { renderRows(); draw(); } persist(); });
+    });
+    body.querySelectorAll<HTMLButtonElement>('[data-del]').forEach((b) =>
+      b.addEventListener('click', () => { tasks.splice(+b.dataset.del!, 1); renderRows(); draw(); persist(); }));
+  }
+
+  function draw() {
+    const p = palette();
+    const today = Date.now();
+    const { min, max } = bounds(tasks, gateDates, today);
+    const W = 760, gutter = 86, rowH = 30, top = 34, laneH = rowH;
+    const H = top + TECH_TEAMS.length * laneH + 10;
+    const span = max - min || DAY;
+    const X = (ms: number) => gutter + ((ms - min) / span) * (W - gutter - 10);
+    const laneY = (team: string) => top + TECH_TEAMS.indexOf(team) * laneH;
+    const statusColour = (t: GanttTask) => isOverdue(t, today) ? p.maroon : t.status === 'done' ? p.ink3 : t.status === 'blocked' ? p.maroon : t.status === 'in progress' ? p.sky : p.ink3;
+
+    let el = '';
+    // lanes
+    TECH_TEAMS.forEach((team, idx) => {
+      const y = top + idx * laneH;
+      el += `<rect x="0" y="${y}" width="${W}" height="${laneH}" fill="${idx % 2 ? 'var(--surface-2)' : 'transparent'}"/>`;
+      el += `<text x="6" y="${y + laneH / 2 + 4}" font-size="11" fill="var(--ink-2)">${team}</text>`;
+    });
+    // month ticks
+    for (let d = new Date(min); d.getTime() < max; d.setMonth(d.getMonth() + 1)) {
+      const x = X(d.getTime());
+      el += `<line x1="${x.toFixed(1)}" y1="${top}" x2="${x.toFixed(1)}" y2="${H}" stroke="var(--rule)" stroke-width="1"/>`;
+      el += `<text x="${x.toFixed(1)}" y="12" font-size="9" fill="var(--ink-3)">${d.toLocaleString(undefined, { month: 'short' })}</text>`;
+    }
+    // gate markers
+    for (const g of GATES) { const t = parseDate(gateDates[g] ?? ''); if (!Number.isFinite(t)) continue; const x = X(t); el += `<line x1="${x.toFixed(1)}" y1="${top - 6}" x2="${x.toFixed(1)}" y2="${H}" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${x.toFixed(1)}" y="${top - 8}" font-size="9" fill="var(--amber-text)" text-anchor="middle">${g}</text>`; }
+    // today
+    const tx = X(today); el += `<line x1="${tx.toFixed(1)}" y1="${top}" x2="${tx.toFixed(1)}" y2="${H}" stroke="var(--state-linked)" stroke-width="1.5"/><text x="${tx.toFixed(1)}" y="${H}" font-size="9" fill="var(--state-linked)" text-anchor="middle">today</text>`;
+
+    // bars + remember positions for arrows
+    const pos: Record<string, { x1: number; x2: number; y: number }> = {};
+    tasks.forEach((t) => {
+      const a = parseDate(t.start), b = parseDate(t.end);
+      if (!Number.isFinite(a) || !Number.isFinite(b) || !TECH_TEAMS.includes(t.team)) return;
+      const x1 = X(a), x2 = Math.max(X(b), X(a) + 3), y = laneY(t.team) + 7, bh = laneH - 14;
+      pos[t.task] = { x1, x2, y: y + bh / 2 };
+      const col = statusColour(t);
+      const over = isOverdue(t, today);
+      el += `<rect x="${x1.toFixed(1)}" y="${y}" width="${(x2 - x1).toFixed(1)}" height="${bh}" rx="3" fill="${col}" opacity="0.35"${over ? ' stroke="var(--heritage)" stroke-width="2"' : ''}/>`;
+      const pc = Math.max(0, Math.min(100, Number(t.percent) || 0));
+      el += `<rect x="${x1.toFixed(1)}" y="${y}" width="${((x2 - x1) * pc / 100).toFixed(1)}" height="${bh}" rx="3" fill="${col}"/>`;
+      el += `<text x="${(x1 + 3).toFixed(1)}" y="${(y + bh - 3).toFixed(1)}" font-size="9" fill="var(--ink)">${esc(t.task)}</text>`;
+    });
+    // dependency arrows
+    tasks.forEach((t) => {
+      const from = pos[(t.depends_on || '').trim()]; const to = pos[t.task];
+      if (!from || !to) return;
+      el += `<path d="M ${from.x2.toFixed(1)} ${from.y.toFixed(1)} C ${(from.x2 + 14).toFixed(1)} ${from.y.toFixed(1)}, ${(to.x1 - 14).toFixed(1)} ${to.y.toFixed(1)}, ${to.x1.toFixed(1)} ${to.y.toFixed(1)}" fill="none" stroke="var(--ink-3)" stroke-width="1"/>`;
+      el += `<circle cx="${to.x1.toFixed(1)}" cy="${to.y.toFixed(1)}" r="2.5" fill="var(--ink-3)"/>`;
+    });
+
+    svgEl.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;height:auto;" role="img" aria-label="season gantt">${el}</svg>`;
+  }
+
+  const CSV_COLS = ['task', 'team', 'owner', 'start', 'end', 'depends_on', 'gate', 'status', 'percent', 'master_key'];
+  function getCsv(): string { return toCsv(CSV_COLS, tasks.map((t) => [t.task, t.team, t.owner, t.start, t.end, t.depends_on, t.gate, t.status, t.percent ?? '', t.masterKey ?? ''])); }
+  function applyCsv(text: string, mode: 'replace' | 'append'): string | void {
+    const { headers, rows } = parseCsv(text);
+    const miss = missingColumns(headers, ['task', 'team']);
+    if (miss.length) return 'missing column(s): ' + miss.join(', ');
+    const idx = (h: string) => headers.indexOf(h); const g = (r: string[], h: string) => { const i = idx(h); return i < 0 ? '' : (r[i] ?? '').trim(); };
+    const parsed: GanttTask[] = rows.filter((r) => g(r, 'task')).map((r) => ({
+      task: g(r, 'task'), team: g(r, 'team') || 'VD', owner: g(r, 'owner'), start: g(r, 'start'), end: g(r, 'end'),
+      depends_on: g(r, 'depends_on'), gate: g(r, 'gate'), status: g(r, 'status'), percent: g(r, 'percent') === '' ? null : Number(g(r, 'percent')), masterKey: g(r, 'master_key'),
+    }));
+    if (!parsed.length) return 'no tasks';
+    tasks = mode === 'append' ? tasks.concat(parsed) : parsed;
+    renderRows(); draw(); persist();
+  }
+
+  (async () => {
+    const saved = await loadToolJson<any>(TOOL, {});
+    tasks = Array.isArray(saved?.tasks) ? saved.tasks : [];
+    gateDates = saved?.gateDates && typeof saved.gateDates === 'object' ? saved.gateDates : {};
+    renderGates(); renderRows(); draw();
+    document.getElementById('gt-add')!.addEventListener('click', () => { tasks.push({ task: 'New task', team: 'VD', owner: '', start: '', end: '', depends_on: '', gate: '', status: 'not started', percent: 0 }); renderRows(); draw(); persist(); });
+    mountListControls({ container: document.getElementById('gt-ctrls')!, tool: TOOL, filename: 'season_gantt.csv', getCsv, applyCsv, getPresetPayload: () => ({ tasks, gateDates }), applyPreset: (p: any) => { if (Array.isArray(p?.tasks)) { tasks = p.tasks; gateDates = p.gateDates ?? {}; renderGates(); renderRows(); draw(); persist(); } } });
+    watchTheme(() => draw());
+  })();
+</script>
