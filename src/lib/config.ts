@@ -167,7 +167,7 @@ export const VD_STAGES: VdStage[] = [
     produces: 'Track (F/R), wheelbase — then freeze',
     feeds: 'Kinematics, load transfer, steering',
     guidance: 'From the load-transfer / packaging / turning-radius trade. Hard to change later.' },
-  { n: 5, name: 'Design the kinematics', gate: 'G3', tool: 'Suspension geometry', toolId: 'geometry',
+  { n: 5, name: 'Design the kinematics', gate: 'G3', tool: 'Suspension geometry', href: 'geometry',
     prerequisites: 'Footprint fixed',
     produces: 'Hardpoints, RC / camber curve / caster-KPI-scrub, Ackermann, anti-geometry',
     feeds: 'Springs, chassis, uprights',

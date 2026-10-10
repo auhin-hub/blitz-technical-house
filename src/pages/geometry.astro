@@ -1,0 +1,168 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+
+// Front-view hardpoints (one corner), y = lateral, z = vertical (mm).
+const HP = [
+  { key: 'lip', label: 'Lower inner pivot', y: 150, z: 120 },
+  { key: 'uip', label: 'Upper inner pivot', y: 230, z: 330 },
+  { key: 'lbj', label: 'Lower outer ball joint', y: 620, z: 135 },
+  { key: 'ubj', label: 'Upper outer ball joint', y: 560, z: 365 },
+  { key: 'wc', label: 'Wheel centre', y: 610, z: 228 },
+  { key: 'cp', label: 'Contact patch', y: 620, z: 0 },
+];
+const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
+---
+<Base title="Suspension geometry">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('vehicle-dynamics')} style="color:inherit;">VD Workspace</a> / Suspension geometry
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Stage 05 · Gate G3 · hardpoints freeze here</p>
+    <h1 style="margin-top:0.4rem;">Suspension geometry</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
+      Front-view double-wishbone kinematics through travel: roll-centre height,
+      camber and scrub vs wheel heave, from the hardpoint table (the single source
+      of hardpoints). A design-stage estimate — full 3D kinematics stays in ADAMS.
+      <strong>Freeze the hardpoints at G3.</strong>
+    </p>
+  </header>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <span class="annot">From Master</span>
+    <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:0.4rem;font-size:var(--fs-300);">
+      <span>Wheelbase (L) <span class="field field-linked mono" data-master="wheelbase">—</span> mm</span>
+      <span>CoG height (h) <span class="field field-linked mono" data-master="cog_height">—</span> mm</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct-body">
+      <div class="ct-col">
+        <h3 class="ct-h3">Hardpoints — one corner (freeze at G3)</h3>
+        <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Point</th><th class="ct-num">y (mm)</th><th class="ct-num">z (mm)</th></tr></thead>
+          <tbody>{HP.map((p) => (
+            <tr><td>{p.label}</td>
+              <td class="ct-num"><input type="number" step="any" style={ni} data-hp={`${p.key}_y`} value={p.y} aria-label={`${p.label} y`} /></td>
+              <td class="ct-num"><input type="number" step="any" style={ni} data-hp={`${p.key}_z`} value={p.z} aria-label={`${p.label} z`} /></td></tr>
+          ))}</tbody></table></div>
+
+        <h3 class="ct-h3">Anti-dive / anti-squat</h3>
+        <p style="color:var(--ink-2);font-size:var(--fs-300);">% anti = share · tan(θ_svsa) · L / h (L, h from Master).</p>
+        <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Parameter</th><th class="ct-num">Front</th><th class="ct-num">Rear</th><th>Unit</th></tr></thead>
+          <tbody>
+            <tr><td>Side-view swing-arm angle θ</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="f_svsa" value="8" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="r_svsa" value="6" /></td><td class="ct-unit">deg</td></tr>
+            <tr><td>Brake / drive share on axle</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="f_share" value="0.65" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="r_share" value="1" /></td><td class="ct-unit">-</td></tr>
+            <tr><td>% anti-dive (F) / anti-squat (R)</td><td class="ct-num"><span class="field field-computed mono" data-out="f_anti">—</span></td><td class="ct-num"><span class="field field-computed mono" data-out="r_anti">—</span></td><td class="ct-unit">%</td></tr>
+          </tbody></table></div>
+      </div>
+
+      <div class="ct-col">
+        <div class="ct-stats">
+          <div class="ct-stat"><span class="annot">Static RC height</span><div class="val"><span data-out="staticRc">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div></div>
+          <div class="ct-stat"><span class="annot">Camber gain / bump</span><div class="val"><span data-out="camberGain">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> °/10mm</span></div><span class="ct-ref">&lt;0.5</span></div>
+          <div class="ct-stat"><span class="annot">RC migration</span><div class="val"><span data-out="rcMig">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div><span class="ct-ref">&lt;60</span></div>
+          <div class="ct-stat"><span class="annot">Scrub @ bump</span><div class="val"><span data-out="scrubBump">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div></div>
+        </div>
+        <h3 class="ct-h3">Roll-centre height vs heave</h3>
+        <div style="height:190px;position:relative;"><canvas id="rc-chart"></canvas></div>
+        <h3 class="ct-h3">Camber &amp; scrub vs heave</h3>
+        <div style="height:190px;position:relative;"><canvas id="cam-chart"></canvas></div>
+        <p style="margin-top:0.6rem;"><button class="btn btn-heritage" type="button" id="geo-contribute">Contribute to Master</button>
+          <span class="mono" id="geo-contribute-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span></p>
+      </div>
+    </div>
+    <p class="mono" data-save-status style="margin-top:0.7rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </div>
+</Base>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { geometrySweep, geometrySummary, antiGeometry, type Hardpoints } from '../lib/calc/geometry';
+  import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+
+  const TOOL = 'geometry';
+  const saveStatus = document.querySelector('[data-save-status]') as HTMLElement;
+  let master: Record<string, number> = {};
+  const charts = new Map<string, Chart>();
+  let last: any = {};
+  const gh = (k: string) => Number((document.querySelector(`[data-hp="${k}"]`) as HTMLInputElement)?.value);
+  const gi = (k: string) => Number((document.querySelector(`[data-in="${k}"]`) as HTMLInputElement)?.value);
+  const put = (k: string, v: number, d = 1) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = Number.isFinite(v) ? fmt(v, d) : '—'; };
+
+  function hardpoints(): Hardpoints {
+    const p = (k: string) => ({ y: gh(`${k}_y`), z: gh(`${k}_z`) });
+    return { lip: p('lip'), uip: p('uip'), lbj: p('lbj'), ubj: p('ubj'), wc: p('wc'), cp: p('cp') };
+  }
+
+  function upsert(id: string, cfg: any) {
+    const ex = charts.get(id);
+    if (ex) { ex.data = cfg.data; ex.options = cfg.options; ex.update(); }
+    else { const cv = document.getElementById(id) as HTMLCanvasElement | null; if (cv) charts.set(id, new Chart(cv, cfg)); }
+  }
+
+  function recompute() {
+    const hp = hardpoints();
+    const sweep = geometrySweep(hp, 30);
+    const sum = geometrySummary(hp, 30);
+    last = { sum, sweep };
+    put('staticRc', sum.staticRc as number, 1);
+    put('camberGain', sum.camberGainBump as number, 3);
+    put('rcMig', sum.rcMigration as number, 1);
+    const bump = sweep.reduce((p, c) => (Math.abs(c.heave - 25) < Math.abs(p.heave - 25) ? c : p), sweep[0] ?? { scrub: NaN, heave: 0 } as any);
+    put('scrubBump', bump ? bump.scrub : NaN, 1);
+
+    put('f_anti', antiGeometry(gi('f_share'), gi('f_svsa'), master.wheelbase, master.cog_height), 1);
+    put('r_anti', antiGeometry(gi('r_share'), gi('r_svsa'), master.wheelbase, master.cog_height), 1);
+
+    const p = palette();
+    const labels = sweep.map((s) => s.heave.toFixed(0));
+    upsert('rc-chart', { type: 'line', data: { labels, datasets: [{ label: 'RC height (mm)', data: sweep.map((s) => +s.rcHeight.toFixed(1)), borderColor: p.sky, backgroundColor: p.sky, pointRadius: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'wheel heave (mm)' } }, y: { title: { display: true, text: 'RC (mm)' } } } } });
+    upsert('cam-chart', { type: 'line', data: { labels, datasets: [
+      { label: 'Camber (deg)', data: sweep.map((s) => +s.camber.toFixed(3)), borderColor: p.amber, backgroundColor: p.amber, pointRadius: 0, yAxisID: 'y' },
+      { label: 'Scrub (mm)', data: sweep.map((s) => +s.scrub.toFixed(2)), borderColor: p.maroon, backgroundColor: p.maroon, pointRadius: 0, yAxisID: 'y1' },
+    ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } },
+      scales: { x: { title: { display: true, text: 'wheel heave (mm)' } }, y: { position: 'left', title: { display: true, text: 'camber °' } }, y1: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'scrub mm' } } } } });
+  }
+
+  const persist = debounce(async () => {
+    const data: Record<string, number> = {};
+    document.querySelectorAll('[data-hp]').forEach((el) => { data[(el as HTMLInputElement).dataset.hp!] = Number((el as HTMLInputElement).value); });
+    document.querySelectorAll('[data-in]').forEach((el) => { data['in_' + (el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
+    saveStatus.textContent = 'Saving…';
+    const err = await saveToolJson(TOOL, data);
+    saveStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    saveStatus.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  (async () => {
+    applyChartDefaults();
+    master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
+    for (const el of document.querySelectorAll<HTMLElement>('[data-master]')) { const k = el.dataset.master!; if (Number.isFinite(master[k])) el.textContent = fmt(master[k]); }
+    const saved = await loadToolJson<Record<string, number>>(TOOL, {});
+    for (const [k, v] of Object.entries(saved)) {
+      if (v == null) continue;
+      if (k.startsWith('in_')) { const el = document.querySelector(`[data-in="${k.slice(3)}"]`) as HTMLInputElement | null; if (el) el.value = String(v); }
+      else { const el = document.querySelector(`[data-hp="${k}"]`) as HTMLInputElement | null; if (el) el.value = String(v); }
+    }
+    recompute();
+    document.querySelectorAll('[data-hp],[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
+
+    document.getElementById('geo-contribute')!.addEventListener('click', async () => {
+      const st = document.getElementById('geo-contribute-status')!;
+      st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
+      const num = (v: any) => Number.isFinite(v) ? +(+v).toFixed(2) : null;
+      const err = await saveToolOutputs(TOOL, [
+        { key: 'rc_height_static', label: 'Static roll-centre height', value: num(last.sum?.staticRc), unit: 'mm' },
+        { key: 'rc_migration', label: 'RC migration over travel', value: num(last.sum?.rcMigration), unit: 'mm' },
+        { key: 'camber_gain_bump', label: 'Camber gain per 10 mm bump', value: num(last.sum?.camberGainBump), unit: 'deg' },
+      ]);
+      st.textContent = err ? 'Failed: ' + err : 'Contributed ✓';
+      st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+    });
+
+    watchTheme(() => { applyChartDefaults(); recompute(); });
+  })();
+</script>
