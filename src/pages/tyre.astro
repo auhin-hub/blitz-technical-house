@@ -47,6 +47,29 @@ const R8_COLS = ['Run', 'Tyre (anon)', 'Size', 'Rim width', 'Test', 'Notes'];
     </div>
   </section>
 
+  <!-- .tir upload + parse → Master (handoff P2.2) -->
+  <section class="card" style="margin-top:1.25rem;">
+    <h2 style="font-size:var(--fs-600);">Tyre file (.tir) → Master</h2>
+    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);max-width:72ch;">
+      Load the Pacejka <span class="mono">.tir</span> your MATLAB fit produces. It's parsed
+      in the browser; review the extracted parameters, then write them to the Vehicle
+      Spec (Master). Optionally upload it to share with the team.
+      <strong>Belt-rig (TTC) grip ≠ track grip</strong> — derate μ for the real surface.
+    </p>
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;margin-top:0.8rem;">
+      <input type="file" accept=".tir,text/plain" id="tir-file" />
+      <label style="font-size:var(--fs-300);">Operating Fz <input type="number" step="any" id="tir-fz" placeholder="FNOMIN" style="width:90px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.4rem;" /> N</label>
+      <label style="font-size:var(--fs-300);display:inline-flex;gap:0.3rem;align-items:center;"><input type="checkbox" id="tir-eff" /> use effective rolling radius (0.97×)</label>
+    </div>
+    <div id="tir-preview" style="margin-top:0.9rem;"></div>
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.8rem;">
+      <button class="btn btn-heritage" type="button" id="tir-write" disabled>Write to Master</button>
+      <button class="btn btn-ghost" type="button" id="tir-upload" disabled>Upload to share</button>
+      <span class="mono" id="tir-status" style="font-size:var(--fs-200);color:var(--ink-3);align-self:center;"></span>
+    </div>
+    <div id="tir-shared" style="margin-top:0.9rem;font-size:var(--fs-300);"></div>
+  </section>
+
   <!-- Results library -->
   <section class="card" style="margin-top:1.25rem;">
     <h2 style="font-size:var(--fs-700);">Results library</h2>
@@ -101,7 +124,9 @@ const R8_COLS = ['Run', 'Tyre (anon)', 'Size', 'Rim width', 'Test', 'Notes'];
 </Base>
 
 <script>
-  import { loadTyreResults, addTyreResult, uploadTyrePlot, signedUrl, fmt, type TyreResult } from '../lib/store';
+  import { loadTyreResults, addTyreResult, uploadTyrePlot, signedUrl, fmt, setMasterValue, uploadTir, listTir, type TyreResult } from '../lib/store';
+  import { parseTir, tirToMaster, TIR_MASTER_MAP, type TirDerived } from '../lib/calc/tir';
+  import { readFileText } from '../lib/csv';
 
   const listEl = document.getElementById('tyre-results')!;
   const form = document.getElementById('tyre-form') as HTMLFormElement | null;
@@ -176,4 +201,77 @@ const R8_COLS = ['Run', 'Tyre (anon)', 'Size', 'Rim width', 'Test', 'Notes'];
   });
 
   render();
+
+  // ---- .tir parse → Master (P2.2) ----
+  const tirFile = document.getElementById('tir-file') as HTMLInputElement;
+  const tirFz = document.getElementById('tir-fz') as HTMLInputElement;
+  const tirEff = document.getElementById('tir-eff') as HTMLInputElement;
+  const tirPreview = document.getElementById('tir-preview')!;
+  const tirWrite = document.getElementById('tir-write') as HTMLButtonElement;
+  const tirUpload = document.getElementById('tir-upload') as HTMLButtonElement;
+  const tirStatus = document.getElementById('tir-status')!;
+  const tirShared = document.getElementById('tir-shared')!;
+  let tirCoef: Record<string, number> | null = null;
+  let tirFileRef: File | null = null;
+
+  const tirSay = (m: string, ok = true) => { tirStatus.textContent = m; tirStatus.style.color = ok ? 'var(--state-linked)' : 'var(--heritage)'; };
+  const rollRadius = (d: TirDerived) => (tirEff.checked ? d.rollingRadiusEffective : d.rollingRadiusUnloaded);
+
+  function renderTirPreview() {
+    if (!tirCoef) { tirPreview.innerHTML = ''; tirWrite.disabled = true; return; }
+    const fz = tirFz.value.trim() === '' ? undefined : Number(tirFz.value);
+    const d = tirToMaster(tirCoef, fz);
+    const rr = rollRadius(d);
+    const rows: string[] = [];
+    const row = (label: string, v: number | undefined, unit: string, key: string) =>
+      v === undefined ? '' : `<tr><td style="padding:0.2rem 0.5rem;">${label}</td><td style="padding:0.2rem 0.5rem;text-align:right;" class="mono">${fmt(v, 3)}</td><td style="padding:0.2rem 0.5rem;" class="mono">${unit}</td><td style="padding:0.2rem 0.5rem;color:var(--ink-3);" class="mono">→ ${key}</td></tr>`;
+    rows.push(row(`Rolling radius (${tirEff.checked ? 'effective' : 'unloaded'})`, rr, 'mm', 'rolling_radius'));
+    for (const m of TIR_MASTER_MAP) rows.push(row(m.label, d[m.field] as number | undefined, m.unit, m.key));
+    const any = rows.some((r) => r);
+    tirPreview.innerHTML = any
+      ? `<p class="mono" style="font-size:var(--fs-200);color:var(--ink-3);">Evaluated at Fz = ${d.operatingFz ?? 'FNOMIN'} N${tirCoef.FNOMIN ? ` (FNOMIN ${tirCoef.FNOMIN})` : ''}.</p>
+         <table style="border-collapse:collapse;font-size:var(--fs-300);margin-top:0.3rem;"><tbody>${rows.join('')}</tbody></table>`
+      : '<p class="mono" style="color:var(--heritage);">No recognised coefficients (need UNLOADED_RADIUS, VERTICAL_STIFFNESS, PDY1, PKY1/PKY2…).</p>';
+    tirWrite.disabled = !any;
+  }
+
+  tirFile.addEventListener('change', async () => {
+    const f = tirFile.files?.[0]; tirFileRef = f ?? null; tirUpload.disabled = !f;
+    if (!f) { tirCoef = null; renderTirPreview(); return; }
+    try { tirCoef = parseTir(await readFileText(f)); tirSay('parsed ✓'); } catch (e) { tirSay('Parse failed: ' + (e as Error).message, false); tirCoef = null; }
+    renderTirPreview();
+  });
+  tirFz.addEventListener('input', renderTirPreview);
+  tirEff.addEventListener('change', renderTirPreview);
+
+  tirWrite.addEventListener('click', async () => {
+    if (!tirCoef) return;
+    const fz = tirFz.value.trim() === '' ? undefined : Number(tirFz.value);
+    const d = tirToMaster(tirCoef, fz);
+    const writes: [string, number | undefined][] = [['rolling_radius', rollRadius(d)], ...TIR_MASTER_MAP.map((m) => [m.key, d[m.field] as number | undefined] as [string, number | undefined])];
+    tirSay('Writing…', true); tirStatus.style.color = 'var(--ink-3)';
+    const errs: string[] = [];
+    for (const [k, v] of writes) { if (v === undefined || !Number.isFinite(v)) continue; const e = await setMasterValue(k, +v.toFixed(4)); if (e) errs.push(`${k} (frozen?)`); }
+    tirSay(errs.length ? 'Some skipped: ' + errs.join(', ') : 'Written to Master ✓', !errs.length);
+  });
+
+  tirUpload.addEventListener('click', async () => {
+    if (!tirFileRef) return;
+    if (tirFileRef.size > 10 * 1024 * 1024) return tirSay('File exceeds 10 MB.', false);
+    tirSay('Uploading…', true); tirStatus.style.color = 'var(--ink-3)';
+    const up = await uploadTir(tirFileRef);
+    tirSay(up.error ? 'Upload failed: ' + up.error : 'Uploaded ✓', !up.error);
+    if (!up.error) renderShared();
+  });
+
+  async function renderShared() {
+    const files = await listTir();
+    if (!files.length) { tirShared.innerHTML = ''; return; }
+    const links = await Promise.all(files.map(async (f) => {
+      const u = await signedUrl('tyre', f.path);
+      return u ? `<li><a href="${u}" target="_blank" rel="noopener">${esc(f.name)} ↗</a></li>` : `<li>${esc(f.name)}</li>`;
+    }));
+    tirShared.innerHTML = `<p class="annot">Shared .tir files</p><ul style="margin-top:0.3rem;padding-left:1.1rem;">${links.join('')}</ul>`;
+  }
+  renderShared();
 </script>
