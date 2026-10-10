@@ -26,6 +26,8 @@ import { url } from '../lib/config';
       <button class="btn btn-ghost" type="button" id="cost-add">+ Part</button>
       <button class="btn btn-ghost" type="button" id="cost-export-bom" style="font-size:var(--fs-200);">Export BOM (FSAE-J layout)</button>
       <button class="btn btn-ghost" type="button" id="cost-export-fca" style="font-size:var(--fs-200);">Export FCA detail</button>
+      <a class="btn btn-ghost" href={url('templates/cost/FSAEJ_BOM_Template_2026_v0.xlsx')} download style="font-size:var(--fs-200);">Blank template ↓</a>
+      <button class="btn btn-ghost" type="button" id="cost-reset" style="font-size:var(--fs-200);">Reset to team BOM</button>
       <button class="btn btn-ghost" type="button" id="cost-req-toggle" style="font-size:var(--fs-200);">Request table entry</button>
       <span class="mono" id="cost-save" style="font-size:var(--fs-200);color:var(--ink-3);align-self:center;"></span>
     </div>
@@ -95,7 +97,8 @@ import { url } from '../lib/config';
   interface FastLine { fName: string; size1: number | null; size2: number | null; qty: number | null }
   interface ToolLine { toolName: string; qty: number | null }
   interface PartFca { materials: MatLine[]; processes: ProcLine[]; fasteners: FastLine[]; tooling: ToolLine[] }
-  interface Part { system: string; name: string; subassembly: string; assembly: string; team: string; qty: number | null; unitManual: number | null; fca?: PartFca }
+  interface Blocks { mat: number | null; proc: number | null; fast: number | null; tool: number | null }
+  interface Part { system: string; name: string; subassembly: string; assembly: string; team: string; qty: number | null; unitManual: number | null; fca?: PartFca; sysCode?: string; asmPrt?: string; rev?: string; description?: string; blocks?: Blocks }
 
   let parts: Part[] = [];
   let pvf = 1000;
@@ -125,7 +128,18 @@ import { url } from '../lib/config';
     return f.materials.reduce((s, l) => s + matLinePrice(l), 0) + f.processes.reduce((s, l) => s + procLinePrice(l), 0)
       + f.fasteners.reduce((s, l) => s + fastLinePrice(l), 0) + f.tooling.reduce((s, l) => s + toolLinePrice(l), 0);
   }
-  function partUnit(p: Part): number { return p.fca ? fcaResolvedTotal(p.fca) : num(p.unitManual); }
+  // Per-unit block subtotals: from the FCA when present, else the carried block
+  // costs (from the seed/CSV), else the whole unit falls under "material".
+  function partBlocks(p: Part): Blocks {
+    if (p.fca) return { mat: p.fca.materials.reduce((s, l) => s + matLinePrice(l), 0), proc: p.fca.processes.reduce((s, l) => s + procLinePrice(l), 0), fast: p.fca.fasteners.reduce((s, l) => s + fastLinePrice(l), 0), tool: p.fca.tooling.reduce((s, l) => s + toolLinePrice(l), 0) };
+    if (p.blocks) return p.blocks;
+    return { mat: num(p.unitManual), proc: 0, fast: 0, tool: 0 };
+  }
+  function partUnit(p: Part): number {
+    if (p.fca) return fcaResolvedTotal(p.fca);
+    if (p.blocks) { const b = p.blocks; return num(b.mat) + num(b.proc) + num(b.fast) + num(b.tool); }
+    return num(p.unitManual);
+  }
   function partTotal(p: Part): number { return partUnit(p) * num(p.qty); }
 
   function renderBom() {
@@ -137,7 +151,7 @@ import { url } from '../lib/config';
         <td style="padding:0.2rem 0.3rem;"><input data-i="${i}" data-k="subassembly" value="${esc(p.subassembly)}" style="${inp}width:90px;"></td>
         <td style="padding:0.2rem 0.3rem;"><select data-i="${i}" data-k="team" style="${inp}">${TEAMS.map((t) => `<option${t === p.team ? ' selected' : ''}>${t}</option>`).join('')}</select></td>
         <td style="padding:0.2rem 0.3rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="qty" value="${p.qty ?? ''}" style="${inp}width:52px;text-align:right;"></td>
-        <td style="padding:0.2rem 0.3rem;text-align:right;">${p.fca ? `<span class="mono" title="from FCA">${unit.toFixed(2)}</span>` : `<input type="number" step="any" data-i="${i}" data-k="unitManual" value="${p.unitManual ?? ''}" style="${inp}width:72px;text-align:right;">`}</td>
+        <td style="padding:0.2rem 0.3rem;text-align:right;">${(p.fca || p.blocks) ? `<span class="mono" title="${p.fca ? 'from FCA' : 'from BOM block costs'}">${unit.toFixed(2)}</span>` : `<input type="number" step="any" data-i="${i}" data-k="unitManual" value="${p.unitManual ?? ''}" style="${inp}width:72px;text-align:right;">`}</td>
         <td style="padding:0.2rem 0.3rem;text-align:right;" class="mono">${tot.toFixed(2)}</td>
         <td style="padding:0.2rem 0.3rem;"><button class="btn btn-ghost" data-fca="${i}" style="font-size:var(--fs-100);padding:0.1rem 0.4rem;">${p.fca ? 'edit' : '+ FCA'}</button></td>
         <td style="padding:0.2rem 0.3rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-100);padding:0.1rem 0.4rem;">✕</button></td>
@@ -209,14 +223,35 @@ import { url } from '../lib/config';
     document.getElementById('cost-reqs')!.innerHTML = requests.length ? '<span class="annot">Pending table-entry requests</span>' + requests.map((r) => `<div>· <strong>${esc(r.table)}</strong>: ${esc(r.entry)} <span style="color:var(--ink-3)">— ${esc(r.reason)}</span></div>`).join('') : '';
   }
 
-  // ---- CSV (BOM) ----
+  // ---- CSV (BOM) — round-trips the simple + the official seed columns ----
   const BOM_COLS = ['system', 'component', 'subassembly', 'team', 'qty', 'unit_cost', 'total'];
   function getCsv() { return toCsv(BOM_COLS, parts.map((p) => [p.system, p.name, p.subassembly, p.team, p.qty ?? '', partUnit(p).toFixed(2), partTotal(p).toFixed(2)])); }
-  function applyCsv(text: string, mode: 'replace' | 'append'): string | void {
-    const { headers, rows } = parseCsv(text); const miss = missingColumns(headers, ['component']); if (miss.length) return 'missing column(s): ' + miss.join(', ');
+  function buildParts(text: string): Part[] {
+    const { headers, rows } = parseCsv(text);
     const idx = (h: string) => headers.indexOf(h); const g = (r: string[], h: string) => { const i = idx(h); return i < 0 ? '' : (r[i] ?? '').trim(); };
-    const built: Part[] = rows.filter((r) => g(r, 'component')).map((r) => ({ system: g(r, 'system') || 'Misc', name: g(r, 'component'), subassembly: g(r, 'subassembly'), assembly: '', team: g(r, 'team') || 'Misc', qty: n(g(r, 'qty')), unitManual: n(g(r, 'unit_cost')) }));
-    if (!built.length) return 'no rows'; parts = mode === 'append' ? parts.concat(built) : built; renderBom(); renderSummary(); persist();
+    const hasBlocks = idx('material_cost') >= 0;
+    return rows.filter((r) => g(r, 'component')).map((r) => {
+      const blocks = hasBlocks ? { mat: n(g(r, 'material_cost')), proc: n(g(r, 'process_cost')), fast: n(g(r, 'fastener_cost')), tool: n(g(r, 'tooling_cost')) } : undefined;
+      const p: Part = { system: g(r, 'system') || 'Miscellaneous, Finish & Assembly', name: g(r, 'component'), subassembly: g(r, 'subassembly') || g(r, 'system_code'), assembly: '', team: g(r, 'team') || 'Chassis', qty: n(g(r, 'qty')), unitManual: n(g(r, 'unit_cost')) };
+      if (g(r, 'system_code')) p.sysCode = g(r, 'system_code');
+      if (g(r, 'asm_prt')) p.asmPrt = g(r, 'asm_prt');
+      if (g(r, 'rev')) p.rev = g(r, 'rev');
+      if (g(r, 'description')) p.description = g(r, 'description');
+      if (blocks && (blocks.mat || blocks.proc || blocks.fast || blocks.tool)) p.blocks = blocks;
+      return p;
+    });
+  }
+  function applyCsv(text: string, mode: 'replace' | 'append'): string | void {
+    const { headers } = parseCsv(text); const miss = missingColumns(headers, ['component']); if (miss.length) return 'missing column(s): ' + miss.join(', ');
+    const built = buildParts(text); if (!built.length) return 'no rows'; parts = mode === 'append' ? parts.concat(built) : built; renderBom(); renderSummary(); persist();
+  }
+
+  // Export in the official FSAE-J BOM template column order (paste into the
+  // template's BOM sheet from row 7; its Cost Summary then recomputes).
+  function officialBomCsv(): string {
+    const cols = ['Line Num.', 'System Code', 'Asm/Prt #', 'Rev. Lvl.', 'Asm', 'Component', 'Description', 'Unit Cost', 'Quantity', 'Material Cost', 'Process Cost', 'Fastener Cost', 'Tooling Cost', 'Total Cost', 'Link to FCA Sheet'];
+    const rows = parts.map((p, i) => { const b = partBlocks(p); return [(i + 1) * 10, p.sysCode ?? '', p.asmPrt ?? '', p.rev ?? '', '', p.name, p.description ?? '', partUnit(p).toFixed(2), p.qty ?? '', num(b.mat).toFixed(2), num(b.proc).toFixed(2), num(b.fast).toFixed(2), num(b.tool).toFixed(2), partTotal(p).toFixed(2), p.fca ? (p.sysCode ?? p.name) : '']; });
+    return toCsv(cols, rows);
   }
 
   (async () => {
@@ -229,7 +264,13 @@ import { url } from '../lib/config';
     } catch { document.getElementById('cost-tbl-status')!.textContent = 'cost tables failed to load.'; }
 
     const saved = await loadToolJson<any>(TOOL, {});
-    parts = Array.isArray(saved?.parts) ? saved.parts : [];
+    if (Array.isArray(saved?.parts) && saved.parts.length) {
+      parts = saved.parts;
+    } else {
+      // First run: seed from the team's real FSAE-J BOM.
+      const seed = await fetch(url('data/cost-bom-seed.csv')).then((r) => r.text()).catch(() => '');
+      parts = seed ? buildParts(seed) : [];
+    }
     pvf = Number.isFinite(saved?.pvf) ? saved.pvf : 1000;
     requests = Array.isArray(saved?.requests) ? saved.requests : [];
     (document.getElementById('cost-pvf') as HTMLInputElement).value = String(pvf);
@@ -237,10 +278,15 @@ import { url } from '../lib/config';
 
     document.getElementById('cost-pvf')!.addEventListener('input', (e) => { pvf = Number((e.target as HTMLInputElement).value) || 0; renderBom(); renderSummary(); renderFca(); persist(); });
     document.getElementById('cost-add')!.addEventListener('click', () => { parts.push({ system: 'Misc', name: 'New part', subassembly: '', assembly: '', team: 'Misc', qty: 1, unitManual: null }); renderBom(); renderSummary(); persist(); });
+    document.getElementById('cost-reset')!.addEventListener('click', async () => {
+      if (!confirm('Replace the BOM with the team FSAE-J seed?')) return;
+      const seed = await fetch(url('data/cost-bom-seed.csv')).then((r) => r.text()).catch(() => '');
+      if (seed) { parts = buildParts(seed); selected = -1; renderBom(); renderSummary(); renderFca(); persist(); }
+    });
     document.getElementById('cost-req-toggle')!.addEventListener('click', () => { const f = document.getElementById('cost-req-form') as HTMLElement; f.hidden = !f.hidden; });
     (document.getElementById('cost-req-form') as HTMLFormElement).addEventListener('submit', (e) => { e.preventDefault(); const entry = (document.getElementById('cr-entry') as HTMLInputElement).value.trim(); if (!entry) return; requests.push({ table: (document.getElementById('cr-table') as HTMLSelectElement).value, entry, reason: (document.getElementById('cr-reason') as HTMLInputElement).value.trim() }); (document.getElementById('cost-req-form') as HTMLFormElement).reset(); (document.getElementById('cost-req-form') as HTMLElement).hidden = true; renderRequests(); persist(); });
 
-    document.getElementById('cost-export-bom')!.addEventListener('click', () => downloadText('bom.csv', getCsv()));
+    document.getElementById('cost-export-bom')!.addEventListener('click', () => downloadText('bom_fsaej.csv', officialBomCsv()));
     document.getElementById('cost-export-fca')!.addEventListener('click', () => {
       const cols = ['component', 'block', 'item', 'size1', 'size2', 'qty', 'multiplier', 'sub_cost'];
       const out: (string | number)[][] = [];

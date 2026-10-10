@@ -1,0 +1,170 @@
+system,system_code,asm_prt,rev,component,description,team,qty,unit_cost,material_cost,process_cost,fastener_cost,tooling_cost,total
+Brake,BR-MB,A1010,AA,Brake Master Cylinder,Two seperate identical master cylinder setup,Brake,2.0,201.58,199.5,1.88,0.2,,403.16
+Brake,BR-MB,A1020,AA,Balance Bar,Fit on pedal,Brake,1.0,34.798,30.0,4.798,,,34.798
+Brake,BR-MB,A1030,AA,Hydraulic Fluid Reservoir,Remote fluid reservoir,Brake,2.0,18.9,6.31,10.9,1.69,,37.8
+Brake,BR-CD,A1040,AA,Front Brake Rotor,Larger brake rotor with ventilation slots,Brake,2.0,170.96,3.86,166.08,1.02,,341.92
+Brake,BR-CD,A1050,AA,Rear Brake Rotor,Smaller Brake Rotor with ventilation slots,Brake,2.0,164.39,3.86,159.51,1.02,,328.78
+Brake,BR-CD,A1060,AA,Front Caliper,,Brake,2.0,6.38,1.14,4.82,0.42,,12.76
+Brake,BR-CD,10601,AA,Caliper,Four piston caliper,Brake,2.0,96.0,96.0,,,,192.0
+Brake,BR-CD,10602,AA,Front Brake Pad,,Brake,8.0,0.6552,0.6552,,,,5.2416
+Brake,BR-CD,A1070,AA,Rear Callper,,Brake,2.0,6.38,1.14,4.82,0.42,,12.76
+Brake,BR-CD,10701,AA,Caliper,Two Piston Caliper,Brake,2.0,97.0,97.0,,,,194.0
+Brake,BR-CD,10702,AA,Rear Brake Pad,,Brake,4.0,0.6552,0.6552,,,,2.6208
+Brake,BR-LO,A1080,AA,Brake Line,"Complete brake line setup, without sensor",Brake,1.0,394.45,371.27,22.19,0.99,,394.45
+Brake,BR-LO,A1090,AA,Brake Fluid,Total Brake fluid amount,Brake,1.0,1.19,0.19,1.0,,,1.19
+Brake,Brake System,,,Area Total,,Brake,,,1226.9424,724.008,10.53,0.0,1961.4804
+Drivetrain,DT-EN,A2010,AA,Engine assembly,,Powertrain,1.0,3.84,,,3.84,,3.84
+Drivetrain,DT-EN,20101,AA,Engine,,Powertrain,1.0,780.0,780.0,,,,780.0
+Drivetrain,DT-EN,20102,AA,Engine Mount,,Powertrain,1.0,19.49,11.53,7.96,,,19.49
+Drivetrain,DT-EN,20103,AA,Engine Oil,,Powertrain,1.5,0.75,0.75,,,,1.125
+Drivetrain,DT-IE,A2020,AA,Intake System,,Powertrain,1.0,5.59,,2.42,3.17,,5.59
+Drivetrain,DT-IE,20201,AA,Intake Manifold,,Powertrain,1.0,20.92,2.07,18.85,,,20.92
+Drivetrain,DT-IE,20202,AA,Restrictor,,Powertrain,1.0,70.86,11.98,58.88,,,70.86
+Drivetrain,DT-IE,20203,AA,Air Filter,,Powertrain,1.0,1.34,1.34,,,,1.34
+Drivetrain,DT-IE,20204,AA,Throttle Body,,Powertrain,1.0,2.32,2.32,,,,2.32
+Drivetrain,DT-IE,A2030,AA,Exhaust system,,Powertrain,1.0,9.51,,8.93,0.25,0.33,9.51
+Drivetrain,DT-IE,20301,AA,Exhaust Manifold,,Powertrain,1.0,12.27,4.77,7.5,,,12.27
+Drivetrain,DT-IE,20302,AA,Tailpipe,,Powertrain,1.0,1.51,0.28,1.23,,,1.51
+Drivetrain,DT-IE,20303,AA,Muffler,,Powertrain,1.0,48.53,29.84,18.19,,0.5,48.53
+Drivetrain,DT-FU,A2040,AA,Fuel system assembly,,Powertrain,1.0,1.46,,0.3,0.83,0.33,1.46
+Drivetrain,DT-FU,20401,AA,Fuel tank,,Powertrain,1.0,45.93,4.6,41.0,,0.33,45.93
+Drivetrain,DT-FU,20402,AA,Fuel Vent,,Powertrain,1.0,7.0,7.0,,,,7.0
+Drivetrain,DT-FU,20403,AA,Fuel Pump,,Powertrain,1.0,45.5,45.5,,,,45.5
+Drivetrain,DT-FU,20404,AA,Fuel Filter,,Powertrain,1.0,8.0,8.0,,,,8.0
+Drivetrain,DT-FU,20405,AA,Fuel Injector,,Powertrain,1.0,13.0,13.0,,,,13.0
+Drivetrain,DT-FU,20406,AA,Fuel Pressure Regulator,,Powertrain,1.0,19.5,19.5,,,,19.5
+Drivetrain,DT-FU,20407,AA,Fuel Line,,Powertrain,1.0,29.16,29.16,,,,29.16
+Drivetrain,DT-CO,A2050,AA,Cooling assembly,,Powertrain,1.0,3.71,,2.68,1.03,,3.71
+Drivetrain,DT-CO,20501,AA,Radiator,,Powertrain,1.0,7.14,7.14,,,,7.14
+Drivetrain,DT-CO,20502,AA,Radiator Fan,,Powertrain,1.0,30.0,30.0,,,,30.0
+Drivetrain,DT-CO,20503,AA,Overflow Bottle,,Powertrain,1.0,5.0,5.0,,,,5.0
+Drivetrain,DT-CO,20504,AA,Catch can,,Powertrain,1.0,63.02,27.42,34.4,1.2,,63.02
+Drivetrain,DT-CO,20505,AA,Coolant Line,,Powertrain,1.0,25.5,25.5,,,,25.5
+Drivetrain,DT-CO,20506,AA,Hose Clamp,,Powertrain,10.0,0.045,,,0.045,,0.45
+Drivetrain,DT-DT,A2060,AA,Sproket Assembly,,Powertrain,1.0,10.19,,10.19,,,10.19
+Drivetrain,DT-DT,20601,AA,Sprocket (Rear),,Powertrain,1.0,86.03,43.18,42.85,,,86.03
+Drivetrain,DT-DT,20602,,Sprocket (Front),,Powertrain,1.0,10.76,0.8,9.96,,,10.76
+Drivetrain,DT-DT,20603,AA,Sproket Adapter,,Powertrain,1.0,11.42,2.17,8.63,0.62,,11.42
+Drivetrain,DT-DT,A2070,AA,Chain,,Powertrain,1.0,4.6,4.6,,,,4.6
+Drivetrain,DT-DT,A2080,AA,Differential Assembly,,Powertrain,1.0,2.77,,2.77,,,2.77
+Drivetrain,DT-DT,20801,AA,Bearing Housing Left,,Powertrain,1.0,9.82,1.52,8.3,,,9.82
+Drivetrain,DT-DT,20802,AA,Bearing Housing Right,,Powertrain,1.0,11.82,1.76,10.06,,,11.82
+Drivetrain,DT-DT,20803,AA,Differential Bearing Right,Rotating Bearing Plate (72mm OD),Powertrain,1.0,25.94,25.94,,,,25.94
+Drivetrain,DT-DT,20804,AA,Differential Bearing Left,Rotating Bearing Plate (80mm OD),Powertrain,1.0,29.84,29.84,,,,29.84
+Drivetrain,DT-DT,20805,AA,Drexler Differential L1,,Powertrain,1.0,144.52,129.64,14.3,0.58,,144.52
+Drivetrain,DT-DT,A2090,AA,Differential Mount Assembly,,Powertrain,1.0,27.03,1.22,25.81,0.0,,27.03
+Drivetrain,DT-DT,20901,AA,Differential Mount Plate Right,,Powertrain,1.0,46.76,9.03,36.63,1.1,,46.76
+Drivetrain,DT-DT,20902,AA,Differential Mount Plate Left,,Powertrain,1.0,46.72,9.04,36.58,1.1,,46.72
+Drivetrain,DT-DT,A2100,AA,Differential Oil,"to lubricate gears, cool internal components, and reduce friction between moving parts to prevent wear and overheating.",Powertrain,1.5,0.75,0.75,,,,1.125
+Drivetrain,DT-DT,21101,AA,Tripod Housing- CV Joint Long,,Powertrain,1.0,27.58,12.79,14.79,,,27.58
+Drivetrain,DT-DT,21102,AA,Tripod Housing - CV Joint Short,,Powertrain,1.0,18.78,6.4,12.38,,,18.78
+Drivetrain,DT-DT,21103,AA,Boot - CV Joint,,Powertrain,2.0,5.0,5.0,,,,10.0
+Drivetrain,DT-DT,A2120,AA,Driveshaft Assembly,,Powertrain,1.0,0.26,,0.26,,,0.26
+"Miscellaneous, Finish & Assembly",Drivetrain,,,Area Total,,Chassis,,,1446.13,436.21,13.53,1.49,1897.36
+Frame & Body,FR-FR,A3010,AA,Frame Assembly,,Chassis,1.0,65.2,,65.06,,0.14,65.2
+Frame & Body,FR-FR,30101,AA,Frame Tube,Chromoly Tubes,Chassis,1.0,191.29,79.98,102.98,,8.33,191.29
+Frame & Body,FR-FR,30102,AA,Anti Intrusion Plate,,Chassis,1.0,9.47,3.68,5.79,,,9.47
+Frame & Body,FR-FR,30103,AA,Floor Mount,Floor Mount welded to Chassis Frame,Chassis,12.0,1.83,0.03,1.8,,,21.96
+Frame & Body,FR-FR,30104,AA,Under Tray Mount,Under Tray Mount welded to Chassis Frame,Chassis,10.0,1.83,0.03,1.8,,,18.3
+Frame & Body,FR-FR,30105,AA,Radiator Mount,Radiator Mount welded to Chassis Frame,Chassis,1.0,9.05,1.47,7.58,,,9.05
+Frame & Body,FR-FR,30106,AA,Seat Mount,Seat Mount welded to Chassis Frame,Chassis,1.0,19.62,1.12,18.5,,,19.62
+Frame & Body,FR-FR,30107,AA,Body Mount,Body Mount  welded to Chassis Frame,Chassis,14.0,1.83,0.03,1.8,,,25.62
+Frame & Body,FR-FR,30108,AA,Steering Mount Bracket,Mount welded to Chassis,Chassis,2.0,1.83,0.09,1.74,,,3.66
+Frame & Body,FR-FR,30109,AA,A-ARM Moutings,,Chassis,2.0,3.36,1.83,1.53,,,6.72
+Frame & Body,FR-FR,A3020,AA,Cowl and Aerodynamic Assembly,Body Assembly,Chassis,1.0,11.13,,9.5,1.63,,11.13
+Frame & Body,FR-CA,30201,AA,Nosecone,Glassfiber Nosecone,Chassis,1.0,342.3,300.0,42.3,,,342.3
+Frame & Body,FR-CA,30202,AA,Side Cowl/wall,Glass Fiber Sidepanel,Chassis,2.0,60.8,50.0,10.8,,,121.6
+Frame & Body,FR-CA,30203,AA,Under Tray,,Chassis,1.0,676.8,600.0,76.8,,,676.8
+Frame & Body,FR-CA,30204,AA,Floor Pan,,Chassis,1.0,16.86,7.08,9.78,,,16.86
+Frame & Body,FR-PS,A3030,,Foot Pedal Base,Pedal Base and rail set on floor,Chassis,1.0,89.5557,20.2757,68.56,0.72,,89.5557
+Frame & Body,FR-PS,A3040,AA,Accelerator Pedal,Attached to foot pedal base,Chassis,1.0,22.6928,7.8,14.4828,0.41,,22.6928
+Frame & Body,FR-PS,A3050,AA,Brake Pedal,Attached to foot pedal base,Chassis,1.0,28.6278,11.865,16.3708,0.392,,28.6278
+Frame & Body,FR-PS,A3060,AA,Clutch Pedal,Attached to steering bar,Chassis,1.0,8.17,3.1,4.89,0.18,,8.17
+Frame & Body,FR-PS,A3070,AA,Shifter,Attached to side rail of driver,Chassis,1.0,5.268,2.438,2.58,0.25,,5.268
+Frame & Body,FR-FA,A3080,AA,Final Assembly,,Chassis,1.0,8.46,,4.23,4.23,,8.46
+Frame & Body,Frame & Body,,,Area Total,,Chassis,,,1143.7287,542.3436,7.812,8.47,1702.3543
+Electrical,EL-WH,A4010,AA,Wire Harness Assembly,,ECS,1.0,5.06,,0.06,5.0,,5.06
+Electrical,EL-WH,40101,AA,Wire Harness,Organizes and protects the network of wires connecting various electrical components.,ECS,1.0,201.81,60.0,141.06,0.75,,201.81
+Electrical,EL-WH,40102,AA,Connector,High-reliability electrical interface for automotive wiring systems.,ECS,1.0,62.06,62.0,0.06,,,62.06
+Electrical,EL-DP,A4020,AA,Dash Panel and ECU Assembly,,ECS,1.0,75.33,,75.33,,,75.33
+Electrical,EL-DP,40201,AA,Engine Electronics,Manages and monitors engine performance and electronic control unit (ECU) functions.,ECS,1.0,1416.06,1340.0,71.06,5.0,,1416.06
+Electrical,EL-DP,40202,,Switches,Provides manual control for various electrical circuits or system activation.,ECS,1.0,122.52,40.8,75.27,6.45,,122.52
+Electrical,EL-DP,A4030,AA,Dash Panel Assembly,,ECS,1.0,170.67,141.52,28.96,0.19,,170.67
+Electrical,EL-DP,40301,AA,Gear Indicator,Provides a visual representation of the current transmission gear selected.,ECS,1.0,7.346,5.12,2.21,0.016,,7.346
+Electrical,EL-DP,40302,AA,RPM Light,Alerts the driver to engine revolutions per minute (RPM) for optimal shifting.,ECS,1.0,13.226,10.92,2.29,0.016,,13.226
+Electrical,EL-BO,A4040,AA,Battery and Others Assembly,,ECS,1.0,0.8,,0.56,0.24,,0.8
+Electrical,EL-BO,40401,AA,Battery,Stores electrical energy to power the vehicle's electronics and start the engine.,ECS,1.0,25.3,6.1,19.2,,,25.3
+Electrical,EL-BO,40402,AA,Brake Light,Signals to other drivers when the vehicle is decelerating or stopping.,ECS,1.0,37.47,24.1,13.37,,,37.47
+Electrical,EL-BO,40403,AA,Fuses,Protects electrical circuits from overcurrent by breaking the connection if a fault occurs.,ECS,1.0,4.81,4.75,0.06,,,4.81
+Electrical,EL-BO,40404,AA,Relays,Acts as an electromagnetic switch to control high-power circuits with low-power signals.,ECS,1.0,18.06,18.0,0.06,,,18.06
+Electrical,Electrical,,,Area Total,,ECS,,,1713.31,429.55,17.662,0.0,2160.522
+"Miscellaneous, Finish & Assembly",MS,A5010,AA,Seat,FiberGlass Seat,Chassis,1.0,203.47,100.0,103.47,,,203.47
+"Miscellaneous, Finish & Assembly",MS,A5020,AA,Headrest,,Chassis,1.0,18.13,11.96,6.17,,,18.13
+"Miscellaneous, Finish & Assembly",MS,A5030,AA,Driver’s Harness,6 point Harness,Chassis,1.0,56.83,45.04,5.42,6.09,0.28,56.83
+"Miscellaneous, Finish & Assembly",MS,A5040,AA,Impact Attenuator,Honeycomb IA,Chassis,1.0,20.0,20.0,,,,20.0
+"Miscellaneous, Finish & Assembly",MS,A5050,AA,Fire Wall,,Chassis,1.0,32.95,18.59,14.36,,,32.95
+"Miscellaneous, Finish & Assembly",MS,A5060,AA,Roll Hoop Padding,2 RHP at Roll Hoop tube,Chassis,2.0,0.33,0.05,0.28,,,0.66
+"Miscellaneous, Finish & Assembly",MS,A5070,AA,Paint - Frame,,Chassis,1.0,125.0,50.0,75.0,,,125.0
+"Miscellaneous, Finish & Assembly",MS,A5080,AA,Paint - Body,,Chassis,1.0,66.5,26.6,39.9,,,66.5
+"Miscellaneous, Finish & Assembly","Miscellaneous, Finish & Assembly",,,Area Total,,Chassis,,,272.29,244.88,6.09,0.28,523.54
+Steering,ST-RA,A6010,AA,Steering Rack Assembly,,VD,1.0,31.36,21.5,7.94,1.92,,31.36
+Steering,ST-RA,60101,AA,Steering Rack,Rack machined from circular shaft,VD,1.0,12.07,1.76,10.31,,,12.07
+Steering,ST-RA,60102,AA,Steering Pinion,Pinion machined from circular shaft,VD,1.0,21.6237,0.9885,20.6352,,,21.6237
+Steering,ST-RA,60103,AA,Steering Rack Housing,Hosuing and connection area for rack and pinion,VD,1.0,14.2348,3.5288,10.706,,,14.2348
+Steering,ST-RA,A6020,AA,Tie Rod,Adjustable length,VD,2.0,6.601,,5.75,0.851,,13.202
+Steering,ST-RA,60201,AA,Rod,,VD,2.0,7.41,0.72,6.58,,0.11,14.82
+Steering,ST-RA,60202,AA,Rod End - A,,VD,4.0,3.22,3.22,,,,12.88
+Steering,ST-WS,A6030,AA,Steering Shaft Assembly,,VD,1.0,10.256,1.0,8.07,1.186,,10.256
+Steering,ST-WS,60301,AA,Steering Shaft Mounting,Steering shaft support attached to frame,VD,1.0,43.597,36.557,7.04,,,43.597
+Steering,ST-WS,60302,AA,Steering Upper Shaft,Connecting quick release to steering shaft,VD,1.0,6.9638,0.1987,6.7651,,,6.9638
+Steering,ST-WS,60303,AA,Steering Intermediate Shaft,Connecting Upper and lower shaft,VD,1.0,6.6146,0.4646,6.15,,,6.6146
+Steering,ST-WS,60304,AA,Steering Lower Shaft,Connecting shaft to rack and pinion,VD,1.0,7.0017,0.2272,6.7745,,,7.0017
+Steering,ST-WS,60305,AA,Steering Column Universal Joint,U joint connecting parts of shaft,VD,2.0,20.0,20.0,,,,40.0
+Steering,ST-WS,A6040,AA,Steering Wheel,,VD,1.0,0.26,,0.26,,,0.26
+Steering,ST-WS,60401,AA,Wheel,Lightweight Aluminium wheel,VD,1.0,8.2132,4.2327,3.9805,,,8.2132
+Steering,ST-WS,60402,AA,Grip,Plastic 3D printed grips for ease of handling,VD,1.0,3.53,0.33,3.2,,,3.53
+Steering,ST-WS,A6050,AA,Steering Wheel Quick Release,,VD,1.0,2.373,,2.06,0.313,,2.373
+Steering,ST-WS,60501,AA,Quick Release,,VD,1.0,15.5826,2.5456,13.037,,,15.5826
+Steering,ST-WS,60502,AA,Quick Release Shaft,,VD,1.0,7.316,0.654,6.662,,,7.316
+Steering,Steering System,,,Area Total,,VD,,,128.3071,138.2503,5.121,0.22,271.8983
+Suspension,SU-SD,A7010,AA,Front Damper and Spring,Absorbs shocks and stabilize front end handling,VD,2.0,174.42,170.0,3.76,0.66,,348.84
+Suspension,SU-SD,A7020,AA,Rear Damper and Spring,Improves rear wheel traction and ride comfort,VD,2.0,174.42,170.0,3.76,0.66,,348.84
+Suspension,SU-SD,A7030,AA,Front Bell Crank Assembly,Converts Pushrod motion into damper compression,VD,2.0,4.4,1.88,1.75,0.77,,8.8
+Suspension,SU-SD,70301,AA,Front Bell Crank,,VD,2.0,38.8,23.29,15.34,,0.17,77.6
+Suspension,SU-SD,A7040,AA,Rear Bell Crank Assembly,Transfers Pushrod forces tp Damper,VD,2.0,4.4,1.88,1.75,0.77,,8.8
+Suspension,SU-SD,70401,AA,Rear Bell Crank,,VD,2.0,36.93,22.79,13.97,,0.17,73.86
+Suspension,SU-SD,A7050,AA,Front Pushrod,Transmits Wheel movement from upright to Bell crank,VD,2.0,4.16,,3.5,0.66,,8.32
+Suspension,SU-SD,70501,AA,Front Pushrod Rod,,VD,2.0,9.91,0.99,8.81,,0.11,19.82
+Suspension,SU-SD,70502,AA,Rod End - B,Allows angular movement and articulation in linkages,VD,4.0,10.0,10.0,,,,40.0
+Suspension,SU-SD,A7060,AA,Rear Pushrod,Carries Rear Suspension load to rocker mechanism,VD,2.0,4.16,,3.5,0.66,,8.32
+Suspension,SU-SD,70601,AA,RearPushrod Rod,,VD,2.0,9.79,0.87,8.81,,0.11,19.58
+Suspension,SU-SD,70502,AA,Rod End - B,,VD,4.0,10.0,10.0,,,,40.0
+Suspension,SU-AL,A7070,AA,Front A-ARM - Upper,Maintains camber control and wheel alignment,VD,2.0,8.29,,6.75,1.54,,16.58
+Suspension,SU-AL,70701,AA,Front A-ARM Rod - Upper,,VD,2.0,16.32,1.21,14.97,,0.14,32.64
+Suspension,SU-AL,70702,AA,Rod End - C,Allows angular movement and articulation in linkages,VD,6.0,10.0,10.0,,,,60.0
+Suspension,SU-AL,A7080,AA,Front A-ARM - Lower,Supports load transfer and maintains wheel positioning,VD,2.0,8.29,,6.75,1.54,,16.58
+Suspension,SU-AL,70801,AA,Front A-ARM Rod - Lower,,VD,2.0,25.16,1.8,23.21,,0.15,50.32
+Suspension,SU-AL,70702,AA,Rod End - C,,VD,6.0,10.0,10.0,,,,60.0
+Suspension,SU-AL,A7090,AA,Rear A-ARM - Upper,Controls rear camber and maintains wheel alignment,VD,2.0,8.29,,6.75,1.54,,16.58
+Suspension,SU-AL,70901,AA,Rear A-ARM Rod - Upper,,VD,2.0,16.25,1.14,14.94,,0.17,32.5
+Suspension,SU-AL,70702,AA,Rod End - C,,VD,6.0,10.0,10.0,,,,60.0
+Suspension,SU-AL,A7100,AA,Rear A-ARM- Lower,Carries structural loads and maintains rear geometry,VD,2.0,8.29,,6.75,1.54,,16.58
+Suspension,SU-AL,71001,AA,Rear A-ARM Rod - Lower,,VD,2.0,30.38,1.72,28.56,,0.1,60.76
+Suspension,SU-AL,70702,AA,Rod End - C,,VD,6.0,10.0,10.0,,,,60.0
+Suspension,SU-AL,A7110,AA,Rear Suspension Link,"Provide control over toe, camber and rear kinematics",VD,2.0,4.53,,3.5,1.03,,9.06
+Suspension,SU-AL,71101,AA,Rear Suspension Link Rod,,VD,2.0,9.55,0.72,8.72,,0.11,19.1
+Suspension,SU-AL,71102,AA,Rod End - D,Allows angular movement and articulation in linkages,VD,4.0,10.0,10.0,,,,40.0
+Suspension,SU-AL,A7120,AA,Front Upright,Connects to wheel hub to suspension and steering,VD,2.0,183.51,42.84,140.67,,,367.02
+Suspension,SU-AL,A7130,AA,Rear Upright,Holds the rear hub and links suspension members,VD,2.0,114.87,27.26,87.61,,,229.74
+Suspension,Suspension System,,,Area Total,,VD,,,1296.78,828.26,22.74,2.46,2150.24
+Wheels/Hubs,WT,A8010,AA,Tire & Wheel Assembly,"Provides traction, braking and maintains road contact",VD,4.0,172.48,163.5,7.38,1.6,,689.92
+Wheels/Hubs,WT,A8020,AA,Front Hub Assembly,Connects wheel to the upright,VD,2.0,15.03,12.38,2.65,,,30.06
+Wheels/Hubs,WT,80201,AA,Front Hub,House bearings and connects wheel to the upright,VD,2.0,93.22,22.13,71.09,,,186.44
+Wheels/Hubs,WT,80202,AA,Wheel Stud Front,Secures wheel connection to hub,VD,8.0,2.85,0.1,2.75,,,22.8
+Wheels/Hubs,WT,80203,AA,Metal Bushing,Placed between hub and wheel stud interface,VD,8.0,0.26,0.01,0.25,,,2.08
+Wheels/Hubs,WT,A8030,AA,Rear Hub Assembly,"Wheel connection, transmits drive and brake torque to wheel",VD,2.0,14.73,12.08,2.65,,,29.46
+Wheels/Hubs,WT,80301,AA,Rear Hub,"House bearings, transmits drive and brake torque to wheel",VD,2.0,93.98,22.13,71.85,,,187.96
+Wheels/Hubs,WT,80302,AA,Wheel Stud Rear,,VD,8.0,2.85,0.1,2.75,,,22.8
+Wheels/Hubs,WT,80203,AA,Metal Bushing,,VD,8.0,0.26,0.01,0.25,,,2.08
+"Miscellaneous, Finish & Assembly","Wheels, Wheel Bearings and Tires",,,Area Total,,Chassis,,,793.2,374.0,6.4,0.0,1173.6
+"Miscellaneous, Finish & Assembly",Vehicle Total,,,Total,,Chassis,,,8020.6881,3717.5019,89.885,12.92,11840.995
