@@ -60,6 +60,7 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
       CAD estimate vs measured per component. CAD total = unit × qty; Δ = measured − CAD.
       Feeds the MassBudget (chassis mass as built). Saved for the whole team.
     </p>
+    <div id="mass-ctrls"></div>
     <div style="overflow-x:auto;margin-top:0.8rem;">
       <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:600px;">
         <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
@@ -127,8 +128,10 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
 <script>
   import { mountCalculator } from '../lib/calc/engine';
   import { tubeCompute } from '../lib/calc/chassis-tube';
-  import { massCompute } from '../lib/calc/chassis-mass';
+  import { massCompute, MASS_COMPONENTS } from '../lib/calc/chassis-mass';
   import { tubeBucklingCompute, boltedJointCompute } from '../lib/calc/extras';
+  import { mountListControls } from '../lib/list-controls';
+  import { toCsv, parseCsv, missingColumns } from '../lib/csv';
 
   mountCalculator({
     root: 'tube', tool: 'chassis_tube', compute: tubeCompute, defaultDigits: 2,
@@ -142,4 +145,49 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
 
   mountCalculator({ root: 'buckling', tool: 'chassis_buckling', compute: tubeBucklingCompute, digits: { inertia: 0, pcr: 0 } });
   mountCalculator({ root: 'bolt', tool: 'chassis_bolt', compute: boltedJointCompute, digits: { proofLoad: 0, clamp: 0, torque: 1 } });
+
+  // CSV + presets for the component-mass tracker (P1.5). The grid is engine-
+  // mounted, so after setting fields we dispatch 'input' to recompute + persist.
+  const MCF = (key: string, f: string) => document.querySelector(`[data-in="${f}_${key}"]`) as HTMLInputElement | null;
+  const MASS_CSV_COLS = ['component', 'cad_unit_kg', 'qty', 'measured_kg'];
+  const massPing = () => (document.querySelector('#mass [data-in]') as HTMLInputElement | null)?.dispatchEvent(new Event('input', { bubbles: true }));
+  function massGetCsv(): string {
+    return toCsv(MASS_CSV_COLS, MASS_COMPONENTS.map((c) => {
+      const g = (f: string) => { const el = MCF(c.key, f); return el && el.value.trim() !== '' ? el.value : ''; };
+      return [c.label, g('unit'), g('qty'), g('meas')];
+    }));
+  }
+  function massApplyCsv(text: string, mode: 'replace' | 'append'): string | void {
+    const { headers, rows } = parseCsv(text);
+    const miss = missingColumns(headers, ['component']);
+    if (miss.length) return 'missing column(s): ' + miss.join(', ');
+    const idx = (h: string) => headers.indexOf(h);
+    const byLabel = new Map(MASS_COMPONENTS.map((c) => [c.label.toLowerCase(), c.key]));
+    if (mode === 'replace') for (const c of MASS_COMPONENTS) for (const f of ['unit', 'qty', 'meas']) { const el = MCF(c.key, f); if (el) el.value = ''; }
+    let matched = 0;
+    for (const r of rows) {
+      const key = byLabel.get((r[idx('component')] ?? '').trim().toLowerCase());
+      if (!key) continue;
+      matched++;
+      const set = (f: string, col: string) => { const ci = idx(col); if (ci < 0) return; const v = (r[ci] ?? '').trim(); const el = MCF(key, f); if (el && v !== '') el.value = v; };
+      set('unit', 'cad_unit_kg'); set('qty', 'qty'); set('meas', 'measured_kg');
+    }
+    massPing();
+    if (!matched) return 'no component names matched';
+  }
+  function massGetRecord(): Record<string, number | null> {
+    const rec: Record<string, number | null> = {};
+    document.querySelectorAll<HTMLInputElement>('#mass [data-in]').forEach((el) => { rec[el.dataset.in!] = el.value === '' ? null : Number(el.value); });
+    return rec;
+  }
+  function massApplyRecord(rec: Record<string, number | null>) {
+    document.querySelectorAll<HTMLInputElement>('#mass [data-in]').forEach((el) => { const v = rec?.[el.dataset.in!]; el.value = v == null ? '' : String(v); });
+    massPing();
+  }
+  mountListControls({
+    container: document.getElementById('mass-ctrls')!,
+    tool: 'chassis_mass', filename: 'component_mass.csv',
+    getCsv: massGetCsv, applyCsv: massApplyCsv,
+    getPresetPayload: massGetRecord, applyPreset: (p: any) => massApplyRecord(p ?? {}),
+  });
 </script>

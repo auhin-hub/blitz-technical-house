@@ -77,6 +77,7 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
   import Chart from 'chart.js/auto';
   import { understeer, yawGainCurve, rollDistribution, arbForTarget, type BalanceInput, type BalanceMaster } from '../lib/calc/balance';
   import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
+  import { decorateLinkedCells } from '../lib/linked';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
   const TOOL = 'balance';
@@ -124,8 +125,9 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
 
   (async () => {
     applyChartDefaults();
-    master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
-    for (const el of document.querySelectorAll<HTMLElement>('[data-master]')) { const k = el.dataset.master!; if (Number.isFinite(master[k])) el.textContent = fmt(master[k]); }
+    const rows = await loadMaster();
+    master = Object.fromEntries(Object.entries(rows).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
+    decorateLinkedCells(document, rows);
     // Prefill axle Cα from the per-tyre Master value (×2).
     if (Number.isFinite(master.corner_stiffness)) { (document.querySelector('[data-in="caF"]') as HTMLInputElement).value = String(master.corner_stiffness * 2); (document.querySelector('[data-in="caR"]') as HTMLInputElement).value = String(master.corner_stiffness * 2); }
     const saved = await loadToolJson<Record<string, number>>(TOOL, {});

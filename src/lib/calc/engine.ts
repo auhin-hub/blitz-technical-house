@@ -10,6 +10,7 @@
  */
 import Chart from 'chart.js/auto';
 import { loadMaster, loadToolState, saveToolState, saveToolOutputs, fmt, debounce } from '../store';
+import { decorateLinkedCells } from '../linked';
 import { applyChartDefaults, palette, watchTheme } from '../chart-theme';
 
 export type Flat = Record<string, number>;
@@ -52,9 +53,11 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
   if (Object.keys(loaded).length) {
     scope.querySelectorAll<HTMLElement>('[data-master]').forEach((el) => {
       const k = el.dataset.master!;
-      if (loaded[k]) { master[k] = Number(loaded[k].value); el.textContent = fmt(master[k]); }
+      if (loaded[k]) master[k] = Number(loaded[k].value);
     });
   }
+  // Decorate each linked cell by its Master state (not set / unfrozen / frozen).
+  decorateLinkedCells(scope, loaded);
 
   const readInp = (): Flat => {
     const inp: Flat = {};

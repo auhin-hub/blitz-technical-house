@@ -115,6 +115,7 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
   import Chart from 'chart.js/auto';
   import { springsCompute, mrFromGeometry, DAMPER_PRESETS, type SpringSide, type SpringsMaster } from '../lib/calc/springs';
   import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
+  import { decorateLinkedCells } from '../lib/linked';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
   const TOOL = 'springs';
@@ -163,8 +164,9 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
 
   (async () => {
     applyChartDefaults();
-    master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
-    for (const el of document.querySelectorAll<HTMLElement>('[data-master]')) { const k = el.dataset.master!; if (Number.isFinite(master[k])) el.textContent = fmt(master[k]); }
+    const rows = await loadMaster();
+    master = Object.fromEntries(Object.entries(rows).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
+    decorateLinkedCells(document, rows);
     const saved = await loadToolJson<Record<string, number>>(TOOL, {});
     for (const [k, v] of Object.entries(saved)) { const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v); }
 

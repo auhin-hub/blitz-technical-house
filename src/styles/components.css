@@ -154,6 +154,17 @@
   color: var(--state-computed); background: var(--state-computed-fill);
   border: 1px solid var(--rule);
 }
+/* Linked-cell Master-state warnings (handoff P1.4). Shape (solid vs dashed) +
+   text carry the meaning, not colour alone (WCAG). */
+.linked-unset {
+  color: var(--amber-text);
+  border: 1px solid var(--amber); border-radius: var(--radius-sm);
+  padding: 0.05em 0.4em;
+}
+.linked-unfrozen {
+  border: 1px dashed var(--amber); border-radius: var(--radius-sm);
+  padding: 0.05em 0.4em;
+}
 
 /* ---- Badges / pills ------------------------------------------------------ */
 .badge {

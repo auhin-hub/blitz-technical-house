@@ -219,6 +219,25 @@ export async function saveToolJson(tool: string, data: unknown): Promise<string 
   return error ? error.message : null;
 }
 
+/* ---- Named presets (handoff P1.5) --------------------------------------
+ * Team-shared, labelled input sets stored alongside a tool's state under a
+ * separate `${tool}__presets` key: { presets: { [name]: payload } }. Reused by
+ * every list tool and by the Vehicle-Spec "previous-year baseline" (P1.3). */
+export async function loadPresets<T = unknown>(tool: string): Promise<Record<string, T>> {
+  const data = await loadToolJson<{ presets?: Record<string, T> }>(`${tool}__presets`, {});
+  return data.presets ?? {};
+}
+export async function saveNamedPreset<T = unknown>(tool: string, name: string, payload: T): Promise<string | null> {
+  const presets = await loadPresets<T>(tool);
+  presets[name] = payload;
+  return saveToolJson(`${tool}__presets`, { presets });
+}
+export async function deletePreset(tool: string, name: string): Promise<string | null> {
+  const presets = await loadPresets(tool);
+  delete presets[name];
+  return saveToolJson(`${tool}__presets`, { presets });
+}
+
 /** Format a number for display: trim noise, keep sensible precision. */
 export function fmt(v: number | null | undefined, digits = 3): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—';
