@@ -18,7 +18,32 @@ import logo from '../assets/blitz-logo.png';
     </div>
   </section>
 
-  <!-- Gate/phase status + latest results: wired to Supabase in later steps. -->
+  <!-- Dashboard — car at a glance (MASTER_BUILD_PLAN §7): KPI tiles from the
+       Master + tool contributions, with the g–g as the centrepiece. -->
+  <section style="margin:1.5rem 0 2rem;">
+    <div class="annot-dim" style="margin-bottom:1rem;">Car at a glance</div>
+    <div class="dash-grid" style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:1.25rem;align-items:start;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));gap:0.6rem;">
+        <div class="ct-stat"><span class="annot">Mass</span><div class="val"><span data-kpi="mass">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> kg</span></div></div>
+        <div class="ct-stat"><span class="annot">Front fraction</span><div class="val"><span data-kpi="ff">—</span></div></div>
+        <div class="ct-stat"><span class="annot">CoG height</span><div class="val"><span data-kpi="cog">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div></div>
+        <div class="ct-stat"><span class="annot">Yaw inertia</span><div class="val"><span data-kpi="izz">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> kg·m²</span></div></div>
+        <div class="ct-stat"><span class="annot">Target lat g</span><div class="val"><span data-kpi="latg">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> g</span></div></div>
+        <div class="ct-stat"><span class="annot">Spring F / R</span><div class="val" style="font-size:var(--fs-500)"><span data-kpi="springF">—</span> / <span data-kpi="springR">—</span></div><span class="ct-unit">N/mm</span></div>
+        <div class="ct-stat"><span class="annot">Brake bias (F)</span><div class="val"><span data-kpi="bias">—</span></div></div>
+        <div class="ct-stat"><span class="annot">Roll gradient</span><div class="val"><span data-kpi="rollgrad">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> deg/g</span></div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <span class="annot">g–g snapshot</span>
+          <a href={url('gg')} style="font-size:var(--fs-200);">open →</a>
+        </div>
+        <div style="height:250px;position:relative;margin-top:0.4rem;"><canvas id="dash-gg"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gate/phase status + latest results. -->
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));margin:1.5rem 0 2.5rem;">
     <div class="card">
       <span class="annot">Gate status</span>
@@ -59,3 +84,41 @@ import logo from '../assets/blitz-logo.png';
     </div>
   </section>
 </Base>
+
+<style>@media (max-width: 760px) { .dash-grid { grid-template-columns: 1fr !important; } }</style>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { loadMaster, loadToolOutputsMap, fmt } from '../lib/store';
+  import { ggCurve } from '../lib/calc/gg';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+
+  const setKpi = (k: string, v: number | null | undefined, d = 2) => {
+    const el = document.querySelector(`[data-kpi="${k}"]`);
+    if (el) el.textContent = v === null || v === undefined || !Number.isFinite(v) ? '—' : fmt(v, d);
+  };
+
+  let ggChart: Chart | null = null;
+  function renderGg(muY: number, mass: number) {
+    const p = palette();
+    const i = { muX: 1.4, muY: Number.isFinite(muY) ? muY : 1.5, accelLimit: 0.8, brakeLimit: 0,
+      mass: Number.isFinite(mass) ? mass : 264, rho: 1.18, clA: 0, speedKmh: 0 };
+    const env = ggCurve(i).map((q) => ({ x: q.ay, y: q.ax }));
+    const cfg: any = { type: 'scatter', data: { datasets: [{ label: 'g–g', data: env, showLine: true, borderColor: p.sky, backgroundColor: 'transparent', pointRadius: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: { title: { display: true, text: 'lateral (g)' }, min: -2, max: 2 }, y: { title: { display: true, text: 'long. (g)' }, min: -2, max: 2 } } } };
+    if (ggChart) { ggChart.data = cfg.data; ggChart.update(); } else { const cv = document.getElementById('dash-gg') as HTMLCanvasElement | null; if (cv) ggChart = new Chart(cv, cfg); }
+  }
+
+  (async () => {
+    applyChartDefaults();
+    const m = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
+    const o = await loadToolOutputsMap();
+    setKpi('mass', m.mass_total, 1); setKpi('ff', m.mass_frac_front, 3); setKpi('cog', m.cog_height, 1);
+    setKpi('izz', m.yaw_inertia, 1); setKpi('latg', m.accel_lat_target, 2);
+    setKpi('springF', o.spring_rate_front?.value, 2); setKpi('springR', o.spring_rate_rear?.value, 2);
+    setKpi('bias', o.achieved_front_bias?.value, 3); setKpi('rollgrad', o.roll_gradient?.value, 2);
+    renderGg(m.mu_lat_peak, m.mass_total);
+    watchTheme(() => { applyChartDefaults(); renderGg(m.mu_lat_peak, m.mass_total); });
+  })();
+</script>
