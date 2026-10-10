@@ -43,7 +43,7 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
   <LegendKey />
 
   <div style="margin-top:1.25rem;"></div>
-  <CockpitShell tools={[{ id: 'tube', title: 'Tube stress & FoS' }, { id: 'mass', title: 'Component-mass tracker' }]} railLabel="Chassis">
+  <CockpitShell tools={[{ id: 'tube', title: 'Tube stress & FoS' }, { id: 'mass', title: 'Component-mass tracker' }, { id: 'buckling', title: 'Tube buckling' }, { id: 'bolt', title: 'Bolted joint' }]} railLabel="Chassis">
   <CalcTool id="tube" title="Tube stress & factor of safety" spec="TOOL_SPECS §2a"
     blurb="Axial stress and FoS for a round tube, plus the torsional-stiffness target vs measured twist test."
     inputs={TUBE_INPUTS} outputs={TUBE_OUTPUTS}
@@ -98,6 +98,29 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
     <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
     <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
   </section>
+
+  <CalcTool id="buckling" title="Tube buckling (Euler)" spec="§9"
+    blurb="Critical buckling load Pcr = π²EI/(KL)² for a round tube."
+    inputs={[
+      { key: 'od', label: 'Tube OD', unit: 'mm', vals: [25] },
+      { key: 'id', label: 'Tube ID', unit: 'mm', vals: [21] },
+      { key: 'eGpa', label: "Young's modulus E", unit: 'GPa', vals: [200], ref: { typ: 'steel 200' } },
+      { key: 'length', label: 'Member length L', unit: 'mm', vals: [500] },
+      { key: 'k', label: 'End-fixity K', unit: '-', vals: [1], ref: { typ: '0.5–2' } },
+    ]}
+    outputs={[{ key: 'inertia', label: 'Second moment I', unit: 'mm⁴' }]}
+    stats={[{ key: 'pcr', label: 'Critical load Pcr', unit: 'N' }]} />
+
+  <CalcTool id="bolt" title="Bolted joint" spec="§9"
+    blurb="Proof load, 75% clamp, and tightening torque T = K·d·F for a fastener."
+    inputs={[
+      { key: 'tensileArea', label: 'Tensile stress area At', unit: 'mm²', vals: [58], ref: { typ: 'M10 ≈ 58' } },
+      { key: 'proofStrength', label: 'Proof strength', unit: 'MPa', vals: [830], ref: { typ: '8.8≈580 · 10.9≈830' } },
+      { key: 'kFactor', label: 'Nut factor K', unit: '-', vals: [0.2], ref: { typ: '0.18–0.22' } },
+      { key: 'dia', label: 'Nominal diameter', unit: 'mm', vals: [10] },
+    ]}
+    outputs={[{ key: 'proofLoad', label: 'Proof load', unit: 'N' }, { key: 'clamp', label: 'Target clamp (75%)', unit: 'N' }]}
+    stats={[{ key: 'torque', label: 'Tightening torque', unit: 'N·m' }]} />
   </CockpitShell>
 </Base>
 
@@ -105,6 +128,7 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
   import { mountCalculator } from '../lib/calc/engine';
   import { tubeCompute } from '../lib/calc/chassis-tube';
   import { massCompute } from '../lib/calc/chassis-mass';
+  import { tubeBucklingCompute, boltedJointCompute } from '../lib/calc/extras';
 
   mountCalculator({
     root: 'tube', tool: 'chassis_tube', compute: tubeCompute, defaultDigits: 2,
@@ -115,4 +139,7 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
     root: 'mass', tool: 'chassis_mass', compute: massCompute, defaultDigits: 2,
     toMaster: [{ key: 'chassis_mass_built', label: 'Chassis mass (as built)', unit: 'kg', from: 'totalMeas' }],
   });
+
+  mountCalculator({ root: 'buckling', tool: 'chassis_buckling', compute: tubeBucklingCompute, digits: { inertia: 0, pcr: 0 } });
+  mountCalculator({ root: 'bolt', tool: 'chassis_bolt', compute: boltedJointCompute, digits: { proofLoad: 0, clamp: 0, torque: 1 } });
 </script>

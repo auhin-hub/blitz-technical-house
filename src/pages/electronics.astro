@@ -40,7 +40,7 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
   <LegendKey />
 
   <div style="margin-top:1.25rem;"></div>
-  <CockpitShell tools={[{ id: 'power', title: 'Power budget' }, { id: 'wiring', title: 'Wiring / harness' }, { id: 'daq', title: 'DAQ & Telemetry' }]} railLabel="Electronics">
+  <CockpitShell tools={[{ id: 'power', title: 'Power budget' }, { id: 'wiring', title: 'Wiring / harness' }, { id: 'daq', title: 'DAQ & Telemetry' }, { id: 'battery', title: 'Battery sizing' }, { id: 'wiredrop', title: 'Wire voltage drop' }]} railLabel="Electronics">
   <CalcTool id="power" title="Power budget" spec="TOOL_SPECS §4a"
     blurb="Load currents vs stator output; margin must stay positive."
     inputs={POWER_INPUTS} outputs={POWER_OUTPUTS}
@@ -135,6 +135,28 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
     <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
     <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
   </section>
+
+  <CalcTool id="battery" title="Battery sizing" spec="§9"
+    blurb="Required capacity for an endurance run from the average current draw, derated for depth of discharge (don't fully flatten the pack)."
+    inputs={[
+      { key: 'loadA', label: 'Average load current', unit: 'A', vals: [26], ref: { typ: 'from Power budget' } },
+      { key: 'timeMin', label: 'Endurance time', unit: 'min', vals: [25], ref: { typ: '~22–25' } },
+      { key: 'dodPct', label: 'Usable depth of discharge', unit: '%', vals: [80], ref: { typ: 'LiFePO₄ 80' } },
+      { key: 'voltage', label: 'System voltage', unit: 'V', vals: [12] },
+    ]}
+    outputs={[{ key: 'wh', label: 'Energy = Ah × V', unit: 'Wh' }]}
+    stats={[{ key: 'ah', label: 'Required capacity', unit: 'Ah' }]} />
+
+  <CalcTool id="wiredrop" title="Wire voltage drop" spec="§9"
+    blurb="Round-trip voltage drop and % drop for a wire run (copper), so you can size gauge against the 3% rule of thumb."
+    inputs={[
+      { key: 'areaMm2', label: 'Conductor area', unit: 'mm²', vals: [2.5], ref: { typ: 'AWG13 ≈ 2.6' } },
+      { key: 'lengthM', label: 'Run length (one way)', unit: 'm', vals: [3] },
+      { key: 'currentA', label: 'Current', unit: 'A', vals: [20] },
+      { key: 'systemV', label: 'System voltage', unit: 'V', vals: [12] },
+    ]}
+    outputs={[{ key: 'resistance', label: 'Loop resistance', unit: 'mΩ' }, { key: 'drop', label: 'Voltage drop', unit: 'V' }]}
+    stats={[{ key: 'dropPct', label: '% drop (keep < 3%)', unit: '%' }]} />
   </CockpitShell>
 </Base>
 
@@ -142,6 +164,7 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
   import { mountCalculator } from '../lib/calc/engine';
   import { powerCompute, LOADS } from '../lib/calc/elec-power';
   import { daqCompute, DAQ_CHANNELS } from '../lib/calc/daq';
+  import { batteryCompute, wireDropCompute } from '../lib/calc/extras';
   import { loadToolJson, saveToolJson, debounce } from '../lib/store';
 
   // ---- Wiring / harness grid (shared editable rows) ----
@@ -221,4 +244,7 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
     }],
     toMaster: [{ key: 'bus_utilisation', label: 'CAN bus utilisation', unit: '%', from: 'utilisation' }],
   });
+
+  mountCalculator({ root: 'battery', tool: 'elec_battery', compute: batteryCompute, digits: { ah: 1, wh: 0 } });
+  mountCalculator({ root: 'wiredrop', tool: 'elec_wiredrop', compute: wireDropCompute, digits: { resistance: 1, drop: 3, dropPct: 1 } });
 </script>
