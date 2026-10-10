@@ -1,5 +1,5 @@
 /** Additional-tools backlog (MASTER_BUILD_PLAN §9) — vs hand-computed values. */
-import { describe, it, expect } from 'vitest';
+import { it, expect } from 'vitest';
 import {
   accelCompute, skidpadCompute, gripBudgetCompute, gearSpeedCompute, restrictorCompute,
   tubeBucklingCompute, boltedJointCompute, aeroBalanceCompute, batteryCompute, wireDropCompute,

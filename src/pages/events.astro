@@ -1,0 +1,47 @@
+---
+import Base from '../layouts/Base.astro';
+import CockpitShell from '../components/CockpitShell.astro';
+import CalcTool from '../components/CalcTool.astro';
+import LegendKey from '../components/LegendKey.astro';
+import { url } from '../lib/config';
+---
+<Base title="Event predictors">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Event predictors
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Dynamic events · quick predictors</p>
+    <h1 style="margin-top:0.4rem;">Event predictors</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">
+      First-order estimates for the dynamic events from grip and power. Good for
+      targets and trade-offs — not a replacement for a lap-sim.
+    </p>
+  </header>
+  <LegendKey />
+  <div style="margin-top:1rem;"></div>
+  <CockpitShell tools={[{ id: 'accel', title: 'Acceleration (75 m)' }, { id: 'skidpad', title: 'Skidpad' }, { id: 'grip', title: 'Grip budget' }]} railLabel="Events">
+    <CalcTool id="accel" title="Acceleration (75 m)" spec="§9"
+      blurb="Time and trap speed over the 75 m event from a constant launch g (first-order)."
+      inputs={[{ key: 'launchG', label: 'Launch acceleration', unit: 'g', vals: [0.8], ref: { typ: '0.8–1.3' } }]}
+      outputs={[]}
+      stats={[{ key: 'time75', label: 'Time (75 m)', unit: 's' }, { key: 'trapSpeed', label: 'Trap speed', unit: 'km/h' }]} />
+    <CalcTool id="skidpad" title="Skidpad" spec="§9"
+      blurb="Steady cornering on a radius: V = √(μ·g·R)."
+      inputs={[{ key: 'mu', label: 'Peak lateral μ', unit: '-', vals: [1.5], ref: { typ: '1.4–1.7' } }, { key: 'radius', label: 'Path radius', unit: 'm', vals: [8.5], ref: { typ: '~8.5' } }]}
+      outputs={[{ key: 'speed', label: 'Speed', unit: 'km/h' }, { key: 'lapTime', label: 'Lap time', unit: 's' }]}
+      stats={[{ key: 'latG', label: 'Lateral g', unit: 'g' }]} />
+    <CalcTool id="grip" title="Grip budget" spec="§9"
+      blurb="How much of the friction circle a combined-g condition uses."
+      inputs={[{ key: 'ax', label: 'Longitudinal ax', unit: 'g', vals: [0.5] }, { key: 'ay', label: 'Lateral ay', unit: 'g', vals: [1.2] }, { key: 'mu', label: 'Peak μ', unit: '-', vals: [1.5] }]}
+      outputs={[]}
+      stats={[{ key: 'usedPct', label: 'Friction circle used', unit: '%' }, { key: 'marginG', label: 'Margin', unit: 'g' }]} />
+  </CockpitShell>
+</Base>
+
+<script>
+  import { mountCalculator } from '../lib/calc/engine';
+  import { accelCompute, skidpadCompute, gripBudgetCompute } from '../lib/calc/extras';
+  mountCalculator({ root: 'accel', tool: 'ev_accel', compute: accelCompute, digits: { time75: 2, trapSpeed: 1 } });
+  mountCalculator({ root: 'skidpad', tool: 'ev_skidpad', compute: skidpadCompute, digits: { speed: 1, lapTime: 2, latG: 2 } });
+  mountCalculator({ root: 'grip', tool: 'ev_grip', compute: gripBudgetCompute, digits: { usedPct: 1, marginG: 2 } });
+</script>
