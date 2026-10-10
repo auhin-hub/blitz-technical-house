@@ -6,7 +6,6 @@ import CalcTool from '../components/CalcTool.astro';
 import CockpitShell from '../components/CockpitShell.astro';
 import { url, DISCIPLINES } from '../lib/config';
 import { LOADS } from '../lib/calc/elec-power';
-import { DAQ_CHANNELS } from '../lib/calc/daq';
 
 const el = DISCIPLINES.find((d) => d.slug === 'electronics')!;
 
@@ -17,10 +16,6 @@ const POWER_INPUTS = [
   { key: 'batteryMass', label: 'Battery mass (→ MassBudget)', unit: 'kg', vals: [4] },
 ];
 const POWER_OUTPUTS = [{ key: 'total', label: 'Total current = SUM(loads)', unit: 'A' }];
-
-const td = 'padding:0.4rem 0.55rem;';
-const th = 'padding:0.5rem 0.55rem;';
-const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
 ---
 <Base title={el.title} description={el.blurb}>
   <nav class="annot" style="margin-bottom:0.75rem;">
@@ -84,57 +79,59 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
     </p>
   </section>
 
-  <!-- DAQ / Telemetry: custom channel table -->
+  <!-- DAQ / Telemetry: editable channel plan (P2.4) -->
   <section id="daq" class="card" style="margin-top:1.25rem;">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
       <h2 style="font-size:var(--fs-700);">DAQ & Telemetry</h2>
-      <span class="badge">TOOL_SPECS §3</span>
+      <span class="badge">TOOL_SPECS §3 · P2.4</span>
     </div>
     <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
-      CAN bus load per channel (rate × bytes × 8) and total bus utilisation — keep under 60–70%.
+      The sensor/logging channel plan — editable, grouped by subsystem. CAN bus load
+      per channel = rate × bytes × 8 × qty; keep total utilisation under 60–70%.
+      Export/import the full plan (all columns) via CSV; the grid shows the key ones.
     </p>
-    <div style="overflow-x:auto;margin-top:0.8rem;">
-      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:520px;">
+    <div id="daq-ctrls"></div>
+    <div style="overflow-x:auto;margin-top:0.6rem;">
+      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:720px;">
         <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
-          <th style={th} class="annot">Channel</th>
-          <th style={th + 'text-align:right;'} class="annot">Rate (Hz)</th>
-          <th style={th + 'text-align:right;'} class="annot">Bytes</th>
-          <th style={th + 'text-align:right;'} class="annot">Bus load (bit/s)</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">ID</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Channel</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Sensor</th>
+          <th style="padding:0.4rem 0.5rem;" class="annot">Subsystem</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Qty</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Rate Hz</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Bytes</th>
+          <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Load bit/s</th>
+          <th style="padding:0.4rem 0.5rem;"></th>
         </tr></thead>
-        <tbody>
-          {DAQ_CHANNELS.map((c) => (
-            <tr style="border-bottom:1px solid var(--rule);">
-              <td style={td}>{c.label}</td>
-              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`rate_${c.key}`} value={c.rate} aria-label={`${c.label} rate`} /></td>
-              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`bytes_${c.key}`} value={c.bytes} aria-label={`${c.label} bytes`} /></td>
-              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`load_${c.key}`}>—</span></td>
-            </tr>
-          ))}
-          <tr style="border-top:2px solid var(--rule-strong);font-weight:600;">
-            <td style={td}>Total bus load</td><td style={td}></td><td style={td}></td>
-            <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out="totalBusLoad">—</span></td>
-          </tr>
-        </tbody>
+        <tbody id="daq-body"></tbody>
+        <tfoot><tr style="border-top:2px solid var(--rule-strong);font-weight:600;">
+          <td style="padding:0.4rem 0.5rem;" colspan="7">Total bus load</td>
+          <td style="padding:0.4rem 0.5rem;text-align:right;" class="mono"><span id="daq-total">—</span></td><td></td>
+        </tr></tfoot>
       </table>
     </div>
-    <table style="border-collapse:collapse;font-size:var(--fs-300);margin-top:0.8rem;">
-      <tbody><tr>
-        <td style={td}>CAN capacity</td>
-        <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in="capacity" value="500000" aria-label="CAN capacity" /></td>
-        <td style={td} class="mono">bit/s</td>
-      </tr></tbody>
-    </table>
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));margin-top:1.25rem;">
+    <div style="display:flex;gap:0.6rem;align-items:center;margin-top:0.6rem;flex-wrap:wrap;">
+      <button class="btn btn-ghost" type="button" id="daq-add">+ Add channel</button>
+      <button class="btn btn-ghost" type="button" id="daq-reset" style="font-size:var(--fs-200);">Reset to default plan</button>
+      <label style="font-size:var(--fs-300);margin-left:auto;">CAN capacity
+        <input type="number" step="any" id="daq-capacity" value="500000" style="width:110px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;margin-left:0.3rem;" aria-label="CAN capacity bit/s" /> bit/s</label>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:0.6rem;margin-top:1rem;">
       <div class="card" style="background:var(--surface-2);">
         <span class="annot">Bus utilisation (keep &lt; 60–70%)</span>
-        <p class="mono" style="font-size:var(--fs-700);margin-top:0.3rem;"><span data-out="utilisation">—</span>%</p>
+        <p class="mono" style="font-size:var(--fs-700);margin-top:0.3rem;"><span id="daq-util">—</span>%</p>
       </div>
     </div>
-    <div style="margin-top:1rem;height:260px;position:relative;"><canvas id="daq-chart"></canvas></div>
+
+    <h3 style="font-size:var(--fs-500);margin-top:1rem;">Load by subsystem</h3>
+    <div style="margin-top:0.4rem;height:240px;position:relative;"><canvas id="daq-chart"></canvas></div>
+
     <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Contribute to Master</h3>
-    <button class="btn btn-heritage" type="button" data-contribute style="margin-top:0.5rem;">Contribute results to Master</button>
-    <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
-    <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+    <button class="btn btn-heritage" type="button" id="daq-contribute" style="margin-top:0.5rem;">Contribute results to Master</button>
+    <span class="mono" id="daq-contribute-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+    <p class="mono" id="daq-save-status" style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
   </section>
 
   <CalcTool id="battery" title="Battery sizing" spec="§9"
@@ -162,13 +159,15 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
 </Base>
 
 <script>
+  import Chart from 'chart.js/auto';
   import { mountCalculator } from '../lib/calc/engine';
   import { powerCompute, LOADS } from '../lib/calc/elec-power';
-  import { daqCompute, DAQ_CHANNELS } from '../lib/calc/daq';
   import { batteryCompute, wireDropCompute } from '../lib/calc/extras';
-  import { loadToolJson, saveToolJson, debounce } from '../lib/store';
+  import { DAQ_PLAN_SEED, DAQ_COLS, channelBusLoad, type DaqChannel } from '../lib/calc/daq-plan';
+  import { loadToolJson, saveToolJson, saveToolOutputs, debounce } from '../lib/store';
   import { mountListControls } from '../lib/list-controls';
-  import { toCsv, parseCsv } from '../lib/csv';
+  import { toCsv, parseCsv, missingColumns } from '../lib/csv';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
   // ---- Wiring / harness grid (shared editable rows) ----
   type Wire = { srcComp: string; srcName: string; connector: string; pins: string; dstComp: string; dstName: string; pin: string; colour: string };
@@ -256,23 +255,125 @@ const numInput = 'width:80px;text-align:right;font-family:var(--font-mono);';
     ],
   });
 
-  mountCalculator({
-    root: 'daq', tool: 'daq', compute: daqCompute, defaultDigits: 0,
-    digits: { utilisation: 1 },
-    charts: [{
-      canvasId: 'daq-chart',
-      build: ({ out, pal }) => ({
-        type: 'bar',
-        data: {
-          labels: DAQ_CHANNELS.map((c) => c.label),
-          datasets: [{ label: 'Bus load (bit/s)', data: DAQ_CHANNELS.map((c) => out[`load_${c.key}`]), backgroundColor: pal.sky }],
-        },
-        options: { ...noOpts, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: 'bit/s' } } } },
-      }),
-    }],
-    toMaster: [{ key: 'bus_utilisation', label: 'CAN bus utilisation', unit: '%', from: 'utilisation' }],
-  });
-
   mountCalculator({ root: 'battery', tool: 'elec_battery', compute: batteryCompute, digits: { ah: 1, wh: 0 } });
   mountCalculator({ root: 'wiredrop', tool: 'elec_wiredrop', compute: wireDropCompute, digits: { resistance: 1, drop: 3, dropPct: 1 } });
+
+  // ---- DAQ channel plan (editable list, P2.4) ----
+  const daqBody = document.getElementById('daq-body')!;
+  const daqSave = document.getElementById('daq-save-status')!;
+  let channels: DaqChannel[] = [];
+  let daqChart: Chart | null = null;
+  const txtS = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;font-size:var(--fs-200);';
+  const numS = txtS + 'width:62px;text-align:right;font-family:var(--font-mono);';
+  const escA = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  const DAQ_NUM = new Set(['qty', 'rate_hz', 'bytes_per_sample']);
+  const emptyChannel = (): DaqChannel => ({ channel_id: '', channel_name: '', sensor_type: '', qty: 1, location: '', rate_hz: 0, bytes_per_sample: 1, unit: '', range_min: null, range_max: null, subsystem: '', validates: '', notes: '' });
+  const capEl = () => document.getElementById('daq-capacity') as HTMLInputElement;
+
+  const daqSaveDeb = debounce(async () => {
+    daqSave.textContent = 'Saving…';
+    const err = await saveToolJson('daq', { channels });
+    daqSave.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    daqSave.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  function daqRecompute() {
+    let total = 0;
+    channels.forEach((c, i) => {
+      const load = channelBusLoad(c); total += load;
+      const cell = daqBody.querySelector(`[data-load="${i}"]`); if (cell) cell.textContent = String(load);
+    });
+    const cap = Number(capEl().value) || 0;
+    const util = cap > 0 ? (total / cap) * 100 : NaN;
+    document.getElementById('daq-total')!.textContent = String(total);
+    document.getElementById('daq-util')!.textContent = Number.isFinite(util) ? util.toFixed(1) : '—';
+    const by: Record<string, number> = {};
+    for (const c of channels) { const s = c.subsystem || '—'; by[s] = (by[s] ?? 0) + channelBusLoad(c); }
+    const labels = Object.keys(by);
+    const p = palette();
+    const cfg: any = { type: 'bar', data: { labels, datasets: [{ label: 'bit/s', data: labels.map((l) => by[l]), backgroundColor: p.sky }] },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'bit/s' } } } } };
+    if (daqChart) { daqChart.data = cfg.data; daqChart.options = cfg.options; daqChart.update(); }
+    else { const cv = document.getElementById('daq-chart') as HTMLCanvasElement | null; if (cv) daqChart = new Chart(cv, cfg); }
+  }
+
+  function renderDaq() {
+    daqBody.innerHTML = channels.map((c, i) => `
+      <tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.2rem 0.35rem;"><input data-i="${i}" data-k="channel_id" value="${escA(c.channel_id)}" style="${txtS}width:52px;" aria-label="id"></td>
+        <td style="padding:0.2rem 0.35rem;"><input data-i="${i}" data-k="channel_name" value="${escA(c.channel_name)}" style="${txtS}width:150px;" aria-label="channel"></td>
+        <td style="padding:0.2rem 0.35rem;"><input data-i="${i}" data-k="sensor_type" value="${escA(c.sensor_type)}" style="${txtS}width:120px;" aria-label="sensor"></td>
+        <td style="padding:0.2rem 0.35rem;"><input data-i="${i}" data-k="subsystem" value="${escA(c.subsystem)}" list="daq-subsystems" style="${txtS}width:100px;" aria-label="subsystem"></td>
+        <td style="padding:0.2rem 0.35rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="qty" value="${c.qty}" style="${numS}" aria-label="qty"></td>
+        <td style="padding:0.2rem 0.35rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="rate_hz" value="${c.rate_hz}" style="${numS}" aria-label="rate"></td>
+        <td style="padding:0.2rem 0.35rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="bytes_per_sample" value="${c.bytes_per_sample}" style="${numS}" aria-label="bytes"></td>
+        <td style="padding:0.2rem 0.35rem;text-align:right;" class="mono" data-load="${i}">—</td>
+        <td style="padding:0.2rem 0.35rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-200);padding:0.15rem 0.45rem;" aria-label="delete">✕</button></td>
+      </tr>`).join('') +
+      `<datalist id="daq-subsystems">${[...new Set(channels.map((c) => c.subsystem).filter(Boolean))].map((s) => `<option value="${escA(s)}">`).join('')}</datalist>`;
+    daqBody.querySelectorAll<HTMLInputElement>('input[data-i]').forEach((inp) => {
+      const i = +inp.dataset.i!, k = inp.dataset.k! as keyof DaqChannel;
+      inp.addEventListener('input', () => {
+        (channels[i] as any)[k] = DAQ_NUM.has(k) ? (inp.value.trim() === '' ? 0 : Number(inp.value)) : inp.value;
+        daqRecompute(); daqSaveDeb();
+      });
+    });
+    daqBody.querySelectorAll<HTMLButtonElement>('[data-del]').forEach((b) =>
+      b.addEventListener('click', () => { channels.splice(+b.dataset.del!, 1); if (!channels.length) channels = [emptyChannel()]; renderDaq(); daqRecompute(); daqSaveDeb(); }));
+  }
+
+  function daqGetCsv(): string {
+    return toCsv(DAQ_COLS as string[], channels.map((c) => DAQ_COLS.map((k) => c[k] ?? '')));
+  }
+  function daqApplyCsv(text: string, mode: 'replace' | 'append'): string | void {
+    const { headers, rows } = parseCsv(text);
+    const miss = missingColumns(headers, ['channel_name']);
+    if (miss.length) return 'missing column(s): ' + miss.join(', ');
+    const idx = (h: string) => headers.indexOf(h);
+    const g = (r: string[], h: string) => { const i = idx(h); return i < 0 ? '' : (r[i] ?? '').trim(); };
+    const toNum = (s: string, d = 0) => { const v = s.trim(); return v === '' ? d : Number(v); };
+    const toNull = (s: string) => { const v = (s ?? '').trim(); return v === '' ? null : Number(v); };
+    const parsed: DaqChannel[] = rows.filter((r) => g(r, 'channel_name') !== '').map((r) => ({
+      channel_id: g(r, 'channel_id'), channel_name: g(r, 'channel_name'), sensor_type: g(r, 'sensor_type'),
+      qty: toNum(g(r, 'qty'), 1), location: g(r, 'location'), rate_hz: toNum(g(r, 'rate_hz'), 0),
+      bytes_per_sample: toNum(g(r, 'bytes_per_sample'), 1), unit: g(r, 'unit'),
+      range_min: toNull(g(r, 'range_min')), range_max: toNull(g(r, 'range_max')),
+      subsystem: g(r, 'subsystem'), validates: g(r, 'validates'), notes: g(r, 'notes'),
+    }));
+    if (!parsed.length) return 'no rows with a channel_name';
+    channels = mode === 'append' ? channels.concat(parsed) : parsed;
+    renderDaq(); daqRecompute(); daqSaveDeb();
+  }
+
+  document.getElementById('daq-add')!.addEventListener('click', () => { channels.push(emptyChannel()); renderDaq(); daqSaveDeb(); });
+  document.getElementById('daq-reset')!.addEventListener('click', () => { if (!confirm('Replace all channels with the default plan?')) return; channels = DAQ_PLAN_SEED.map((c) => ({ ...c })); renderDaq(); daqRecompute(); daqSaveDeb(); });
+  capEl().addEventListener('input', daqRecompute);
+
+  document.getElementById('daq-contribute')!.addEventListener('click', async () => {
+    const st = document.getElementById('daq-contribute-status')!;
+    st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
+    const total = channels.reduce((s, c) => s + channelBusLoad(c), 0);
+    const cap = Number(capEl().value) || 0;
+    const util = cap > 0 ? (total / cap) * 100 : null;
+    const err = await saveToolOutputs('daq', [{ key: 'bus_utilisation', label: 'CAN bus utilisation', value: util == null ? null : +util.toFixed(2), unit: '%' }]);
+    st.textContent = err ? 'Failed: ' + err : 'Contributed ✓';
+    st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  });
+
+  mountListControls({
+    container: document.getElementById('daq-ctrls')!,
+    tool: 'daq', filename: 'daq_channel_plan.csv',
+    getCsv: daqGetCsv, applyCsv: daqApplyCsv,
+    getPresetPayload: () => ({ channels }),
+    applyPreset: (p: any) => { if (Array.isArray(p?.channels)) { channels = p.channels; if (!channels.length) channels = [emptyChannel()]; renderDaq(); daqRecompute(); daqSaveDeb(); } },
+  });
+
+  (async () => {
+    applyChartDefaults();
+    const saved = await loadToolJson<any>('daq', {});
+    channels = Array.isArray(saved?.channels) ? saved.channels : DAQ_PLAN_SEED.map((c) => ({ ...c }));
+    if (!channels.length) channels = DAQ_PLAN_SEED.map((c) => ({ ...c }));
+    renderDaq(); daqRecompute();
+    watchTheme(() => { applyChartDefaults(); daqRecompute(); });
+  })();
 </script>
