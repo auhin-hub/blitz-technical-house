@@ -118,6 +118,7 @@ const STEER_OUTPUTS = [
     { id: 'loads', title: 'Suspension loads' },
     { id: 'steering', title: 'Steering' },
     { id: 'brakes', title: 'Brakes' },
+    { id: 'balance', title: 'Balance' },
   ]} railLabel="VD tools">
   <CalcTool id="setup" title="Setup / kinematics" spec="TOOL_SPECS §7a"
     blurb="Kinematic targets; platform values pulled from Master. A target sheet — no computed outputs."
@@ -148,6 +149,12 @@ const STEER_OUTPUTS = [
     <header class="ct-head"><h2>Brakes</h2><span class="badge">§6.6</span></header>
     <p class="ct-sub">The full Brake System tool — hydraulic sizing, achieved vs Olley-optimum bias sweep, and (next) Magic-Formula + thermal — lives on its own tabbed page.</p>
     <p style="margin-top:0.9rem;"><a class="btn btn-halftone" href={url('brakes')}>Open the Brake System tool ↗</a></p>
+  </section>
+
+  <section id="balance" class="ct">
+    <header class="ct-head"><h2>Balance</h2><span class="badge">§6.7</span></header>
+    <p class="ct-sub">Understeer gradient (bicycle model) + roll-stiffness distribution / ARB vs TLLTD — where the car pushes or gets loose.</p>
+    <p style="margin-top:0.9rem;"><a class="btn btn-halftone" href={url('balance')}>Open Balance ↗</a></p>
   </section>
   </CockpitShell>
 </Base>
