@@ -81,6 +81,11 @@ const PARAMS = [
         <label>Endurance laps <input type="number" step="1" id="ls-laps" value="16" style={ni.replace('84px', '64px')} /></label>
         <span>→ <strong id="ls-endurance">—</strong></span>
       </div>
+      <div style="display:flex;gap:0.6rem;align-items:center;margin-top:0.5rem;font-size:var(--fs-300);flex-wrap:wrap;">
+        <label>Fuel / lap (L) <input type="number" step="any" id="ls-fuel" value="0.3" style={ni.replace('84px', '64px')} /></label>
+        <button class="btn btn-heritage" type="button" id="ls-contribute" style="font-size:var(--fs-200);">Contribute → Master</button>
+        <span class="mono" id="ls-contribute-status" style="font-size:var(--fs-200);color:var(--ink-3);"></span>
+      </div>
       <h3 class="ct-h3" style="margin-top:0.9rem;">Speed profile</h3>
       <div style="height:260px;position:relative;"><canvas id="ls-chart"></canvas></div>
     </div>
@@ -92,7 +97,7 @@ const PARAMS = [
 <script>
   import Chart from 'chart.js/auto';
   import { simulateLap, SEED_TRACK, type Segment, type LapParams } from '../lib/calc/lapsim';
-  import { loadMaster, loadToolJson, saveToolJson, debounce } from '../lib/store';
+  import { loadMaster, loadToolJson, saveToolJson, saveToolOutputs, debounce } from '../lib/store';
   import { decorateLinkedCells } from '../lib/linked';
   import { mountListControls } from '../lib/list-controls';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
@@ -142,8 +147,10 @@ const PARAMS = [
       b.addEventListener('click', () => { track.splice(+b.dataset.del!, 1); if (!track.length) track = [{ kind: 'straight', length: 50, radius: 0 }]; renderTrack(); recompute(); persist(); }));
   }
 
+  let lastLap = NaN;
   function recompute() {
     const r = simulateLap(params(), track);
+    lastLap = r.lapTime;
     const put = (id: string, v: number, d = 1) => { const el = document.getElementById(id)!; el.textContent = Number.isFinite(v) ? v.toFixed(d) : '—'; };
     put('ls-lap', r.lapTime, 2); put('ls-top', r.topSpeed, 0); put('ls-min', r.minSpeed, 0); put('ls-avg', r.avgSpeed, 0); put('ls-dist', r.distance, 0);
     const laps = Number((document.getElementById('ls-laps') as HTMLInputElement).value) || 0;
@@ -189,6 +196,18 @@ const PARAMS = [
 
     document.querySelectorAll('[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
     document.getElementById('ls-laps')!.addEventListener('input', recompute);
+    document.getElementById('ls-contribute')!.addEventListener('click', async () => {
+      const st = document.getElementById('ls-contribute-status')!;
+      const laps = Number((document.getElementById('ls-laps') as HTMLInputElement).value) || 0;
+      const fuelPerLap = Number((document.getElementById('ls-fuel') as HTMLInputElement).value) || 0;
+      st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
+      const err = await saveToolOutputs('lapsim', [
+        { key: 'lap_time_s', label: 'Lap time', value: Number.isFinite(lastLap) ? +lastLap.toFixed(3) : null, unit: 's' },
+        { key: 'endurance_fuel_l', label: 'Endurance fuel (laps × L/lap)', value: Number.isFinite(lastLap) ? +(fuelPerLap * laps).toFixed(2) : null, unit: 'L' },
+      ]);
+      st.textContent = err ? 'Failed: ' + err : 'Contributed ✓';
+      st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+    });
     document.getElementById('ls-add-straight')!.addEventListener('click', () => { track.push({ kind: 'straight', length: 40, radius: 0 }); renderTrack(); recompute(); persist(); });
     document.getElementById('ls-add-corner')!.addEventListener('click', () => { track.push({ kind: 'corner', length: 20, radius: 15 }); renderTrack(); recompute(); persist(); });
     document.getElementById('ls-reset')!.addEventListener('click', () => { if (!confirm('Replace the track with the default loop?')) return; track = SEED_TRACK.map((s) => ({ ...s })); renderTrack(); recompute(); persist(); });

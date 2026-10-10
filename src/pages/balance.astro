@@ -104,7 +104,9 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
     const rd = rollDistribution(gi('ksF'), gi('ksR'), gi('arbF'), gi('arbR'));
     put('frontFrac', rd.frontFraction, 3);
     put('tlltd', master.tlltd_front, 3);
-    put('arbNeeded', arbForTarget(gi('targetFrac'), gi('ksF'), gi('ksR'), gi('arbR')), 1);
+    const arbNeeded = arbForTarget(gi('targetFrac'), gi('ksF'), gi('ksR'), gi('arbR'));
+    last.arbNeeded = arbNeeded;
+    put('arbNeeded', arbNeeded, 1);
 
     const p = palette();
     const speeds = Array.from({ length: 15 }, (_, i) => i * 10);
@@ -143,6 +145,7 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
       const err = await saveToolOutputs(TOOL, [
         { key: 'understeer_gradient', label: 'Understeer gradient', value: num(last.K), unit: 'deg/g' },
         { key: 'static_margin', label: 'Static margin', value: num(last.SM), unit: '-' },
+        { key: 'arb_front_needed', label: 'Front ARB needed (for target TLLTD)', value: num(last.arbNeeded), unit: 'N·m/deg' },
       ]);
       st.textContent = err ? 'Failed: ' + err : 'Contributed ✓';
       st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';

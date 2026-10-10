@@ -144,11 +144,13 @@ const STEER_OUTPUTS = [
   <CalcTool id="loads" title="Suspension loads" spec="TOOL_SPECS §7e"
     blurb="Vertical / braking / cornering cases → pushrod & wishbone loads, anti-dive/anti-squat."
     cols={FR} linked={LOADS_LINKED} seed={seed} inputs={LOADS_INPUTS} outputs={LOADS_OUTPUTS}
-    chartId="loads-chart" chartTitle="Pushrod force & max vertical (front / rear)" chartHeight={260} />
+    chartId="loads-chart" chartTitle="Pushrod force & max vertical (front / rear)" chartHeight={260}
+    contribute contributeNote="Writes pushrod forces and anti-dive/anti-squat % to the shared store (feeds the readiness board)." />
 
   <CalcTool id="steering" title="Steering" spec="TOOL_SPECS §7f"
     blurb="Ackermann split (uses the target turning radius) + rack & pinion gear geometry."
-    linked={STEER_LINKED} seed={seed} inputs={STEER_INPUTS} outputs={STEER_OUTPUTS} />
+    linked={STEER_LINKED} seed={seed} inputs={STEER_INPUTS} outputs={STEER_OUTPUTS}
+    contribute contributeNote="Writes the Ackermann split to the shared store." />
 
   <CalcTool id="steereffort" title="Steering effort" spec="§9"
     blurb="Worst-case (max lateral grip) kingpin moment → rack force → steering-wheel torque, to size driver effort. Add a braking force to include the scrub-radius term."
@@ -167,7 +169,8 @@ const STEER_OUTPUTS = [
       { key: 'efficiency', label: 'Steering efficiency η', unit: '-', vals: [0.9] },
     ]}
     outputs={[{ key: 'fyTyre', label: 'Lateral force / tyre', unit: 'N' }, { key: 'kingpinMoment', label: 'Kingpin moment / tyre', unit: 'N·m' }, { key: 'rackForce', label: 'Rack force', unit: 'N' }]}
-    stats={[{ key: 'swTorque', label: 'Steering-wheel torque', unit: 'N·m' }]} />
+    stats={[{ key: 'swTorque', label: 'Steering-wheel torque', unit: 'N·m' }]}
+    contribute contributeNote="Writes steering-wheel torque and rack force to the shared store." />
 
   <!-- R&P gear sweep: standard tooth counts at a fixed pinion PCD, so you can
        pick the number of teeth against module / tooth-thickness — a companion to
@@ -296,6 +299,12 @@ const STEER_OUTPUTS = [
   mountCalculator({
     root: 'loads', tool: 'vd_loads', compute: loadsComputePct, defaultDigits: 2,
     digits: { f_antiPct: 1, r_antiPct: 1 },
+    toMaster: [
+      { key: 'pushrod_force_front', label: 'Pushrod force (front)', unit: 'N', from: 'f_pushrodForce' },
+      { key: 'pushrod_force_rear', label: 'Pushrod force (rear)', unit: 'N', from: 'r_pushrodForce' },
+      { key: 'anti_pct_front', label: 'Anti-dive (front)', unit: '%', from: 'f_antiPct' },
+      { key: 'anti_pct_rear', label: 'Anti-squat (rear)', unit: '%', from: 'r_antiPct' },
+    ],
     charts: [{
       canvasId: 'loads-chart',
       build: ({ out, pal }) => ({
@@ -312,9 +321,17 @@ const STEER_OUTPUTS = [
   mountCalculator({
     root: 'steering', tool: 'vd_steering', compute: steeringCompute, defaultDigits: 3,
     digits: { baseDia: 2, rackTravelPerRev: 2 },
+    toMaster: [{ key: 'ackermann_split', label: 'Ackermann split', unit: 'deg', from: 'ackermannSplit' }],
   });
 
-  mountCalculator({ root: 'steereffort', tool: 'vd_steereffort', compute: steeringEffortCompute, digits: { fyTyre: 0, kingpinMoment: 1, rackForce: 0, swTorque: 1 } });
+  mountCalculator({
+    root: 'steereffort', tool: 'vd_steereffort', compute: steeringEffortCompute,
+    digits: { fyTyre: 0, kingpinMoment: 1, rackForce: 0, swTorque: 1 },
+    toMaster: [
+      { key: 'steering_wheel_torque', label: 'Steering-wheel torque', unit: 'N·m', from: 'swTorque' },
+      { key: 'rack_force', label: 'Rack force', unit: 'N', from: 'rackForce' },
+    ],
+  });
 
   // Load transfer: map Master keys + inputs into loadTransfer's shapes.
   const ltCompute = (inp: Record<string, number>, m: Record<string, number>) => loadTransfer(
