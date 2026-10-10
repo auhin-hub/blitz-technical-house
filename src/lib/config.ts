@@ -193,7 +193,7 @@ export interface VdStage {
 
 /** The 9 stages (handbook Part I → tool → gate). */
 export const VD_STAGES: VdStage[] = [
-  { n: 1, name: 'Set performance targets', gate: 'G0', tool: 'Targets / LapSim', pending: true,
+  { n: 1, name: 'Set performance targets', gate: 'G0', tool: 'Targets / LapSim', href: 'lapsim',
     prerequisites: 'None — this is where you start.',
     produces: 'Target lateral g, braking g, event focus → Master targets',
     feeds: 'Everything downstream',

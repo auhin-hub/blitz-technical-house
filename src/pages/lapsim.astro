@@ -1,0 +1,206 @@
+---
+import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
+import { url } from '../lib/config';
+
+const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
+const PARAMS = [
+  { key: 'muLat', label: 'Peak lateral μ', unit: 'g', val: 1.5, ref: 'Tyre / g–g' },
+  { key: 'launchG', label: 'Launch g (power/traction)', unit: 'g', val: 0.8, ref: 'Powertrain' },
+  { key: 'brakeG', label: 'Max braking g', unit: 'g', val: 1.4, ref: 'Brakes / g–g' },
+  { key: 'power', label: 'Engine peak power', unit: 'kW', val: 32, ref: 'Powertrain' },
+  { key: 'clA', label: 'Cl·A (downforce)', unit: 'm²', val: 0.8, ref: 'Aero' },
+  { key: 'cdA', label: 'Cd·A (drag)', unit: 'm²', val: 0.9, ref: 'Aero' },
+  { key: 'rho', label: 'Air density ρ', unit: 'kg/m³', val: 1.18, ref: '' },
+];
+---
+<Base title="Lap-time simulator">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Lap-time simulator
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Stage 01 · Targets / LapSim</p>
+    <h1 style="margin-top:0.4rem;">Lap-time simulator</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
+      A quasi-steady point-mass sim: define a track as straights and corners; it
+      caps each corner at the grip-limited speed (with aero), then runs an
+      accel/brake pass to get the speed profile and lap time. Use it to set event
+      targets and see what grip, power and downforce buy you. Accel (75 m) and
+      skidpad live in <a href={url('events')}>Events</a>.
+    </p>
+  </header>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <span class="annot">From Master</span>
+    <div style="margin-top:0.4rem;font-size:var(--fs-300);">Total mass (m) <span class="field field-linked mono" data-master="mass_total" style="margin-left:0.3rem;">—</span> kg</div>
+  </div>
+  <LegendKey />
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:1.25rem;align-items:start;margin-top:1rem;" class="ls-grid">
+    <div class="card">
+      <h2 style="font-size:var(--fs-600);">Car parameters</h2>
+      <table class="ct-table" style="margin-top:0.4rem;"><tbody>
+        {PARAMS.map((p) => (
+          <tr><td>{p.label} {p.ref && <span class="ct-ref">({p.ref})</span>}</td>
+            <td class="ct-num"><input type="number" step="any" data-in={p.key} value={p.val} style={ni} aria-label={p.label} /></td>
+            <td class="ct-unit">{p.unit}</td></tr>
+        ))}
+      </tbody></table>
+
+      <h2 style="font-size:var(--fs-600);margin-top:1rem;">Track</h2>
+      <div id="ls-ctrls"></div>
+      <div style="overflow-x:auto;margin-top:0.5rem;">
+        <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:360px;">
+          <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+            <th style="padding:0.4rem 0.5rem;" class="annot">#</th>
+            <th style="padding:0.4rem 0.5rem;" class="annot">Type</th>
+            <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Length m</th>
+            <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">Radius m</th>
+            <th style="padding:0.4rem 0.5rem;"></th>
+          </tr></thead>
+          <tbody id="ls-body"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:0.6rem;align-items:center;margin-top:0.6rem;flex-wrap:wrap;">
+        <button class="btn btn-ghost" type="button" id="ls-add-straight">+ Straight</button>
+        <button class="btn btn-ghost" type="button" id="ls-add-corner">+ Corner</button>
+        <button class="btn btn-ghost" type="button" id="ls-reset" style="font-size:var(--fs-200);">Reset track</button>
+      </div>
+      <p class="mono" id="ls-save" style="margin-top:0.5rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+    </div>
+
+    <div>
+      <div class="ct-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.5rem;">
+        <div class="ct-stat"><span class="annot">Lap time</span><div class="val"><span id="ls-lap">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> s</span></div></div>
+        <div class="ct-stat"><span class="annot">Top speed</span><div class="val"><span id="ls-top">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> km/h</span></div></div>
+        <div class="ct-stat"><span class="annot">Min speed</span><div class="val"><span id="ls-min">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> km/h</span></div></div>
+        <div class="ct-stat"><span class="annot">Avg speed</span><div class="val"><span id="ls-avg">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> km/h</span></div></div>
+        <div class="ct-stat"><span class="annot">Lap distance</span><div class="val"><span id="ls-dist">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> m</span></div></div>
+      </div>
+      <div style="display:flex;gap:0.6rem;align-items:center;margin-top:0.7rem;font-size:var(--fs-300);">
+        <label>Endurance laps <input type="number" step="1" id="ls-laps" value="16" style={ni.replace('84px', '64px')} /></label>
+        <span>→ <strong id="ls-endurance">—</strong></span>
+      </div>
+      <h3 class="ct-h3" style="margin-top:0.9rem;">Speed profile</h3>
+      <div style="height:260px;position:relative;"><canvas id="ls-chart"></canvas></div>
+    </div>
+  </div>
+</Base>
+
+<style>@media (max-width: 860px) { .ls-grid { grid-template-columns: 1fr !important; } }</style>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { simulateLap, SEED_TRACK, type Segment, type LapParams } from '../lib/calc/lapsim';
+  import { loadMaster, loadToolJson, saveToolJson, debounce } from '../lib/store';
+  import { decorateLinkedCells } from '../lib/linked';
+  import { mountListControls } from '../lib/list-controls';
+  import { toCsv, parseCsv, missingColumns } from '../lib/csv';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+
+  const TOOL = 'lapsim';
+  const body = document.getElementById('ls-body')!;
+  const saveEl = document.getElementById('ls-save')!;
+  let mass = NaN;
+  let track: Segment[] = [];
+  let chart: Chart | null = null;
+
+  const gi = (k: string) => Number((document.querySelector(`[data-in="${k}"]`) as HTMLInputElement)?.value);
+  const params = (): LapParams => ({
+    mass, muLat: gi('muLat'), muLong: gi('muLat'), launchG: gi('launchG'), brakeG: gi('brakeG'),
+    clA: gi('clA'), cdA: gi('cdA'), rho: gi('rho'), power: gi('power') * 1000,
+  });
+
+  const persist = debounce(async () => {
+    const p: Record<string, number> = {};
+    document.querySelectorAll<HTMLInputElement>('[data-in]').forEach((el) => { p[el.dataset.in!] = Number(el.value); });
+    saveEl.textContent = 'Saving…';
+    const err = await saveToolJson(TOOL, { params: p, track });
+    saveEl.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    saveEl.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  function renderTrack() {
+    body.innerHTML = track.map((s, i) => `
+      <tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.25rem 0.4rem;" class="mono">${i + 1}</td>
+        <td style="padding:0.25rem 0.4rem;"><select data-i="${i}" data-k="kind" style="background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.3rem;font-size:var(--fs-200);"><option value="straight"${s.kind === 'straight' ? ' selected' : ''}>straight</option><option value="corner"${s.kind === 'corner' ? ' selected' : ''}>corner</option></select></td>
+        <td style="padding:0.25rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="length" value="${s.length}" style="width:70px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;"></td>
+        <td style="padding:0.25rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="radius" value="${s.radius || ''}" ${s.kind === 'straight' ? 'disabled' : ''} placeholder="${s.kind === 'straight' ? '—' : ''}" style="width:70px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;"></td>
+        <td style="padding:0.25rem 0.4rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-200);padding:0.15rem 0.45rem;">✕</button></td>
+      </tr>`).join('');
+    body.querySelectorAll<HTMLElement>('[data-i]').forEach((el) => {
+      const i = +el.dataset.i!, k = el.dataset.k! as keyof Segment;
+      el.addEventListener('input', () => {
+        const v = (el as HTMLInputElement).value;
+        if (k === 'kind') { (track[i] as any).kind = v; renderTrack(); }
+        else (track[i] as any)[k] = v.trim() === '' ? 0 : Number(v);
+        recompute(); persist();
+      });
+    });
+    body.querySelectorAll<HTMLButtonElement>('[data-del]').forEach((b) =>
+      b.addEventListener('click', () => { track.splice(+b.dataset.del!, 1); if (!track.length) track = [{ kind: 'straight', length: 50, radius: 0 }]; renderTrack(); recompute(); persist(); }));
+  }
+
+  function recompute() {
+    const r = simulateLap(params(), track);
+    const put = (id: string, v: number, d = 1) => { const el = document.getElementById(id)!; el.textContent = Number.isFinite(v) ? v.toFixed(d) : '—'; };
+    put('ls-lap', r.lapTime, 2); put('ls-top', r.topSpeed, 0); put('ls-min', r.minSpeed, 0); put('ls-avg', r.avgSpeed, 0); put('ls-dist', r.distance, 0);
+    const laps = Number((document.getElementById('ls-laps') as HTMLInputElement).value) || 0;
+    const end = r.lapTime * laps;
+    document.getElementById('ls-endurance')!.textContent = Number.isFinite(end) && end > 0 ? `${Math.floor(end / 60)}m ${(end % 60).toFixed(0)}s endurance` : '—';
+    // speed profile
+    const p = palette();
+    const xs = r.v.map((_, i) => (i * 2).toFixed(0));
+    const cfg: any = { type: 'line', data: { labels: xs, datasets: [{ label: 'Speed (km/h)', data: r.v.map((x) => +(x * 3.6).toFixed(1)), borderColor: p.sky, backgroundColor: p.sky, pointRadius: 0, tension: 0.1 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'distance (m)' } }, y: { title: { display: true, text: 'km/h' } } } } };
+    if (chart) { chart.data = cfg.data; chart.options = cfg.options; chart.update(); }
+    else { const cv = document.getElementById('ls-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
+  }
+
+  // CSV + presets for the track.
+  const LS_COLS = ['type', 'length_m', 'radius_m'];
+  function lsGetCsv(): string { return toCsv(LS_COLS, track.map((s) => [s.kind, s.length, s.radius])); }
+  function lsApplyCsv(text: string, mode: 'replace' | 'append'): string | void {
+    const { headers, rows } = parseCsv(text);
+    const miss = missingColumns(headers, ['type', 'length_m']);
+    if (miss.length) return 'missing column(s): ' + miss.join(', ');
+    const idx = (h: string) => headers.indexOf(h);
+    const parsed: Segment[] = rows.filter((r) => (r[idx('type')] ?? '').trim() !== '').map((r) => {
+      const kind = (r[idx('type')] ?? '').trim().toLowerCase().startsWith('c') ? 'corner' : 'straight';
+      const radius = idx('radius_m') >= 0 ? Number(r[idx('radius_m')] || 0) : 0;
+      return { kind, length: Number(r[idx('length_m')] || 0), radius } as Segment;
+    });
+    if (!parsed.length) return 'no track segments';
+    track = mode === 'append' ? track.concat(parsed) : parsed;
+    renderTrack(); recompute(); persist();
+  }
+
+  (async () => {
+    applyChartDefaults();
+    const rows = await loadMaster();
+    mass = (() => { const v = rows.mass_total?.value; return v === null || v === undefined ? NaN : Number(v); })();
+    decorateLinkedCells(document, rows);
+    const saved = await loadToolJson<any>(TOOL, {});
+    if (saved?.params) for (const [k, v] of Object.entries(saved.params)) { const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v); }
+    track = Array.isArray(saved?.track) && saved.track.length ? saved.track : SEED_TRACK.map((s) => ({ ...s }));
+    renderTrack();
+    recompute();
+
+    document.querySelectorAll('[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
+    document.getElementById('ls-laps')!.addEventListener('input', recompute);
+    document.getElementById('ls-add-straight')!.addEventListener('click', () => { track.push({ kind: 'straight', length: 40, radius: 0 }); renderTrack(); recompute(); persist(); });
+    document.getElementById('ls-add-corner')!.addEventListener('click', () => { track.push({ kind: 'corner', length: 20, radius: 15 }); renderTrack(); recompute(); persist(); });
+    document.getElementById('ls-reset')!.addEventListener('click', () => { if (!confirm('Replace the track with the default loop?')) return; track = SEED_TRACK.map((s) => ({ ...s })); renderTrack(); recompute(); persist(); });
+
+    mountListControls({
+      container: document.getElementById('ls-ctrls')!,
+      tool: TOOL, filename: 'lapsim_track.csv',
+      getCsv: lsGetCsv, applyCsv: lsApplyCsv,
+      getPresetPayload: () => ({ track }),
+      applyPreset: (p: any) => { if (Array.isArray(p?.track)) { track = p.track; if (!track.length) track = [{ kind: 'straight', length: 50, radius: 0 }]; renderTrack(); recompute(); persist(); } },
+    });
+
+    watchTheme(() => { applyChartDefaults(); recompute(); });
+  })();
+</script>
