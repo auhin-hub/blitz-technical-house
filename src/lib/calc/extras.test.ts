@@ -3,8 +3,13 @@ import { it, expect } from 'vitest';
 import {
   accelCompute, skidpadCompute, gripBudgetCompute, gearSpeedCompute, restrictorCompute,
   tubeBucklingCompute, boltedJointCompute, aeroBalanceCompute, batteryCompute, wireDropCompute,
-  cogTiltCompute, cornerWeightCompute, quarterCarCompute, rpSweep,
+  cogTiltCompute, cornerWeightCompute, quarterCarCompute, rpSweep, trifilarCompute,
 } from './extras';
+
+it('trifilar pendulum yaw inertia', () => {
+  const r = trifilarCompute({ mass: 250, radius: 600, wireLength: 2000, period: 3.0 });
+  expect(r.izz as number).toBeCloseTo(100.6, 0); // (250·9.81·0.36·9)/(4π²·2)
+});
 
 it('acceleration 75 m from 0.8 g', () => {
   const r = accelCompute({ launchG: 0.8 });

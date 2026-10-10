@@ -86,6 +86,12 @@ export function cogTiltCompute(i: Flat): Out {
   const h = (i.dWeight * i.wheelbase) / (i.totalWeight * Math.tan((i.tiltDeg * Math.PI) / 180));
   return { cogAboveAxle: h, cogHeight: h + i.wheelRadius };
 }
+/** Trifilar pendulum yaw inertia: Izz = m·g·r²·T² / (4π²·L). r, L in mm → m. */
+export function trifilarCompute(i: Flat): Out {
+  const r = i.radius / 1000, L = i.wireLength / 1000;
+  const izz = (i.mass * G * r * r * i.period * i.period) / (4 * Math.PI * Math.PI * L);
+  return { izz };
+}
 /** Corner-weight balance: front %, left %, cross (diagonal) %. */
 export function cornerWeightCompute(i: Flat): Out {
   const total = i.fl + i.fr + i.rl + i.rr;

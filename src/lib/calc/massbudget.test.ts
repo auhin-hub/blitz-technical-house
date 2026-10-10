@@ -29,6 +29,14 @@ describe('MassBudget · CG / Izz / front fraction', () => {
     expect(r.bySubsystem.Front).toBeCloseTo(120, 6);
     expect(r.bySubsystem.Rear).toBeCloseTo(80, 6);
   });
+  it('parallel-axis local_Izz adds to the point-mass term', () => {
+    // Same two masses + 5 and 3 kg·m² of local inertia → 108 + 8.
+    const withLocal = massBudget([
+      { ...rows[0], localIzz: 5 },
+      { ...rows[1], localIzz: 3 },
+    ], 1500);
+    expect(withLocal.izz).toBeCloseTo(116, 6);
+  });
   it('empty budget is safe', () => {
     const e = massBudget([], 1500);
     expect(e.total).toBe(0);

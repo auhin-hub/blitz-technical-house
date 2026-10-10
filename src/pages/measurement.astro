@@ -20,7 +20,7 @@ import { url } from '../lib/config';
   </header>
   <LegendKey />
   <div style="margin-top:1rem;"></div>
-  <CockpitShell tools={[{ id: 'cog', title: 'CoG tilt-test' }, { id: 'corner', title: 'Corner-weight' }, { id: 'quarter', title: 'Quarter-car ride' }]} railLabel="Measurement">
+  <CockpitShell tools={[{ id: 'cog', title: 'CoG tilt-test' }, { id: 'corner', title: 'Corner-weight' }, { id: 'quarter', title: 'Quarter-car ride' }, { id: 'trifilar', title: 'Trifilar Izz' }]} railLabel="Measurement">
     <CalcTool id="cog" title="CoG height — tilt test" spec="§9"
       blurb="Raise one axle by θ; the load that shifts off the other axle gives the CoG height. h = ΔW·L/(W·tanθ) + wheel radius."
       inputs={[
@@ -48,12 +48,40 @@ import { url } from '../lib/config';
       ]}
       outputs={[]}
       stats={[{ key: 'fnSprung', label: 'Ride frequency', unit: 'Hz' }, { key: 'fnHop', label: 'Wheel hop', unit: 'Hz' }]} />
+
+    <!-- Trifilar pendulum: a measured yaw inertia that can overwrite the CAD
+         estimate in Master (handoff P1.2). Custom section so it writes
+         vehicle_spec.yaw_inertia directly (honouring freezes), not tool_outputs. -->
+    <section id="trifilar" class="ct">
+      <header class="ct-head"><h2>Trifilar pendulum — yaw inertia</h2><span class="badge">§9</span></header>
+      <p class="ct-sub">Hang the car (or a sub-assembly) on three equal wires and time the yaw oscillation. Izz = m·g·r²·T² / (4π²·L). Measures the real yaw inertia — the point-mass MassBudget estimate under-counts it.</p>
+      <div class="ct-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem 1.5rem;align-items:start;margin-top:0.6rem;">
+        <div>
+          <h3 class="ct-h3">Inputs</h3>
+          <table class="ct-table"><tbody>
+            <tr><td>Swung mass m</td><td class="ct-num"><input type="number" step="any" data-in="mass" value="250" style="width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;" /></td><td class="ct-unit">kg</td></tr>
+            <tr><td>Suspension radius r</td><td class="ct-num"><input type="number" step="any" data-in="radius" value="600" style="width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;" /></td><td class="ct-unit">mm</td></tr>
+            <tr><td>Wire length L</td><td class="ct-num"><input type="number" step="any" data-in="wireLength" value="2000" style="width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;" /></td><td class="ct-unit">mm</td></tr>
+            <tr><td>Oscillation period T</td><td class="ct-num"><input type="number" step="any" data-in="period" value="3.0" style="width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;" /></td><td class="ct-unit">s</td></tr>
+          </tbody></table>
+        </div>
+        <div>
+          <div class="ct-stats"><div class="ct-stat"><span class="annot">Measured yaw inertia</span><div class="val"><span class="field field-computed mono" data-out="izz">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> kg·m²</span></div></div></div>
+          <h3 class="ct-h3" style="margin-top:0.6rem;">Write to Master</h3>
+          <p style="color:var(--ink-2);font-size:var(--fs-300);">Overwrites <span class="mono">yaw_inertia</span> with this measured value (unfreeze it first if locked).</p>
+          <button class="btn btn-heritage" type="button" id="trifilar-contribute" style="margin-top:0.4rem;">Write measured Izz → Master</button>
+          <span class="mono" id="trifilar-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+          <p class="mono" data-save-status style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+        </div>
+      </div>
+    </section>
   </CockpitShell>
 </Base>
 
 <script>
   import { mountCalculator } from '../lib/calc/engine';
-  import { cogTiltCompute, cornerWeightCompute, quarterCarCompute } from '../lib/calc/extras';
+  import { cogTiltCompute, cornerWeightCompute, quarterCarCompute, trifilarCompute } from '../lib/calc/extras';
+  import { setMasterValue } from '../lib/store';
 
   mountCalculator({ root: 'cog', tool: 'ms_cog', compute: cogTiltCompute, digits: { cogAboveAxle: 1, cogHeight: 1 } });
 
@@ -64,4 +92,17 @@ import { url } from '../lib/config';
   });
 
   mountCalculator({ root: 'quarter', tool: 'ms_quarter', compute: quarterCarCompute, digits: { fnSprung: 2, fnHop: 2 } });
+
+  mountCalculator({ root: 'trifilar', tool: 'ms_trifilar', compute: trifilarCompute, digits: { izz: 1 } });
+  // Measured Izz can overwrite the CAD estimate in Master (vehicle_spec, freeze-aware).
+  document.getElementById('trifilar-contribute')!.addEventListener('click', async () => {
+    const st = document.getElementById('trifilar-status')!;
+    const gi = (k: string) => Number((document.querySelector(`#trifilar [data-in="${k}"]`) as HTMLInputElement)?.value);
+    const { izz } = trifilarCompute({ mass: gi('mass'), radius: gi('radius'), wireLength: gi('wireLength'), period: gi('period') });
+    if (!Number.isFinite(izz as number)) { st.textContent = 'Enter valid inputs first.'; st.style.color = 'var(--heritage)'; return; }
+    st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
+    const err = await setMasterValue('yaw_inertia', +(izz as number).toFixed(4));
+    st.textContent = err ? 'Failed (frozen?): ' + err : 'Written to Master ✓';
+    st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  });
 </script>

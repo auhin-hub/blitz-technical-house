@@ -52,6 +52,7 @@ const LINKED = [
             <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">x</th>
             <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">y</th>
             <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot">z</th>
+            <th style="padding:0.4rem 0.5rem;text-align:right;" class="annot" title="Each assembly's own yaw inertia about its CG (from CAD / SolidWorks Mass Properties). Optional — blank = point mass (under-counts).">local Izz<br><span class="mono" style="font-weight:400;">kg·m²</span></th>
             <th style="padding:0.4rem 0.5rem;"></th>
           </tr></thead>
           <tbody id="mb-body"></tbody>
@@ -61,7 +62,12 @@ const LINKED = [
         <button class="btn btn-ghost" type="button" id="mb-add">+ Add component</button>
         <button class="btn btn-ghost" type="button" id="mb-reset" style="font-size:var(--fs-200);">Reset to default set</button>
       </div>
-      <p class="mono" data-save-status style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+      <p style="margin-top:0.5rem;font-size:var(--fs-200);color:var(--ink-3);">
+        <strong>local Izz</strong> is each assembly's own yaw inertia about its CG (from CAD
+        → SolidWorks Mass Properties). Leave blank for a point-mass estimate — which
+        under-counts the real inertia. A measured value can be set via the trifilar tool.
+      </p>
+      <p class="mono" data-save-status style="margin-top:0.4rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
     </div>
 
     <!-- Outputs + charts -->
@@ -125,15 +131,15 @@ const LINKED = [
   let last = massBudget([], NaN);
 
   // Editable row model (P1.1). Numbers are null when blank.
-  interface Row { name: string; assembly: string; subassembly: string; unsprung: boolean; mass: number | null; x: number | null; y: number | null; z: number | null; }
-  const NUMF = ['mass', 'x', 'y', 'z'] as const;
+  interface Row { name: string; assembly: string; subassembly: string; unsprung: boolean; mass: number | null; x: number | null; y: number | null; z: number | null; localIzz: number | null; }
+  const NUMF = ['mass', 'x', 'y', 'z', 'localIzz'] as const;
   let rows: Row[] = [];
 
-  const seedRows = (): Row[] => MB_COMPONENTS.map((c) => ({ name: c.name, assembly: c.subsystem, subassembly: '', unsprung: c.unsprung, mass: null, x: null, y: null, z: null }));
-  const emptyRow = (): Row => ({ name: '', assembly: '', subassembly: '', unsprung: false, mass: null, x: null, y: null, z: null });
+  const seedRows = (): Row[] => MB_COMPONENTS.map((c) => ({ name: c.name, assembly: c.subsystem, subassembly: '', unsprung: c.unsprung, mass: null, x: null, y: null, z: null, localIzz: null }));
+  const emptyRow = (): Row => ({ name: '', assembly: '', subassembly: '', unsprung: false, mass: null, x: null, y: null, z: null, localIzz: null });
   const toMbRows = (): MbRow[] => rows.map((r) => ({
     mass: r.mass == null ? NaN : r.mass, x: r.x == null ? NaN : r.x, y: r.y == null ? NaN : r.y, z: r.z == null ? NaN : r.z,
-    unsprung: r.unsprung, subsystem: r.assembly || '—',
+    unsprung: r.unsprung, subsystem: r.assembly || '—', localIzz: r.localIzz == null ? undefined : r.localIzz,
   }));
 
   const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
@@ -151,6 +157,7 @@ const LINKED = [
         <td style="padding:0.25rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="x" value="${r.x ?? ''}" style="${num}" aria-label="x"></td>
         <td style="padding:0.25rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="y" value="${r.y ?? ''}" style="${num}" aria-label="y"></td>
         <td style="padding:0.25rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="z" value="${r.z ?? ''}" style="${num}" aria-label="z"></td>
+        <td style="padding:0.25rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="localIzz" value="${r.localIzz ?? ''}" style="${num}" aria-label="local Izz" placeholder="0"></td>
         <td style="padding:0.25rem 0.4rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-200);padding:0.15rem 0.45rem;" aria-label="delete row">✕</button></td>
       </tr>`).join('') +
       `<datalist id="mb-assemblies">${[...new Set(rows.map((r) => r.assembly).filter(Boolean))].map((a) => `<option value="${esc(a)}">`).join('')}</datalist>`;
@@ -245,9 +252,9 @@ const LINKED = [
   }, 600);
 
   // ---- CSV + presets (P1.5) ----
-  const MB_CSV_COLS = ['name', 'assembly', 'subassembly', 'unsprung', 'mass_kg', 'x_mm', 'y_mm', 'z_mm'];
+  const MB_CSV_COLS = ['name', 'assembly', 'subassembly', 'unsprung', 'mass_kg', 'x_mm', 'y_mm', 'z_mm', 'local_izz_kgm2'];
   function mbGetCsv(): string {
-    return toCsv(MB_CSV_COLS, rows.map((r) => [r.name, r.assembly, r.subassembly, r.unsprung ? 'yes' : 'no', r.mass ?? '', r.x ?? '', r.y ?? '', r.z ?? '']));
+    return toCsv(MB_CSV_COLS, rows.map((r) => [r.name, r.assembly, r.subassembly, r.unsprung ? 'yes' : 'no', r.mass ?? '', r.x ?? '', r.y ?? '', r.z ?? '', r.localIzz ?? '']));
   }
   const yes = (s: string) => /^(y|yes|true|1|unsprung)$/i.test((s ?? '').trim());
   const nnum = (s: string) => { const v = (s ?? '').trim(); return v === '' ? null : Number(v); };
@@ -259,7 +266,7 @@ const LINKED = [
     const get = (r: string[], h: string) => { const i = idx(h); return i < 0 ? '' : (r[i] ?? ''); };
     const parsed: Row[] = recs.filter((r) => (get(r, 'name') ?? '').trim() !== '').map((r) => ({
       name: get(r, 'name').trim(), assembly: get(r, 'assembly').trim(), subassembly: get(r, 'subassembly').trim(),
-      unsprung: yes(get(r, 'unsprung')), mass: nnum(get(r, 'mass_kg')), x: nnum(get(r, 'x_mm')), y: nnum(get(r, 'y_mm')), z: nnum(get(r, 'z_mm')),
+      unsprung: yes(get(r, 'unsprung')), mass: nnum(get(r, 'mass_kg')), x: nnum(get(r, 'x_mm')), y: nnum(get(r, 'y_mm')), z: nnum(get(r, 'z_mm')), localIzz: nnum(get(r, 'local_izz_kgm2')),
     }));
     if (!parsed.length) return 'no rows with a name';
     rows = mode === 'append' ? rows.concat(parsed) : parsed;
@@ -278,9 +285,9 @@ const LINKED = [
     // Load saved rows; migrate the old keyed shape ({rows:{key:{mass,x,y,z}}}).
     const saved = await loadToolJson<any>(TOOL, {});
     if (Array.isArray(saved?.components)) {
-      rows = saved.components.map((r: any) => ({ name: r.name ?? '', assembly: r.assembly ?? '', subassembly: r.subassembly ?? '', unsprung: !!r.unsprung, mass: r.mass ?? null, x: r.x ?? null, y: r.y ?? null, z: r.z ?? null }));
+      rows = saved.components.map((r: any) => ({ name: r.name ?? '', assembly: r.assembly ?? '', subassembly: r.subassembly ?? '', unsprung: !!r.unsprung, mass: r.mass ?? null, x: r.x ?? null, y: r.y ?? null, z: r.z ?? null, localIzz: r.localIzz ?? null }));
     } else if (saved?.rows && typeof saved.rows === 'object') {
-      rows = MB_COMPONENTS.map((c) => { const o = saved.rows[c.key] ?? {}; return { name: c.name, assembly: c.subsystem, subassembly: '', unsprung: c.unsprung, mass: o.mass ?? null, x: o.x ?? null, y: o.y ?? null, z: o.z ?? null }; });
+      rows = MB_COMPONENTS.map((c) => { const o = saved.rows[c.key] ?? {}; return { name: c.name, assembly: c.subsystem, subassembly: '', unsprung: c.unsprung, mass: o.mass ?? null, x: o.x ?? null, y: o.y ?? null, z: o.z ?? null, localIzz: null }; });
     } else {
       rows = seedRows();
     }
