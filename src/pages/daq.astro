@@ -1,0 +1,127 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+---
+<Base title="DAQ log interpretation">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / <a href={url('electronics')} style="color:inherit;">Electronics</a> / DAQ interpretation
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Stage 09 · validate &amp; correlate</p>
+    <h1 style="margin-top:0.4rem;">DAQ log interpretation</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
+      Upload a test log (CSV matching the <a href={url('templates/daq/daq_log_template.csv')}>log template</a>)
+      and the tool derives the measured channels that validate the design — g–g
+      scatter, understeer &amp; roll gradients, live brake bias, drive slip, tyre-temp
+      spread and a damper-velocity histogram — each next to the design number it backs.
+    </p>
+  </header>
+
+  <div class="card">
+    <div style="display:flex;gap:0.8rem;flex-wrap:wrap;align-items:center;">
+      <input type="file" accept=".csv,text/csv" id="log-file" />
+      <label style="font-size:var(--fs-300);">Steering ratio i <input type="number" step="any" id="log-ratio" value="5" style="width:70px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.4rem;" /></label>
+      <span class="mono" id="log-status" style="font-size:var(--fs-200);color:var(--ink-3);"></span>
+    </div>
+  </div>
+
+  <div id="log-out" hidden>
+    <div class="card" style="margin-top:1rem;">
+      <h2 style="font-size:var(--fs-600);">Measured vs design</h2>
+      <div style="overflow-x:auto;margin-top:0.5rem;">
+        <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:460px;">
+          <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+            <th style="padding:0.4rem 0.6rem;" class="annot">Channel</th>
+            <th style="padding:0.4rem 0.6rem;text-align:right;" class="annot">Measured</th>
+            <th style="padding:0.4rem 0.6rem;text-align:right;" class="annot">Design</th>
+            <th style="padding:0.4rem 0.6rem;text-align:right;" class="annot">Δ</th>
+            <th style="padding:0.4rem 0.6rem;" class="annot">Status</th>
+          </tr></thead>
+          <tbody id="log-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;" class="daq-grid">
+      <div class="card"><h3 class="ct-h3">g–g scatter (measured)</h3><div style="height:300px;position:relative;"><canvas id="log-gg"></canvas></div></div>
+      <div class="card"><h3 class="ct-h3">Damper velocity (FL)</h3><div style="height:300px;position:relative;"><canvas id="log-damper"></canvas></div></div>
+    </div>
+  </div>
+</Base>
+
+<style>@media (max-width: 760px) { .daq-grid { grid-template-columns: 1fr !important; } }</style>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { interpretLog, type LogRow } from '../lib/calc/daq-interp';
+  import { loadMaster, loadToolOutputsMap, fmt } from '../lib/store';
+  import { parseCsv, readFileText } from '../lib/csv';
+  import { applyChartDefaults, palette } from '../lib/chart-theme';
+
+  const fileEl = document.getElementById('log-file') as HTMLInputElement;
+  const ratioEl = document.getElementById('log-ratio') as HTMLInputElement;
+  const statusEl = document.getElementById('log-status')!;
+  const outEl = document.getElementById('log-out') as HTMLElement;
+  const tableEl = document.getElementById('log-table')!;
+  let ggChart: Chart | null = null, dampChart: Chart | null = null;
+  let lastRows: LogRow[] = [];
+
+  applyChartDefaults();
+
+  function toRows(text: string): LogRow[] {
+    const { headers, rows } = parseCsv(text);
+    return rows.map((r) => { const o: LogRow = {}; headers.forEach((h, i) => { const n = Number((r[i] ?? '').trim()); o[h] = Number.isFinite(n) && (r[i] ?? '').trim() !== '' ? n : NaN; }); return o; });
+  }
+
+  async function run() {
+    if (!lastRows.length) return;
+    const master = await loadMaster();
+    const outs = await loadToolOutputsMap();
+    const mv = (k: string) => { const v = master[k]?.value; return v == null ? NaN : Number(v); };
+    const ov = (k: string) => outs[k]?.value ?? null;
+    const r = interpretLog(lastRows, { trackFront: mv('track_front'), steeringRatio: Number(ratioEl.value) });
+
+    const rows: string[] = [];
+    const add = (name: string, meas: number, design: number | null, unit: string, cmp: 'approx' | 'min' | 'max', band = 0.2) => {
+      const mStr = Number.isFinite(meas) ? fmt(meas, 3) : '—';
+      const dStr = design == null || !Number.isFinite(design) ? '—' : fmt(design, 3);
+      let delta = '—', status = '<span class="badge">no design value</span>';
+      if (Number.isFinite(meas) && design != null && Number.isFinite(design)) {
+        const d = meas - design; delta = (d >= 0 ? '+' : '') + fmt(d, 3) + ' ' + unit;
+        const ok = cmp === 'approx' ? Math.abs(d) <= band * Math.max(1e-9, Math.abs(design)) : cmp === 'min' ? meas >= design : meas <= design;
+        status = ok ? '<span class="badge badge-live">within band</span>' : '<span class="badge badge-frozen">off target</span>';
+      }
+      rows.push(`<tr style="border-bottom:1px solid var(--rule);"><td style="padding:0.35rem 0.6rem;">${name}</td>
+        <td style="padding:0.35rem 0.6rem;text-align:right;" class="mono">${mStr} ${unit}</td>
+        <td style="padding:0.35rem 0.6rem;text-align:right;" class="mono">${dStr}</td>
+        <td style="padding:0.35rem 0.6rem;text-align:right;" class="mono">${delta}</td>
+        <td style="padding:0.35rem 0.6rem;">${status}</td></tr>`);
+    };
+    add('Understeer gradient', r.understeerGradient, ov('understeer_gradient'), 'deg/g', 'approx');
+    add('Roll gradient', r.rollGradient, ov('roll_gradient') ?? mv('roll_grad_target'), 'deg/g', 'approx');
+    add('Brake bias (front)', r.brakeBias, ov('achieved_front_bias'), '-', 'approx', 0.08);
+    add('Drive slip (rear)', r.driveSlip, null, '-', 'approx');
+    for (const [t, v] of Object.entries(r.tyreTempSpread)) add(`Tyre temp spread ${t} (in−out)`, v, null, '°C', 'approx');
+    tableEl.innerHTML = rows.join('');
+
+    const p = palette();
+    const ggCfg: any = { type: 'scatter', data: { datasets: [{ label: 'samples', data: r.gg.map((q) => ({ x: q.ay, y: q.ax })), backgroundColor: p.maroon, pointRadius: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'lateral (g)' }, min: -2, max: 2 }, y: { title: { display: true, text: 'long. (g)' }, min: -2, max: 2 } } } };
+    if (ggChart) { ggChart.data = ggCfg.data; ggChart.update(); } else { const cv = document.getElementById('log-gg') as HTMLCanvasElement; if (cv) ggChart = new Chart(cv, ggCfg); }
+
+    const h = r.damperHist;
+    const dCfg: any = { type: 'bar', data: { labels: ['bump <25', 'bump ≥25', 'reb <25', 'reb ≥25'], datasets: [{ label: 'samples', data: [h.lowBump, h.highBump, h.lowReb, h.highReb], backgroundColor: p.sky }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: 'count' } } } } };
+    if (dampChart) { dampChart.data = dCfg.data; dampChart.update(); } else { const cv = document.getElementById('log-damper') as HTMLCanvasElement; if (cv) dampChart = new Chart(cv, dCfg); }
+
+    outEl.hidden = false;
+    statusEl.textContent = `${r.nSamples} samples analysed ✓`; statusEl.style.color = 'var(--state-linked)';
+  }
+
+  fileEl.addEventListener('change', async () => {
+    const f = fileEl.files?.[0]; if (!f) return;
+    try { lastRows = toRows(await readFileText(f)); if (!lastRows.length) { statusEl.textContent = 'No rows parsed.'; statusEl.style.color = 'var(--heritage)'; return; } await run(); }
+    catch (e) { statusEl.textContent = 'Failed: ' + (e as Error).message; statusEl.style.color = 'var(--heritage)'; }
+  });
+  ratioEl.addEventListener('input', () => { if (lastRows.length) run(); });
+</script>

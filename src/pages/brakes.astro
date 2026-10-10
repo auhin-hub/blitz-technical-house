@@ -112,7 +112,12 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
       <!-- BIAS SWEEP -->
       <div data-tab-panel="bias" hidden>
         <h3 class="ct-h3">Achieved vs optimal front bias — deceleration sweep</h3>
-        <p style="color:var(--ink-2);font-size:var(--fs-300);">Optimal = ff + a·h/L per the Master; achieved is the hardware torque ratio (fixed here). A proportioning valve's high-decel effect comes with the Advanced tab.</p>
+        <p style="color:var(--ink-2);font-size:var(--fs-300);">Optimal = ff + a·h/L per the Master; achieved is the hardware torque ratio (fixed here). Where <strong>achieved &lt; optimal</strong> the front is under-braked, so the <strong>rear locks first</strong> — shaded as the danger zone. Aim to sit slightly front-biased at your peak decel.</p>
+        <div class="ct-stat" style="margin:0.5rem 0;max-width:360px;">
+          <span class="annot">Recommended bias @ target decel</span>
+          <div class="val"><span id="bias-reco">—</span></div>
+          <span class="ct-ref" id="bias-reco-note"></span>
+        </div>
         <div style="height:300px;position:relative;margin-top:0.5rem;"><canvas id="bias-chart"></canvas></div>
       </div>
 
@@ -228,11 +233,21 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
   function renderChart(m: BrakeSystemMaster, achieved: number) {
     const p = palette();
     const sweep = biasSweep(achieved, m);
+    // Recommended bias = optimal at the target decel (Master accel_brake_target, else local).
+    const aTarget = Number.isFinite(master.accel_brake_target) ? master.accel_brake_target
+      : (Number(((document.getElementById('target-decel') as HTMLInputElement)?.value)) || 1);
+    const reco = Number.isFinite(m.ff) && Number.isFinite(m.h) && Number.isFinite(m.L) ? m.ff + aTarget * (m.h / m.L) : NaN;
+    const recoEl = document.getElementById('bias-reco'); const recoNote = document.getElementById('bias-reco-note');
+    if (recoEl) recoEl.textContent = Number.isFinite(reco) ? reco.toFixed(3) : '—';
+    if (recoNote) recoNote.textContent = Number.isFinite(reco) ? `ff + ${aTarget}·h/L — set hardware slightly above this` : 'needs ff, h, L and a target decel in Master';
     const cfg: any = {
       type: 'line',
       data: { labels: sweep.map((s) => s.g.toFixed(1)), datasets: [
         { label: 'Optimal front bias', data: sweep.map((s) => Number.isFinite(s.optimal) ? +s.optimal.toFixed(4) : null), borderColor: p.sky, backgroundColor: p.sky, tension: 0.2, pointRadius: 3 },
         { label: 'Achieved front bias', data: sweep.map((s) => Number.isFinite(s.achieved) ? +s.achieved.toFixed(4) : null), borderColor: p.amber, backgroundColor: p.amber, borderDash: [6, 4], pointRadius: 0 },
+        // Danger: optimal above achieved → front under-braked → rear locks first.
+        { label: 'Rear locks first (danger)', data: sweep.map((s) => (Number.isFinite(s.optimal) && Number.isFinite(s.achieved) && s.optimal > s.achieved) ? +s.optimal.toFixed(4) : null),
+          borderColor: 'transparent', backgroundColor: 'rgba(155,30,34,0.18)', pointRadius: 0, fill: 1, spanGaps: false },
       ] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } },
         scales: { x: { title: { display: true, text: 'deceleration (g)' } }, y: { title: { display: true, text: 'front brake bias' } } } },

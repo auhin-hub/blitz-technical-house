@@ -15,6 +15,15 @@ Work the tiers in order. **P0 = bugs (fast, ship first). P1 = requested features
 P2 = new tools (bigger builds).** Each item has **Where / Do / Accept**.
 
 ## Progress log
+- **2026-10-10 — ALL REMAINING TIERS COMPLETE** (branch `p1-lists`, continued).
+  P1.2 trifilar Izz tool + parallel-axis local_Izz in MassBudget. P1.3 Vehicle-Spec
+  sourcing tooltips + team baseline presets. P1.6 steering-effort sub-calc. P1.7
+  Brakes bias-sweep decision aid (danger shading + recommended bias). P2.1 Geometry
+  live front/side SVG + IC/RC construction + x-coords + SolidWorks hardpoint export.
+  P2.2 .tir upload/parse → Master (tir.ts). P2.3 DAQ log interpretation page (/daq,
+  daq-interp.ts). P2.5 load-transfer calculator → derived TLLTD. P2.6 lap-time sim
+  (/lapsim). P2.7 setup-sheet generator (/setup-sheet). 83 vitest tests; check +
+  build clean. New pure modules all unit-tested.
 - **2026-10-10 — P1.1 + P2.4 editable lists** (branch `p1-lists` off main) + a legend
   fix (4th key entry: dashed-amber = linked value not set / not frozen). **P1.1:**
   MassBudget rebuilt as dynamic rows — editable name / assembly / sub-assembly +
@@ -355,7 +364,13 @@ Export as CSV and as a printable sheet. Read-only snapshot (doesn't change Maste
 2. P1.4 (freeze warnings) + P1.5 (CSV/presets) — they're infrastructure the rest
    reuses. ✅ done 2026-10-10 (DAQ's CSV/presets deferred to P2.4 when it lists)
 3. P1.1 / P2.4 (editable components for MassBudget + DAQ) together. ✅ done 2026-10-10
-4. P1.2, P1.3, P1.6, P1.7 (small self-contained calcs).
-5. P2.2 (`.tir`) and P2.3 (DAQ interpretation) — high value, moderate size.
-6. P2.5 (load transfer), P2.6 (lap sim), P2.7 (setup sheet).
-7. P2.1 Geometry Phase 1, then Phase 2 (largest).
+4. P1.2, P1.3, P1.6, P1.7 (small self-contained calcs). ✅ done 2026-10-10
+5. P2.2 (`.tir`) and P2.3 (DAQ interpretation) — high value, moderate size. ✅ done 2026-10-10
+6. P2.5 (load transfer), P2.6 (lap sim), P2.7 (setup sheet). ✅ done 2026-10-10
+7. P2.1 Geometry Phase 1 + a Phase-2 slice (x coords, side-view schematic, export).
+   ✅ done 2026-10-10. Full ADAMS-grade synced-3D sweep intentionally left to ADAMS
+   (the front-view sweep remains the quantitative engine).
+
+**Whole P0/P1/P2 roadmap complete.** Still deferred (needs Tahmid's data, as flagged
+in the memory/notes): the rules-heavy/business tools (SES, impact-attenuator,
+cost/BOM, budget-Gantt, points predictor, injector sizing, chain-life).

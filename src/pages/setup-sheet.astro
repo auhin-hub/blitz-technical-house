@@ -1,0 +1,134 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+---
+<Base title="Setup sheet">
+  <nav class="annot" style="margin-bottom:0.75rem;" data-noprint>
+    <a href={url('')} style="color:inherit;">Home</a> / Setup sheet
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Track setup sheet · live snapshot</p>
+    <h1 style="margin-top:0.4rem;">Setup sheet</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;" data-noprint>
+      A one-page setup sheet built from the current Master + tool contributions
+      (read-only — it doesn't change anything). Fill the track-tuning fields
+      (pressures, ARB, damper clicks) for the day, then print or export CSV.
+    </p>
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.8rem;" data-noprint>
+      <button class="btn btn-heritage" type="button" id="ss-print">Print / PDF</button>
+      <button class="btn btn-ghost" type="button" id="ss-csv">Download CSV</button>
+      <label style="font-size:var(--fs-300);align-self:center;">Event <input type="text" id="ss-event" placeholder="e.g. Autocross AM" style="background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.4rem;" /></label>
+      <span class="mono" id="ss-status" style="font-size:var(--fs-200);color:var(--ink-3);align-self:center;"></span>
+    </div>
+  </header>
+
+  <div id="ss-sheet" class="card">
+    <div id="ss-body"><p class="mono" style="color:var(--ink-3);">Sign in to load the live spec.</p></div>
+  </div>
+</Base>
+
+<style>
+  @media print {
+    [data-noprint], .masthead, nav, footer { display: none !important; }
+    .card { border: none !important; box-shadow: none !important; padding: 0 !important; }
+    body { background: #fff; }
+  }
+  #ss-body table { border-collapse: collapse; font-size: var(--fs-300); width: 100%; margin-top: 0.3rem; }
+  #ss-body td, #ss-body th { padding: 0.3rem 0.6rem; border-bottom: 1px solid var(--rule); text-align: left; }
+  #ss-body .ss-in { width: 90px; text-align: right; font-family: var(--font-mono); background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius-sm); color: var(--ink); padding: 0.18rem 0.35rem; }
+</style>
+
+<script>
+  import { loadMaster, loadToolOutputsMap, loadToolState, loadToolJson, saveToolJson, fmt, debounce } from '../lib/store';
+  import { toCsv, downloadText } from '../lib/csv';
+
+  const bodyEl = document.getElementById('ss-body')!;
+  const statusEl = document.getElementById('ss-status')!;
+  const TOOL = 'setup_sheet';
+  type Manual = Record<string, string>;
+  let manual: Manual = {};
+  let sheetRows: { group: string; label: string; value: string; source: string }[] = [];
+
+  const persist = debounce(async () => {
+    statusEl.textContent = 'Saving…';
+    const err = await saveToolJson(TOOL, { manual, event: (document.getElementById('ss-event') as HTMLInputElement).value });
+    statusEl.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
+    statusEl.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
+  }, 600);
+
+  (async () => {
+    const master = await loadMaster();
+    if (!Object.keys(master).length) return;
+    const outs = await loadToolOutputsMap();
+    const setup = await loadToolState('vd_setup', {});
+    const corner = await loadToolState('ms_corner', {});
+    const saved = await loadToolJson<{ manual?: Manual; event?: string }>(TOOL, {});
+    manual = saved.manual ?? {};
+    if (saved.event) (document.getElementById('ss-event') as HTMLInputElement).value = saved.event;
+
+    const mv = (k: string) => { const v = master[k]?.value; return v == null ? null : Number(v); };
+    const ov = (k: string) => outs[k]?.value ?? null;
+    const sv = (k: string) => (Number.isFinite(setup[k]) ? setup[k] : null);
+    const s = (v: number | null, d = 2) => v == null || !Number.isFinite(v) ? '—' : fmt(v, d);
+
+    // group, label, value string, source, [manual key + unit] for editable track fields
+    type Def = { group: string; label: string; value: string; source: string; manualKey?: string; unit?: string };
+    const defs: Def[] = [
+      { group: 'Tyres', label: 'Hot pressure — front', value: '', source: 'track', manualKey: 'tyrePresF', unit: 'bar' },
+      { group: 'Tyres', label: 'Hot pressure — rear', value: '', source: 'track', manualKey: 'tyrePresR', unit: 'bar' },
+      { group: 'Tyres', label: 'Static camber — front', value: s(sv('staticCamberF')) + ' deg', source: 'VD setup' },
+      { group: 'Tyres', label: 'Static camber — rear', value: s(sv('staticCamberR')) + ' deg', source: 'VD setup' },
+      { group: 'Tyres', label: 'Caster', value: s(sv('caster')) + ' deg', source: 'VD setup' },
+      { group: 'Springs / dampers', label: 'Spring rate — front', value: s(ov('spring_rate_front')) + ' N/mm', source: 'Springs' },
+      { group: 'Springs / dampers', label: 'Spring rate — rear', value: s(ov('spring_rate_rear')) + ' N/mm', source: 'Springs' },
+      { group: 'Springs / dampers', label: 'Ride freq target — front', value: s(mv('ride_freq_front')) + ' Hz', source: 'Master' },
+      { group: 'Springs / dampers', label: 'Ride freq target — rear', value: s(mv('ride_freq_rear')) + ' Hz', source: 'Master' },
+      { group: 'Springs / dampers', label: 'Roll gradient', value: s(ov('roll_gradient')) + ' deg/g', source: 'Springs' },
+      { group: 'Springs / dampers', label: 'ARB — front', value: '', source: 'track', manualKey: 'arbF', unit: 'click/pos' },
+      { group: 'Springs / dampers', label: 'ARB — rear', value: '', source: 'track', manualKey: 'arbR', unit: 'click/pos' },
+      { group: 'Springs / dampers', label: 'Damper — bump F/R', value: '', source: 'track', manualKey: 'damperBump', unit: 'clicks' },
+      { group: 'Springs / dampers', label: 'Damper — rebound F/R', value: '', source: 'track', manualKey: 'damperReb', unit: 'clicks' },
+      { group: 'Platform', label: 'Ride height — front', value: '', source: 'track', manualKey: 'rideF', unit: 'mm' },
+      { group: 'Platform', label: 'Ride height — rear', value: '', source: 'track', manualKey: 'rideR', unit: 'mm' },
+      { group: 'Platform', label: 'Ride height (Master)', value: s(mv('ride_height')) + ' mm', source: 'Master' },
+      { group: 'Platform', label: 'Front LLT distribution (TLLTD)', value: s(mv('tlltd_front'), 3), source: 'Master' },
+      { group: 'Brakes', label: 'Achieved front bias', value: s(ov('achieved_front_bias'), 3), source: 'Brakes' },
+      { group: 'Brakes', label: 'Bias-bar setting', value: '', source: 'track', manualKey: 'biasBar', unit: 'notes' },
+      { group: 'Corner weights', label: 'Front L / R', value: `${s(Number(corner.l_f), 0)} / ${s(Number(corner.r_f), 0)} N`, source: 'Measurement' },
+      { group: 'Corner weights', label: 'Rear L / R', value: `${s(Number(corner.l_r), 0)} / ${s(Number(corner.r_r), 0)} N`, source: 'Measurement' },
+    ];
+
+    // Build grouped HTML.
+    const groups = [...new Set(defs.map((d) => d.group))];
+    let html = `<h2 style="font-size:var(--fs-700);">Setup sheet <span class="mono" style="font-size:var(--fs-300);color:var(--ink-3);">— ${new Date().toLocaleDateString()}</span></h2>`;
+    sheetRows = [];
+    for (const g of groups) {
+      html += `<h3 class="ct-h3" style="margin-top:0.9rem;">${g}</h3><table><tbody>`;
+      for (const d of defs.filter((x) => x.group === g)) {
+        let valCell: string;
+        if (d.manualKey) {
+          valCell = `<input class="ss-in" data-manual="${d.manualKey}" value="${(manual[d.manualKey] ?? '').replace(/"/g, '&quot;')}"> ${d.unit ?? ''}`;
+        } else {
+          valCell = `<span class="mono">${d.value}</span>`;
+        }
+        html += `<tr><td>${d.label}</td><td style="text-align:right;">${valCell}</td><td class="annot" style="color:var(--ink-3);">${d.source}</td></tr>`;
+        sheetRows.push({ group: g, label: d.label, value: d.manualKey ? (manual[d.manualKey] ?? '') + ' ' + (d.unit ?? '') : d.value, source: d.source });
+      }
+      html += `</tbody></table>`;
+    }
+    bodyEl.innerHTML = html;
+
+    bodyEl.querySelectorAll<HTMLInputElement>('[data-manual]').forEach((inp) =>
+      inp.addEventListener('input', () => { manual[inp.dataset.manual!] = inp.value; persist(); }));
+
+    document.getElementById('ss-event')!.addEventListener('input', persist);
+    document.getElementById('ss-print')!.addEventListener('click', () => window.print());
+    document.getElementById('ss-csv')!.addEventListener('click', () => {
+      // Re-read manual inputs for freshest values.
+      bodyEl.querySelectorAll<HTMLInputElement>('[data-manual]').forEach((inp) => { manual[inp.dataset.manual!] = inp.value; });
+      const ev = (document.getElementById('ss-event') as HTMLInputElement).value;
+      const csvRows = defs.map((d) => [d.group, d.label, d.manualKey ? `${manual[d.manualKey] ?? ''} ${d.unit ?? ''}`.trim() : d.value, d.source]);
+      downloadText(`setup_sheet${ev ? '_' + ev.replace(/[^a-z0-9]+/gi, '_') : ''}.csv`, toCsv(['group', 'item', 'value', 'source'], csvRows));
+    });
+  })();
+</script>

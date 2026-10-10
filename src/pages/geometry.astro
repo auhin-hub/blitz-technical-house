@@ -2,14 +2,16 @@
 import Base from '../layouts/Base.astro';
 import { url } from '../lib/config';
 
-// Front-view hardpoints (one corner), y = lateral, z = vertical (mm).
+// Hardpoints (one corner). Coordinate convention (SolidWorks-friendly):
+// origin = front-axle centre on the ground; x = rearward, y = right, z = up (mm).
+// Front-view kinematics (RC/camber/scrub) use y,z; x is for the side view + export.
 const HP = [
-  { key: 'lip', label: 'Lower inner pivot', y: 150, z: 120 },
-  { key: 'uip', label: 'Upper inner pivot', y: 230, z: 330 },
-  { key: 'lbj', label: 'Lower outer ball joint', y: 620, z: 135 },
-  { key: 'ubj', label: 'Upper outer ball joint', y: 560, z: 365 },
-  { key: 'wc', label: 'Wheel centre', y: 610, z: 228 },
-  { key: 'cp', label: 'Contact patch', y: 620, z: 0 },
+  { key: 'lip', label: 'Lower inner pivot', x: 10, y: 150, z: 120 },
+  { key: 'uip', label: 'Upper inner pivot', x: -10, y: 230, z: 330 },
+  { key: 'lbj', label: 'Lower outer ball joint', x: 5, y: 620, z: 135 },
+  { key: 'ubj', label: 'Upper outer ball joint', x: -5, y: 560, z: 365 },
+  { key: 'wc', label: 'Wheel centre', x: 0, y: 610, z: 228 },
+  { key: 'cp', label: 'Contact patch', x: 0, y: 620, z: 0 },
 ];
 const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
 ---
@@ -23,8 +25,10 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
     <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
       Front-view double-wishbone kinematics through travel: roll-centre height,
       camber and scrub vs wheel heave, from the hardpoint table (the single source
-      of hardpoints). A design-stage estimate — full 3D kinematics stays in ADAMS.
-      <strong>Freeze the hardpoints at G3.</strong>
+      of hardpoints), with a <strong>live front-view diagram</strong> (arms → instant
+      centre → roll centre), a side-view anti-geometry schematic, and a
+      SolidWorks-coordinate hardpoint export. A design-stage estimate — full 3D
+      kinematics stays in ADAMS. <strong>Freeze the hardpoints at G3.</strong>
     </p>
   </header>
 
@@ -40,12 +44,25 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
     <div class="ct-body">
       <div class="ct-col">
         <h3 class="ct-h3">Hardpoints — one corner (freeze at G3)</h3>
-        <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Point</th><th class="ct-num">y (mm)</th><th class="ct-num">z (mm)</th></tr></thead>
+        <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Point</th><th class="ct-num">x (mm)</th><th class="ct-num">y (mm)</th><th class="ct-num">z (mm)</th></tr></thead>
           <tbody>{HP.map((p) => (
             <tr><td>{p.label}</td>
+              <td class="ct-num"><input type="number" step="any" style={ni} data-hp={`${p.key}_x`} value={p.x} aria-label={`${p.label} x`} /></td>
               <td class="ct-num"><input type="number" step="any" style={ni} data-hp={`${p.key}_y`} value={p.y} aria-label={`${p.label} y`} /></td>
               <td class="ct-num"><input type="number" step="any" style={ni} data-hp={`${p.key}_z`} value={p.z} aria-label={`${p.label} z`} /></td></tr>
           ))}</tbody></table></div>
+        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.5rem;">
+          <button class="btn btn-ghost" type="button" id="geo-export" style="font-size:var(--fs-200);">Export hardpoints (CSV → SolidWorks)</button>
+        </div>
+        <p class="ct-ref" style="margin-top:0.3rem;">Origin = front-axle centre on the ground · x rearward · y right · z up.</p>
+
+        <h3 class="ct-h3" style="margin-top:1rem;">Front view (live)</h3>
+        <div id="geo-front-svg" style="border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface-2);margin-top:0.3rem;overflow:hidden;"></div>
+        <p class="ct-ref" style="margin-top:0.3rem;">Arms extended to the instant centre (IC); contact-patch→IC crosses the centreline at the roll centre (RC).</p>
+
+        <h3 class="ct-h3" style="margin-top:1rem;">Side view (anti-geometry schematic)</h3>
+        <div id="geo-side-svg" style="border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface-2);margin-top:0.3rem;overflow:hidden;"></div>
+        <p class="ct-ref" style="margin-top:0.3rem;">Schematic from the side-view swing-arm angle below; the line from the contact patch meets the % of the way to the CoG set by anti-dive/squat.</p>
 
         <h3 class="ct-h3">Anti-dive / anti-squat</h3>
         <p style="color:var(--ink-2);font-size:var(--fs-300);">% anti = share · tan(θ_svsa) · L / h (L, h from Master).</p>
@@ -63,6 +80,7 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
           <div class="ct-stat"><span class="annot">Camber gain / bump</span><div class="val"><span data-out="camberGain">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> °/10mm</span></div><span class="ct-ref">&lt;0.5</span></div>
           <div class="ct-stat"><span class="annot">RC migration</span><div class="val"><span data-out="rcMig">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div><span class="ct-ref">&lt;60</span></div>
           <div class="ct-stat"><span class="annot">Scrub @ bump</span><div class="val"><span data-out="scrubBump">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div></div>
+          <div class="ct-stat"><span class="annot">Static camber</span><div class="val"><span data-out="staticCamber">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> deg</span></div></div>
         </div>
         <h3 class="ct-h3">Roll-centre height vs heave</h3>
         <div style="height:190px;position:relative;"><canvas id="rc-chart"></canvas></div>
@@ -78,8 +96,9 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
 
 <script>
   import Chart from 'chart.js/auto';
-  import { geometrySweep, geometrySummary, antiGeometry, type Hardpoints } from '../lib/calc/geometry';
+  import { geometrySweep, geometrySummary, antiGeometry, frontViewConstruction, staticCamber, type Hardpoints } from '../lib/calc/geometry';
   import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
+  import { toCsv, downloadText } from '../lib/csv';
   import { decorateLinkedCells } from '../lib/linked';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
@@ -95,6 +114,55 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
   function hardpoints(): Hardpoints {
     const p = (k: string) => ({ y: gh(`${k}_y`), z: gh(`${k}_z`) });
     return { lip: p('lip'), uip: p('uip'), lbj: p('lbj'), ubj: p('ubj'), wc: p('wc'), cp: p('cp') };
+  }
+  const KEYS = ['lip', 'uip', 'lbj', 'ubj', 'wc', 'cp'] as const;
+  const hp3d = () => Object.fromEntries(KEYS.map((k) => [k, { x: gh(`${k}_x`), y: gh(`${k}_y`), z: gh(`${k}_z`) }])) as Record<string, { x: number; y: number; z: number }>;
+
+  // ---- Live diagrams (P2.1) ----
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  type P = { y: number; z: number };
+  function buildFront(hp: Hardpoints, ic: P | null, rcZ: number): string {
+    const r = Math.abs(hp.wc.z - hp.cp.z) || 100;
+    const useIc = ic && Number.isFinite(ic.y) && Number.isFinite(ic.z) && Math.abs(ic.y) < 6000 && Math.abs(ic.z) < 6000;
+    const all: P[] = [hp.lip, hp.uip, hp.lbj, hp.ubj, hp.wc, hp.cp, { y: hp.wc.y - r, z: hp.wc.z }, { y: hp.wc.y + r, z: hp.wc.z }, { y: 0, z: 0 }, { y: 0, z: rcZ }];
+    if (useIc) all.push(ic!);
+    const minY = Math.min(...all.map((p) => p.y)) - 30, maxY = Math.max(...all.map((p) => p.y)) + 30;
+    const minZ = Math.min(...all.map((p) => p.z)) - 30, maxZ = Math.max(...all.map((p) => p.z)) + 30;
+    const W = 360, s = W / (maxY - minY), H = Math.max(150, (maxZ - minZ) * s);
+    const X = (y: number) => ((y - minY) * s).toFixed(1), Y = (z: number) => ((maxZ - z) * s).toFixed(1);
+    const line = (a: P, b: P, st: string, dash = false) => `<line x1="${X(a.y)}" y1="${Y(a.z)}" x2="${X(b.y)}" y2="${Y(b.z)}" stroke="${st}" stroke-width="2"${dash ? ' stroke-dasharray="4 3"' : ''}/>`;
+    const dot = (p: P, st: string, rr = 3) => `<circle cx="${X(p.y)}" cy="${Y(p.z)}" r="${rr}" fill="${st}"/>`;
+    let el = `<line x1="${X(0)}" y1="0" x2="${X(0)}" y2="${H}" stroke="var(--rule-strong)" stroke-width="1" stroke-dasharray="2 4"/>`;
+    el += `<line x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}" stroke="var(--rule-strong)" stroke-width="1"/>`;
+    el += `<circle cx="${X(hp.wc.y)}" cy="${Y(hp.wc.z)}" r="${(r * s).toFixed(1)}" fill="none" stroke="var(--ink-3)" stroke-width="1.5"/>`;
+    el += line(hp.lip, hp.lbj, 'var(--sky)') + line(hp.uip, hp.ubj, 'var(--sky)') + line(hp.lbj, hp.ubj, 'var(--ink)');
+    if (useIc) {
+      el += line(hp.lbj, ic!, 'var(--sky)', true) + line(hp.ubj, ic!, 'var(--sky)', true) + line(hp.cp, ic!, 'var(--amber)', true);
+      el += dot(ic!, 'var(--sky)', 3) + `<text x="${X(ic!.y)}" y="${+Y(ic!.z) - 6}" fill="var(--ink-2)" font-size="10">IC</text>`;
+    }
+    el += dot({ y: 0, z: rcZ }, 'var(--maroon)', 5) + `<text x="${+X(0) + 6}" y="${+Y(rcZ) - 4}" fill="var(--maroon)" font-size="10">RC ${r1(rcZ)}</text>`;
+    for (const p of [hp.lip, hp.uip, hp.lbj, hp.ubj]) el += dot(p, 'var(--ink)');
+    el += dot(hp.cp, 'var(--amber)');
+    return `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" width="100%" style="display:block;height:auto;" role="img" aria-label="front-view suspension diagram">${el}</svg>`;
+  }
+  function buildSide(hp: Record<string, { x: number; y: number; z: number }>, svsaDeg: number, antiPct: number): string {
+    type Q = { x: number; z: number };
+    const r = Math.abs(hp.wc.z - hp.cp.z) || 100;
+    const th = (svsaDeg * Math.PI) / 180;
+    const icLen = 600;
+    const ic: Q = { x: hp.cp.x + icLen * Math.cos(th), z: hp.cp.z + icLen * Math.sin(th) };
+    const all: Q[] = [{ x: hp.wc.x - r, z: 0 }, { x: hp.wc.x + r, z: hp.wc.z + r }, { x: hp.cp.x, z: 0 }, ic];
+    const minX = Math.min(...all.map((p) => p.x)) - 30, maxX = Math.max(...all.map((p) => p.x)) + 30;
+    const minZ = Math.min(...all.map((p) => p.z)) - 30, maxZ = Math.max(...all.map((p) => p.z)) + 30;
+    const W = 360, s = W / (maxX - minX), H = Math.max(140, (maxZ - minZ) * s);
+    const X = (x: number) => ((x - minX) * s).toFixed(1), Y = (z: number) => ((maxZ - z) * s).toFixed(1);
+    let el = `<line x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}" stroke="var(--rule-strong)" stroke-width="1"/>`;
+    el += `<circle cx="${X(hp.wc.x)}" cy="${Y(hp.wc.z)}" r="${(r * s).toFixed(1)}" fill="none" stroke="var(--ink-3)" stroke-width="1.5"/>`;
+    el += `<line x1="${X(hp.cp.x)}" y1="${Y(hp.cp.z)}" x2="${X(ic.x)}" y2="${Y(ic.z)}" stroke="var(--amber)" stroke-width="2" stroke-dasharray="4 3"/>`;
+    el += `<circle cx="${X(ic.x)}" cy="${Y(ic.z)}" r="3" fill="var(--sky)"/><text x="${X(ic.x)}" y="${+Y(ic.z) - 6}" fill="var(--ink-2)" font-size="10">side-view IC</text>`;
+    el += `<circle cx="${X(hp.cp.x)}" cy="${Y(hp.cp.z)}" r="3" fill="var(--amber)"/>`;
+    el += `<text x="8" y="16" fill="var(--ink-2)" font-size="11">θ_svsa ${r1(svsaDeg)}° · anti ${r1(antiPct)}%</text>`;
+    return `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" width="100%" style="display:block;height:auto;" role="img" aria-label="side-view anti-geometry schematic">${el}</svg>`;
   }
 
   function upsert(id: string, cfg: any) {
@@ -114,8 +182,16 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
     const bump = sweep.reduce((p, c) => (Math.abs(c.heave - 25) < Math.abs(p.heave - 25) ? c : p), sweep[0] ?? { scrub: NaN, heave: 0 } as any);
     put('scrubBump', bump ? bump.scrub : NaN, 1);
 
-    put('f_anti', antiGeometry(gi('f_share'), gi('f_svsa'), master.wheelbase, master.cog_height), 1);
-    put('r_anti', antiGeometry(gi('r_share'), gi('r_svsa'), master.wheelbase, master.cog_height), 1);
+    put('staticCamber', staticCamber(hp), 2);
+    const fAnti = antiGeometry(gi('f_share'), gi('f_svsa'), master.wheelbase, master.cog_height);
+    const rAnti = antiGeometry(gi('r_share'), gi('r_svsa'), master.wheelbase, master.cog_height);
+    put('f_anti', fAnti, 1);
+    put('r_anti', rAnti, 1);
+
+    // Live diagrams.
+    const { ic, rc } = frontViewConstruction(hp);
+    const frontEl = document.getElementById('geo-front-svg'); if (frontEl) frontEl.innerHTML = buildFront(hp, ic, rc.z);
+    const sideEl = document.getElementById('geo-side-svg'); if (sideEl) sideEl.innerHTML = buildSide(hp3d(), gi('f_svsa'), Number.isFinite(fAnti) ? fAnti : 0);
 
     const p = palette();
     const labels = sweep.map((s) => s.heave.toFixed(0));
@@ -151,6 +227,15 @@ const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:
     }
     recompute();
     document.querySelectorAll('[data-hp],[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
+
+    document.getElementById('geo-export')!.addEventListener('click', () => {
+      const hp = hp3d();
+      const labels: Record<string, string> = { lip: 'Lower inner pivot', uip: 'Upper inner pivot', lbj: 'Lower outer ball joint', ubj: 'Upper outer ball joint', wc: 'Wheel centre', cp: 'Contact patch' };
+      const rows = KEYS.map((k) => [k, labels[k], hp[k].x, hp[k].y, hp[k].z]);
+      const header = toCsv(['point', 'name', 'x_mm', 'y_mm', 'z_mm'], rows);
+      const note = '# MIST Blitz suspension hardpoints (one corner)\r\n# Origin = front-axle centre on the ground; x = rearward, y = right, z = up; mm.\r\n';
+      downloadText('hardpoints.csv', note + header);
+    });
 
     document.getElementById('geo-contribute')!.addEventListener('click', async () => {
       const st = document.getElementById('geo-contribute-status')!;

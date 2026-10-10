@@ -9,6 +9,31 @@ const stateClass = { input: 'field-input', linked: 'field-linked', computed: 'fi
 const rows = PARAM_SEED.map((p) => ({ ...p, state: fieldState(p) }));
 const GATES = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
 const td = 'padding:0.45rem 0.7rem;';
+
+// First-pass sourcing hints (handoff P1.3): where the number comes from, not a value.
+const SOURCING: Record<string, string> = {
+  wheelbase: 'Packaging + rules (wheelbase ≥ 1525 mm; smaller track ≥ 75% of the larger) + last year\'s car.',
+  track_front: 'Packaging + the load-transfer/turning trade; keep smaller track ≥ 75% of the larger (rule).',
+  track_rear: 'Packaging + the load-transfer/turning trade; keep smaller track ≥ 75% of the larger (rule).',
+  ride_height: 'Suspension travel + ground clearance + aero; start from last car.',
+  unsprung_corner: 'Sum the corner\'s parts (upright, hub, wheel, tyre, brake, arms share) from CAD / last car.',
+  tlltd_front: 'A target you pick (~0.5); the achieved value comes from springs + ARBs later (Balance / Load transfer).',
+  motion_ratio: 'From the linkage geometry: damper travel ÷ wheel travel (or the rocker ratio).',
+  mu_lat_peak: 'From the Tyre tool (TTC fit). Belt rig ≠ track — derate for real grip.',
+  corner_stiffness: 'From the Tyre tool (TTC fit) — cornering stiffness Cα per tyre.',
+  slip_peak: 'From the Tyre tool (TTC fit) — slip angle at peak lateral force.',
+  rolling_radius: 'From the Tyre tool / tyre data — loaded rolling radius.',
+  tyre_vert_stiffness: 'From the Tyre tool / tyre data — vertical stiffness (verify, pressure-dependent).',
+  mass_total: 'Computed by MassBudget (sum of components).',
+  mass_frac_front: 'Computed by MassBudget (weight distribution).',
+  cog_height: 'Computed by MassBudget; verify on the car with the CoG tilt test.',
+  yaw_inertia: 'Computed by MassBudget (point-mass + local Izz); verify with the trifilar pendulum.',
+  accel_lat_target: 'A performance target you set (from last year + ambition); defend it in the design event.',
+  accel_brake_target: 'A performance target you set; drives brake sizing.',
+  roll_grad_target: 'A target you set (handbook 1.0–1.5 deg/g); springs + ARBs deliver it.',
+  ride_freq_front: 'A target you set (handbook 2.3–2.9 Hz); springs deliver it with the tyre in series.',
+  ride_freq_rear: 'A target you set, usually a touch above the front for flat ride.',
+};
 ---
 <Base title="Vehicle Spec">
   <p class="annot annot-tick">Cross-cutting · the Master store</p>
@@ -41,6 +66,19 @@ const td = 'padding:0.45rem 0.7rem;';
     <span data-save-status></span>
   </p>
 
+  <!-- Baseline presets (handoff P1.3): save/load a full-Master set so a new
+       designer starts from last year, not blank. Team-shared. -->
+  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-top:0.25rem;font-size:var(--fs-300);" data-baseline hidden>
+    <span class="annot">Baseline</span>
+    <select id="vs-preset" aria-label="Baseline preset" style="font-family:var(--font-mono);font-size:var(--fs-200);background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);padding:0.2rem 0.35rem;">
+      <option value="">— preset —</option>
+    </select>
+    <button class="btn btn-ghost" type="button" id="vs-preset-load" style="font-size:var(--fs-200);">Load into Master</button>
+    <button class="btn btn-ghost" type="button" id="vs-preset-save" style="font-size:var(--fs-200);">Save current as…</button>
+    <button class="btn btn-ghost" type="button" id="vs-preset-del" style="font-size:var(--fs-200);">Delete</button>
+    <span class="mono" id="vs-preset-status" style="font-size:var(--fs-200);color:var(--ink-3);"></span>
+  </div>
+
   <div style="overflow-x:auto;margin-top:1rem;">
     <table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);min-width:760px;">
       <thead>
@@ -58,7 +96,10 @@ const td = 'padding:0.45rem 0.7rem;';
       <tbody>
         {rows.map((p) => (
           <tr data-key={p.key} data-state={p.state} style="border-bottom:1px solid var(--rule);">
-            <td style={td}>{p.label}</td>
+            <td style={td}>{p.label}{SOURCING[p.key] && (
+              <span class="mono" title={SOURCING[p.key]} aria-label={`Where ${p.label} comes from: ${SOURCING[p.key]}`}
+                style="margin-left:0.35rem;color:var(--sky);cursor:help;border:1px solid var(--rule-strong);border-radius:50%;padding:0 0.32rem;font-size:var(--fs-200);">i</span>
+            )}</td>
             <td style={td} class="mono">{p.symbol}</td>
             <td style={td + 'text-align:right;'} class="mono">
               {p.state === 'computed' ? (
@@ -91,7 +132,7 @@ const td = 'padding:0.45rem 0.7rem;';
 </Base>
 
 <script>
-  import { loadMaster, setMasterValue, setFrozen, editFrozenParam, fmt, debounce } from '../lib/store';
+  import { loadMaster, setMasterValue, setFrozen, editFrozenParam, fmt, debounce, loadPresets, saveNamedPreset, deletePreset } from '../lib/store';
   import { COUPLING_BY_KEY } from '../lib/config';
 
   const G = 9.81;
@@ -150,6 +191,51 @@ const td = 'padding:0.45rem 0.7rem;';
       renderBadges(tr, row.frozen, row.frozen_gate, row.confidence);
     }
     if (note) note.innerHTML = 'Showing <strong>live shared values</strong> from the Master store. Edits save for the whole team.';
+
+    // ---- Baseline presets (P1.3) ----
+    const PRESET_TOOL = 'vehicle_spec_master';
+    const bar = document.querySelector('[data-baseline]') as HTMLElement | null;
+    const presetSel = document.getElementById('vs-preset') as HTMLSelectElement;
+    const presetStatus = document.getElementById('vs-preset-status')!;
+    const pSay = (m: string, ok = true) => { presetStatus.textContent = m; presetStatus.style.color = ok ? 'var(--state-linked)' : 'var(--heritage)'; };
+    if (bar) bar.hidden = false;
+    async function refreshPresetList() {
+      const presets = await loadPresets(PRESET_TOOL);
+      const names = Object.keys(presets).sort();
+      presetSel.innerHTML = '<option value="">— preset —</option>' + names.map((n) => `<option value="${n.replace(/"/g, '&quot;')}">${n}</option>`).join('');
+    }
+    const editableKeys = () => Array.from(document.querySelectorAll('[data-input]')).map((el) => (el as HTMLInputElement).closest('tr')?.getAttribute('data-key')).filter(Boolean) as string[];
+    document.getElementById('vs-preset-save')!.addEventListener('click', async () => {
+      const name = prompt('Baseline name (saved for the whole team, e.g. "2024 car"):')?.trim();
+      if (!name) return;
+      const values: Record<string, number> = {};
+      for (const k of editableKeys()) { const v = inputVal(k); if (Number.isFinite(v)) values[k] = v; }
+      pSay('Saving…', true);
+      const err = await saveNamedPreset(PRESET_TOOL, name, { values });
+      if (err) return pSay('Save failed: ' + err, false);
+      await refreshPresetList(); presetSel.value = name; pSay('saved ✓');
+    });
+    document.getElementById('vs-preset-load')!.addEventListener('click', async () => {
+      const name = presetSel.value; if (!name) return pSay('Pick a preset first.', false);
+      const presets = await loadPresets<{ values: Record<string, number> }>(PRESET_TOOL);
+      const values = presets[name]?.values; if (!values) return pSay('Preset not found.', false);
+      pSay('Loading…', true);
+      const errs: string[] = [];
+      for (const [k, v] of Object.entries(values)) {
+        if (frozenState[k]) { errs.push(`${k} frozen`); continue; }
+        const e = await setMasterValue(k, v); if (e) errs.push(`${k}: ${e}`);
+      }
+      pSay(errs.length ? 'Loaded with skips: ' + errs.join('; ') : 'Loaded ✓', !errs.length);
+      setTimeout(() => window.location.reload(), 700);
+    });
+    document.getElementById('vs-preset-del')!.addEventListener('click', async () => {
+      const name = presetSel.value; if (!name) return pSay('Pick a preset first.', false);
+      if (!confirm(`Delete baseline "${name}" for everyone?`)) return;
+      const err = await deletePreset(PRESET_TOOL, name);
+      if (err) return pSay('Delete failed: ' + err, false);
+      await refreshPresetList(); pSay('deleted ✓');
+    });
+    refreshPresetList();
 
     const saveNormal = debounce(async (key: string, value: number) => {
       setStatus('Saving…');

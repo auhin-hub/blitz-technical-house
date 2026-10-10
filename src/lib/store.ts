@@ -166,6 +166,21 @@ export async function signedUrl(bucket: string, path: string, seconds = 300): Pr
   return data?.signedUrl ?? null;
 }
 
+/** Upload a Pacejka .tir to the private `tyre` bucket (handoff P2.2). */
+export async function uploadTir(file: File): Promise<{ path: string | null; error: string | null }> {
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `tir/${crypto.randomUUID()}-${safe}`;
+  const { error } = await supabase.storage.from('tyre').upload(path, file, { upsert: false });
+  return { path: error ? null : path, error: error ? error.message : null };
+}
+
+/** List shared .tir files for download. */
+export async function listTir(): Promise<{ name: string; path: string }[]> {
+  const { data, error } = await supabase.storage.from('tyre').list('tir', { limit: 100 });
+  if (error || !data) return [];
+  return data.filter((o) => o.name && o.name !== '.emptyFolderPlaceholder').map((o) => ({ name: o.name, path: `tir/${o.name}` }));
+}
+
 // ---- Resources (BRIEF §E6) -------------------------------------------------
 export interface ResourceFolder { id: string; name: string; created_at: string; }
 export interface ResourceItem {

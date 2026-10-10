@@ -41,7 +41,7 @@ export const MB_COMPONENTS: MbComponent[] = [
   { key: 'misc', name: 'Fasteners / misc', subsystem: 'Misc', unsprung: false },
 ];
 
-export interface MbRow { mass: number; x: number; y: number; z: number; unsprung: boolean; subsystem: string; }
+export interface MbRow { mass: number; x: number; y: number; z: number; unsprung: boolean; subsystem: string; localIzz?: number; }
 export interface MbResult {
   total: number; xCg: number; yCg: number; zCg: number; izz: number;
   frontFraction: number; sprung: number; unsprung: number;
@@ -63,7 +63,9 @@ export function massBudget(rows: MbRow[], wheelbase: number): MbResult {
   const xCg = valid.reduce((s, r) => s + r.mass * r.x, 0) / total;
   const yCg = valid.reduce((s, r) => s + r.mass * r.y, 0) / total;
   const zCg = valid.reduce((s, r) => s + r.mass * r.z, 0) / total;
-  const izz = valid.reduce((s, r) => s + r.mass * (((r.x - xCg) / 1000) ** 2 + ((r.y - yCg) / 1000) ** 2), 0);
+  // Yaw inertia via parallel-axis: Σ[ local_Izz + m·(dx² + dy²) ]. local_Izz
+  // (each assembly's own CAD inertia about its CG) defaults to 0 → point-mass.
+  const izz = valid.reduce((s, r) => s + (r.localIzz ?? 0) + r.mass * (((r.x - xCg) / 1000) ** 2 + ((r.y - yCg) / 1000) ** 2), 0);
   const frontFraction = Number.isFinite(wheelbase) && wheelbase > 0 ? 1 - xCg / wheelbase : NaN;
   return { total, xCg, yCg, zCg, izz, frontFraction, sprung, unsprung, bySubsystem };
 }
