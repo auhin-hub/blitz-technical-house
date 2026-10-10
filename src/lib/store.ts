@@ -107,6 +107,15 @@ export async function loadChangeLog(limit = 200): Promise<ChangeLogRow[]> {
   return error || !data ? [] : (data as ChangeLogRow[]);
 }
 
+/** Latest contributed outputs, keyed by their key (for the Dashboard). */
+export async function loadToolOutputsMap(): Promise<Record<string, { value: number | null; unit: string | null; label: string | null }>> {
+  const { data, error } = await supabase
+    .from('tool_outputs').select('key,value,unit,label,updated_at').order('updated_at', { ascending: true });
+  const out: Record<string, { value: number | null; unit: string | null; label: string | null }> = {};
+  if (!error && data) for (const r of data as any[]) out[r.key] = { value: r.value, unit: r.unit, label: r.label };
+  return out;
+}
+
 export interface ToolOutput { key: string; label: string; value: number | null; unit: string; }
 
 /** Upsert the ToMaster outputs a tool contributes. */
