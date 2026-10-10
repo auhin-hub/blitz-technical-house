@@ -75,6 +75,7 @@ const LINKED = [
         <div class="ct-stat"><span class="annot">CoG height (z)</span><div class="val"><span data-out="zcg">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div><span class="ct-ref">typ 250–320</span></div>
         <div class="ct-stat"><span class="annot">Yaw inertia</span><div class="val"><span data-out="izz">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> kg·m²</span></div></div>
         <div class="ct-stat"><span class="annot">x_cg (from front)</span><div class="val"><span data-out="xcg">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div></div>
+        <div class="ct-stat"><span class="annot">y_cg (from centreline)</span><div class="val"><span data-out="ycg">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div><span class="ct-ref">0 = balanced L/R</span></div>
         <div class="ct-stat"><span class="annot">Sprung / unsprung</span><div class="val" style="font-size:var(--fs-500)"><span data-out="sprung">—</span> / <span data-out="unsprung">—</span></div></div>
       </div>
 
@@ -162,7 +163,7 @@ const LINKED = [
     const r = massBudget(readRows(), master.wheelbase);
     last = r;
     put('total', r.total); put('ff', r.frontFraction); put('zcg', r.zCg);
-    put('izz', r.izz); put('xcg', r.xCg); put('sprung', r.sprung); put('unsprung', r.unsprung);
+    put('izz', r.izz); put('xcg', r.xCg); put('ycg', r.yCg); put('sprung', r.sprung); put('unsprung', r.unsprung);
     renderCharts(r);
   }
 

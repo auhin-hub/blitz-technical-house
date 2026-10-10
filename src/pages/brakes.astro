@@ -64,7 +64,8 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
       <div data-tab-panel="sizing">
         <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:0.6rem;">
           <label style="font-size:var(--fs-300);">Target decel (g)
-            <input type="number" step="any" id="target-decel" value="1.2" style={ni + 'display:block;margin-top:0.2rem;'} /></label>
+            <input type="number" step="any" id="target-decel" value="1.2" style={ni + 'display:block;margin-top:0.2rem;'} />
+            <span id="target-decel-note" class="mono" style="display:block;margin-top:0.2rem;font-size:var(--fs-200);color:var(--ink-3);"></span></label>
           <label style="font-size:var(--fs-300);">MC preset
             <select id="mc-preset" style={sel + 'display:block;margin-top:0.2rem;'}>
               <option value="">— custom —</option>
@@ -201,7 +202,10 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
   const put = (k: string, v: number, d = 2) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = v === null || !Number.isFinite(v) ? '—' : fmt(v, d); };
 
   function recompute() {
-    const targetDecel = Number((document.getElementById('target-decel') as HTMLInputElement).value) || 1;
+    // Sizing target decel is linked to Master accel_brake_target when set;
+    // otherwise it falls back to the local input.
+    const localDecel = Number((document.getElementById('target-decel') as HTMLInputElement).value) || 1;
+    const targetDecel = Number.isFinite(master.accel_brake_target) ? master.accel_brake_target : localDecel;
     const m: BrakeSystemMaster = {
       ff: master.mass_frac_front, h: master.cog_height, L: master.wheelbase,
       mu: master.mu_lat_peak, tyreRadius: master.rolling_radius, mass: master.mass_total,
@@ -286,6 +290,21 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
     for (const [k, v] of Object.entries(saved)) {
       if (k === 'targetDecel') { (document.getElementById('target-decel') as HTMLInputElement).value = String(v); continue; }
       const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v);
+    }
+
+    // Reflect the Master link on the target-decel field: green/linked + read-only
+    // when accel_brake_target is set, local blue input (with a note) when it isn't.
+    const decelEl = document.getElementById('target-decel') as HTMLInputElement;
+    const decelNote = document.getElementById('target-decel-note')!;
+    if (Number.isFinite(master.accel_brake_target)) {
+      decelEl.value = String(master.accel_brake_target);
+      decelEl.readOnly = true;
+      decelEl.classList.add('field', 'field-linked');
+      decelNote.textContent = 'linked ← Master (accel_brake_target)';
+    } else {
+      decelEl.readOnly = false;
+      decelNote.textContent = 'not set in Vehicle Spec — using local value';
+      decelNote.style.color = 'var(--state-input)';
     }
 
     recompute();
