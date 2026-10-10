@@ -15,6 +15,16 @@ Work the tiers in order. **P0 = bugs (fast, ship first). P1 = requested features
 P2 = new tools (bigger builds).** Each item has **Where / Do / Accept**.
 
 ## Progress log
+- **2026-10-10 — P1.1 + P2.4 editable lists** (branch `p1-lists` off main) + a legend
+  fix (4th key entry: dashed-amber = linked value not set / not frozen). **P1.1:**
+  MassBudget rebuilt as dynamic rows — editable name / assembly / sub-assembly +
+  unsprung flag, add/delete/reset, per-assembly subtotals (mass + CG) table, CSV
+  (`name,assembly,subassembly,unsprung,mass_kg,x_mm,y_mm,z_mm`) + presets; Master
+  maths (total/ff/cog/Izz) unchanged; migrates the old keyed save shape. **P2.4:**
+  DAQ rebuilt as an editable channel list seeded from `src/lib/calc/daq-plan.ts`
+  (full 35-channel plan), grid shows id/name/sensor/subsystem/qty/rate/bytes/load,
+  subsystem subtotal chart, CAN-capacity input, bus-load = rate·bytes·8·qty, →
+  Master `bus_utilisation`, CSV (all 13 cols) + presets. 64 tests.
 - **2026-10-10 — P1 infra (P1.4 + P1.5)** (branch `p1-infra` off main): P1.4 shared
   `decorateLinkedCells()` warns on not-set (solid amber) / not-frozen (dashed
   amber) linked cells, wired through the engine + all 6 standalone pages. P1.5
@@ -344,7 +354,7 @@ Export as CSV and as a printable sheet. Read-only snapshot (doesn't change Maste
 1. P0.1–P0.4 (an afternoon of fixes). ✅ done 2026-10-10
 2. P1.4 (freeze warnings) + P1.5 (CSV/presets) — they're infrastructure the rest
    reuses. ✅ done 2026-10-10 (DAQ's CSV/presets deferred to P2.4 when it lists)
-3. P1.1 / P2.4 (editable components for MassBudget + DAQ) together.
+3. P1.1 / P2.4 (editable components for MassBudget + DAQ) together. ✅ done 2026-10-10
 4. P1.2, P1.3, P1.6, P1.7 (small self-contained calcs).
 5. P2.2 (`.tir`) and P2.3 (DAQ interpretation) — high value, moderate size.
 6. P2.5 (load transfer), P2.6 (lap sim), P2.7 (setup sheet).
