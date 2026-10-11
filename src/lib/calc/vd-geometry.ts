@@ -5,6 +5,10 @@
  *   KPI (rad)    B16 = RADIANS(KPI_deg)
  * The hardpoint coordinate grid is a separate data-entry table (freeze at G3);
  * it has no derived outputs here.
+ *
+ * STATUS: superseded by `geometry.ts` (the shipped instant-centre solver). Kept
+ * because `workbook-values.test.ts` pins the original workbook angles against it
+ * — do not wire it into a page.
  */
 type Flat = Record<string, number>;
 const rad = (d: number) => (d * Math.PI) / 180;

@@ -87,7 +87,10 @@ export function brakesCompute(inp: Record<string, number>, m: Record<string, num
     padMu: inp[`${p}_padMu`], rotorOd: inp[`${p}_rotorOd`], padDepth: inp[`${p}_padDepth`],
   });
   const r = computeBrakes(side('f'), side('r'), {
-    ff: m.mass_frac_front, h: m.cog_height, L: m.wheelbase, mu: m.mu_lat_peak,
+    // Brake load transfer and lock-up are longitudinal, so prefer the
+    // longitudinal peak μ; fall back to the lateral one while it is unset (P1.4).
+    ff: m.mass_frac_front, h: m.cog_height, L: m.wheelbase,
+    mu: Number.isFinite(m.mu_long_peak) ? m.mu_long_peak : m.mu_lat_peak,
   });
   const out: Record<string, number> = { achievedFrontBias: r.achievedFrontBias, olleyOptimum: r.olleyOptimum };
   (['pushrodForce', 'linePressureKpa', 'clamp', 'friction', 'effRadius', 'brakeTorque'] as const).forEach((k) => {

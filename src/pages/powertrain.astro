@@ -13,7 +13,8 @@ const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
 const LINKED = [
   { mkey: 'rolling_radius', label: 'Loaded rolling radius', unit: 'mm' },
   { mkey: 'axle_load_rear', label: 'Rear axle static load', unit: 'N' },
-  { mkey: 'mu_lat_peak', label: 'Peak μ', sym: 'μ', unit: '-' },
+  { mkey: 'mu_long_peak', label: 'Peak longitudinal μ (falls back to lateral)', sym: 'μx', unit: '-' },
+  { mkey: 'mu_lat_peak', label: 'Peak lateral μ', sym: 'μy', unit: '-' },
   { mkey: 'mass_total', label: 'Total mass', sym: 'm', unit: 'kg' },
 ];
 const INPUTS = [

@@ -4,6 +4,10 @@
  *   bus load per channel D = rate · bytes · 8
  *   total bus load         = SUM
  *   bus utilisation        = total / CAN capacity   (keep < 60–70%)
+ *
+ * STATUS: the bus-load maths now lives inline in the Electronics page via
+ * `daq-plan.ts`; this module is kept because `workbook-values.test.ts` pins the
+ * original workbook utilisation against it — do not wire it into a page.
  */
 import type { Out } from './engine';
 type Flat = Record<string, number>;
