@@ -1,0 +1,246 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+---
+<Base title="Design report" description="One printable document: the whole Master, every contributed result, gate status and what is still floating.">
+  <nav class="annot no-print" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Design report
+  </nav>
+  <header style="margin-bottom:1.25rem;">
+    <p class="annot annot-tick">Cross-cutting · reporting</p>
+    <h1 style="margin-top:0.4rem;">Design report</h1>
+    <p class="no-print" style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
+      Everything the shared store knows, in one document you can print or save as
+      PDF: the full Master with its freeze state, every contributed tool result by
+      team, gate status, what is still unfrozen, and the recent change history.
+      Built for design-event prep and for the folder a judge asks for — it reads
+      the live store, so it is never out of date.
+    </p>
+    <div class="no-print" style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:1rem;align-items:center;">
+      <button class="btn btn-halftone" id="rp-print">Print / save as PDF</button>
+      <button class="btn btn-ghost" id="rp-csv">Download CSV</button>
+      <label style="font-size:var(--fs-300);display:flex;gap:0.4rem;align-items:center;">
+        <input type="checkbox" id="rp-unset" /> include parameters with no value
+      </label>
+      <span class="mono" id="rp-status" style="font-size:var(--fs-200);color:var(--ink-3);"></span>
+    </div>
+  </header>
+
+  <!-- Print-only masthead: the page is a document once it leaves the browser. -->
+  <div class="print-only" style="display:none;border-bottom:2px solid currentColor;padding-bottom:0.5rem;margin-bottom:1rem;">
+    <strong>MIST Blitz — Formula Student design report</strong>
+    <span class="mono" id="rp-stamp" style="float:right;"></span>
+  </div>
+
+  <section class="card" style="margin-bottom:1.25rem;">
+    <div class="annot">Summary</div>
+    <div id="rp-summary" class="rp-kpis" style="margin-top:0.6rem;">
+      <p class="mono" style="color:var(--ink-3);">Loading…</p>
+    </div>
+  </section>
+
+  <section style="margin-bottom:1.25rem;">
+    <div class="annot-dim" style="margin-bottom:0.6rem;">1 · Vehicle Spec (the Master)</div>
+    <div class="card" id="rp-master"><p class="mono" style="color:var(--ink-3);">Loading…</p></div>
+  </section>
+
+  <section style="margin-bottom:1.25rem;">
+    <div class="annot-dim" style="margin-bottom:0.6rem;">2 · Contributed results, by team</div>
+    <div class="card" id="rp-outputs"><p class="mono" style="color:var(--ink-3);">Loading…</p></div>
+  </section>
+
+  <section style="margin-bottom:1.25rem;">
+    <div class="annot-dim" style="margin-bottom:0.6rem;">3 · Gates</div>
+    <div class="card" id="rp-gates"><p class="mono" style="color:var(--ink-3);">Loading…</p></div>
+  </section>
+
+  <section style="margin-bottom:1.25rem;">
+    <div class="annot-dim" style="margin-bottom:0.6rem;">4 · Still floating (unfrozen or unset)</div>
+    <div class="card" id="rp-floating"><p class="mono" style="color:var(--ink-3);">Loading…</p></div>
+  </section>
+
+  <section style="margin-bottom:2rem;">
+    <div class="annot-dim" style="margin-bottom:0.6rem;">5 · Change history</div>
+    <div class="card" id="rp-changes"><p class="mono" style="color:var(--ink-3);">Loading…</p></div>
+  </section>
+
+  <p class="mono" style="font-size:var(--fs-200);color:var(--ink-3);">
+    Generated from the live shared store. The original Excel Master remains the
+    authoritative archive; tyre figures carry the belt-rig caveat wherever they appear.
+  </p>
+</Base>
+
+<style>
+  .rp-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem; }
+  .rp-kpi .val { font-family: var(--font-mono); font-size: var(--fs-600); color: var(--ink); }
+  .rp-table { border-collapse: collapse; width: 100%; font-size: var(--fs-300); }
+  .rp-table th { text-align: left; border-bottom: 1px solid var(--rule-strong); padding: 0.35rem 0.5rem; }
+  .rp-table td { border-bottom: 1px solid var(--rule); padding: 0.3rem 0.5rem; }
+  .rp-table td.num { text-align: right; font-family: var(--font-mono); }
+  .rp-wrap { overflow-x: auto; }
+
+  /* Print: a document, not a web page. Dark theme and chrome are dropped, and
+     tables are kept off page breaks where it matters (feature review Tier 3 #7). */
+  @media print {
+    :root, :root[data-theme='dark'] {
+      --bg: #fff; --surface: #fff; --surface-2: #fff;
+      --ink: #000; --ink-2: #222; --ink-3: #555;
+      --rule: #bbb; --rule-strong: #666; --shadow: none;
+    }
+    .no-print, .site-footer, .masthead, #cmdk, #live-toasts, .skip-link { display: none !important; }
+    .print-only { display: block !important; }
+    .card { border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+    section { break-inside: avoid; }
+    .rp-table tr { break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+    @page { margin: 14mm; }
+  }
+</style>
+
+<script>
+  import { loadMaster, loadToolOutputsMap, loadGates, loadChangeLog, fmt } from '../lib/store';
+  import { TOOL_OUTPUT_KEYS } from '../lib/config';
+  import { esc } from '../lib/html';
+  import { toCsv, downloadText } from '../lib/csv';
+  import { unfrozenUpstream, type MasterCell } from '../lib/calc/readiness';
+
+  const UPSTREAM: Record<string, string[] | undefined> = Object.fromEntries(TOOL_OUTPUT_KEYS.map((o) => [o.key, o.upstream]));
+  const TEAM_OF: Record<string, string> = Object.fromEntries(TOOL_OUTPUT_KEYS.map((o) => [o.key, o.team]));
+  const LABEL_OF: Record<string, string> = Object.fromEntries(TOOL_OUTPUT_KEYS.map((o) => [o.key, o.label]));
+
+  const el = (id: string) => document.getElementById(id)!;
+  const showVal = (r: any) => {
+    const t = r.text_value;
+    if (t != null && String(t).trim() !== '') return esc(String(t));
+    return r.value === null || r.value === undefined ? '—' : fmt(Number(r.value), 3);
+  };
+
+  let master: Record<string, any> = {};
+  let outputs: Record<string, { value: number | null; unit: string | null; label: string | null }> = {};
+
+  function renderMaster(includeUnset: boolean) {
+    const rows = Object.values(master).filter((r: any) => includeUnset || showVal(r) !== '—');
+    el('rp-master').innerHTML = rows.length ? `<div class="rp-wrap"><table class="rp-table">
+      <thead><tr><th>Parameter</th><th>Key</th><th style="text-align:right;">Value</th><th>Unit</th><th>Source</th><th>State</th></tr></thead>
+      <tbody>${rows.map((r: any) => `<tr>
+        <td>${esc(r.label ?? r.key)}</td>
+        <td class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${esc(r.key)}</td>
+        <td class="num">${showVal(r)}</td>
+        <td>${esc(r.unit ?? '')}</td>
+        <td style="color:var(--ink-3);">${esc(r.source ?? '')}</td>
+        <td>${r.frozen ? `frozen${r.frozen_gate ? ` · ${esc(r.frozen_gate)}` : ''}` : showVal(r) === '—' ? 'not set' : 'not frozen'}</td>
+      </tr>`).join('')}</tbody></table></div>`
+      : '<p class="mono" style="color:var(--ink-3);">No Master values yet.</p>';
+  }
+
+  function renderOutputs() {
+    const keys = Object.keys(outputs);
+    if (!keys.length) { el('rp-outputs').innerHTML = '<p class="mono" style="color:var(--ink-3);">No tool has contributed a result yet.</p>'; return; }
+    const cells: Record<string, MasterCell> = Object.fromEntries(Object.entries(master).map(([k, v]: any) => [k, { value: v.value ?? null, text_value: v.text_value ?? null, frozen: !!v.frozen }]));
+    const byTeam: Record<string, string[]> = {};
+    for (const k of keys) (byTeam[TEAM_OF[k] ?? 'Other'] ||= []).push(k);
+    el('rp-outputs').innerHTML = Object.entries(byTeam).sort(([a], [b]) => a.localeCompare(b)).map(([team, ks]) => `
+      <h3 style="font-size:var(--fs-400);margin:0.8rem 0 0.3rem;">${esc(team)}</h3>
+      <div class="rp-wrap"><table class="rp-table">
+        <thead><tr><th>Result</th><th style="text-align:right;">Value</th><th>Unit</th><th>Confidence</th></tr></thead>
+        <tbody>${ks.map((k) => {
+          const o = outputs[k];
+          const floating = unfrozenUpstream(k, cells, UPSTREAM);
+          return `<tr>
+            <td>${esc(o.label ?? LABEL_OF[k] ?? k)}<br><span class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${esc(k)}</span></td>
+            <td class="num">${o.value === null ? '—' : fmt(Number(o.value), 3)}</td>
+            <td>${esc(o.unit ?? '')}</td>
+            <td>${floating.length ? `moves with ${esc(floating.join(', '))}` : 'inputs frozen'}</td>
+          </tr>`;
+        }).join('')}</tbody></table></div>`).join('');
+  }
+
+  async function renderGates() {
+    const gates = await loadGates();
+    el('rp-gates').innerHTML = gates.length ? `<div class="rp-wrap"><table class="rp-table">
+      <thead><tr><th>Gate</th><th>Name</th><th>Status</th><th>Signed off</th></tr></thead>
+      <tbody>${gates.map((g: any) => `<tr>
+        <td class="mono">${esc(g.id)}</td><td>${esc(g.name)}</td>
+        <td>${esc(String(g.status).replace('_', ' '))}</td>
+        <td class="mono" style="font-size:var(--fs-100);">${g.signed_off_email ? `${esc(g.signed_off_email)}${g.signed_off_at ? ` · ${new Date(g.signed_off_at).toLocaleDateString()}` : ''}` : '—'}</td>
+      </tr>`).join('')}</tbody></table></div>`
+      : '<p class="mono" style="color:var(--ink-3);">No gates defined.</p>';
+  }
+
+  function renderFloating() {
+    const unset = Object.values(master).filter((r: any) => showVal(r) === '—');
+    const unfrozen = Object.values(master).filter((r: any) => showVal(r) !== '—' && !r.frozen);
+    const list = (rows: any[]) => rows.map((r: any) => `<li>${esc(r.label ?? r.key)} <span class="mono" style="color:var(--ink-3);font-size:var(--fs-100);">${esc(r.key)}</span></li>`).join('');
+    el('rp-floating').innerHTML = `
+      <p style="font-size:var(--fs-300);color:var(--ink-2);margin:0 0 0.5rem;">
+        Anything here can still move, so every result computed from it can move too.
+        This is the honest "what is not settled" list a design judge will ask for.
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:1rem;">
+        <div><div class="annot">Not set (${unset.length})</div><ul style="margin:0.3rem 0 0;padding-left:1.1rem;font-size:var(--fs-300);color:var(--ink-2);">${list(unset) || '<li style="list-style:none;color:var(--state-linked);">None ✓</li>'}</ul></div>
+        <div><div class="annot">Set but not frozen (${unfrozen.length})</div><ul style="margin:0.3rem 0 0;padding-left:1.1rem;font-size:var(--fs-300);color:var(--ink-2);">${list(unfrozen) || '<li style="list-style:none;color:var(--state-linked);">None ✓</li>'}</ul></div>
+      </div>`;
+  }
+
+  async function renderChanges() {
+    const rows = await loadChangeLog(40);
+    el('rp-changes').innerHTML = rows.length ? `<div class="rp-wrap"><table class="rp-table">
+      <thead><tr><th>When</th><th>Parameter</th><th>Field</th><th>Change</th><th>Reason</th><th>By</th></tr></thead>
+      <tbody>${rows.map((r) => `<tr>
+        <td class="mono" style="font-size:var(--fs-100);">${new Date(r.changed_at).toLocaleString()}</td>
+        <td>${esc(r.param_key ?? '')}</td><td>${esc(r.field)}</td>
+        <td class="mono">${esc(r.old_value ?? '—')} → ${esc(r.new_value ?? '—')}</td>
+        <td>${esc(r.reason ?? '')}</td>
+        <td class="mono" style="font-size:var(--fs-100);">${esc(r.actor_email ?? '')}</td>
+      </tr>`).join('')}</tbody></table></div>`
+      : '<p class="mono" style="color:var(--ink-3);">No changes recorded yet.</p>';
+  }
+
+  function renderSummary() {
+    const rows = Object.values(master);
+    const set = rows.filter((r: any) => showVal(r) !== '—').length;
+    const frozen = rows.filter((r: any) => r.frozen).length;
+    const contributed = Object.values(outputs).filter((o) => o.value !== null).length;
+    const kpi = (label: string, val: string, note = '') =>
+      `<div class="rp-kpi"><span class="annot">${label}</span><div class="val">${val}</div>${note ? `<span class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${note}</span>` : ''}</div>`;
+    el('rp-summary').innerHTML = [
+      kpi('Master values set', `${set}/${rows.length}`),
+      kpi('Frozen', String(frozen), frozen ? 'locked at a gate' : 'nothing locked yet'),
+      kpi('Results contributed', String(contributed)),
+      kpi('Total mass', master.mass_total?.value != null ? `${fmt(Number(master.mass_total.value), 1)} kg` : '—'),
+      kpi('Front fraction', master.mass_frac_front?.value != null ? fmt(Number(master.mass_frac_front.value), 3) : '—'),
+      kpi('CoG height', master.cog_height?.value != null ? `${fmt(Number(master.cog_height.value), 1)} mm` : '—'),
+    ].join('');
+  }
+
+  function csv(): string {
+    const rows: (string | number | null)[][] = [];
+    for (const r of Object.values(master) as any[]) {
+      rows.push(['master', r.key, r.label ?? '', r.unit ?? '', r.text_value ?? r.value ?? '', r.frozen ? 'frozen' : 'open', r.frozen_gate ?? '', r.source ?? '']);
+    }
+    for (const [k, o] of Object.entries(outputs)) {
+      rows.push(['result', k, o.label ?? '', o.unit ?? '', o.value ?? '', '', '', TEAM_OF[k] ?? '']);
+    }
+    return toCsv(['section', 'key', 'label', 'unit', 'value', 'state', 'gate', 'source'], rows);
+  }
+
+  (async () => {
+    const stamp = document.getElementById('rp-stamp');
+    if (stamp) stamp.textContent = new Date().toLocaleString();
+    [master, outputs] = await Promise.all([loadMaster(), loadToolOutputsMap()]) as any;
+    const unsetBox = document.getElementById('rp-unset') as HTMLInputElement;
+    renderSummary();
+    renderMaster(unsetBox.checked);
+    renderOutputs();
+    renderFloating();
+    await renderGates();
+    await renderChanges();
+    unsetBox.addEventListener('change', () => renderMaster(unsetBox.checked));
+    document.getElementById('rp-print')!.addEventListener('click', () => window.print());
+    document.getElementById('rp-csv')!.addEventListener('click', () => {
+      downloadText(`blitz_design_report_${new Date().toISOString().slice(0, 10)}.csv`, csv());
+    });
+    const st = document.getElementById('rp-status')!;
+    st.textContent = `${Object.keys(master).length} parameters · ${Object.keys(outputs).length} results`;
+  })();
+</script>

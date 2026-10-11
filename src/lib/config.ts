@@ -122,7 +122,7 @@ export const TOP_NAV = [
   { href: 'readiness', label: 'Design Readiness' },
   { href: 'tyre', label: 'Tyre' },
   { href: 'gates', label: 'Gates / Phases' },
-  { href: 'snapshots', label: 'Snapshots' },
+  { href: 'report', label: 'Report' },
   { href: 'resources', label: 'Resources' },
   { href: 'change-log', label: 'Change Log' },
 ] as const;
