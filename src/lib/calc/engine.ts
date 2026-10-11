@@ -16,7 +16,7 @@
 import Chart from 'chart.js/auto';
 import {
   loadMaster, loadToolStateVersioned, saveToolStateVersioned, saveToolOutputs,
-  currentUserId, STATE_CONFLICT, fmt, debounce, type StateVersion,
+  currentUserId, STATE_CONFLICT, OFFLINE_WRITE, isOffline, fmt, debounce, type StateVersion,
 } from '../store';
 import { decorateLinkedCells } from '../linked';
 import { subscribeLive, liveToast, describeBurst } from '../realtime';
@@ -153,7 +153,14 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
     });
   }
 
+  let unsaved = false;
   const persist = debounce(async () => {
+    if (isOffline()) {
+      // Offline: keep computing (the maths is local) but never pretend to save.
+      unsaved = true;
+      if (saveStatus) { saveStatus.textContent = OFFLINE_WRITE; saveStatus.style.color = 'var(--amber-text)'; }
+      return;
+    }
     if (saveStatus) saveStatus.textContent = 'Saving…';
     const res = await saveToolStateVersioned(spec.tool, readInp(), version);
     if (res.error === STATE_CONFLICT) {
@@ -162,11 +169,20 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
       return;
     }
     version = res.version;
+    unsaved = !!res.error;
     if (saveStatus) {
       saveStatus.textContent = res.error ? 'Save failed: ' + res.error : 'Saved ✓';
       saveStatus.style.color = res.error ? 'var(--heritage)' : 'var(--state-linked)';
     }
   }, 600);
+
+  // Back online with edits that never landed: re-read the Master (it may have
+  // moved while we were away) and offer the save again.
+  window.addEventListener('online', async () => {
+    await refreshMaster();
+    recompute();
+    if (unsaved) persist();
+  });
 
   inputs.forEach((i) => i.addEventListener('input', () => { recompute(); persist(); }));
 

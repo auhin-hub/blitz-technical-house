@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MIST Blitz FS Workspace">
+  <title>MIST Blitz FS Workspace</title>
+  <!-- Maskable variant: the bolt sits inside the 80% safe zone so Android can
+       crop it to a circle or squircle without clipping the mark. -->
+  <rect width="512" height="512" fill="#0E1620"/>
+  <g stroke="#26455B" stroke-width="2" opacity="0.7">
+    <path d="M128 0V512M256 0V512M384 0V512"/>
+    <path d="M0 128H512M0 256H512M0 384H512"/>
+  </g>
+  <g transform="translate(256 256) scale(0.62) translate(-256 -256)">
+    <path d="M296 56 180 280h74l-38 176 162-240h-82l40-160z" fill="#E8A33D"/>
+  </g>
+</svg>

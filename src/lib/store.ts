@@ -6,6 +6,7 @@
  */
 import { supabase } from './supabase';
 import type { SpecRow } from './master';
+import { cacheMaster, readCachedMaster, looksOffline, sinceLabel } from './offline';
 
 /** Columns we need; `text_value` only exists from migration 0008 onwards. */
 const MASTER_COLS = 'key,label,symbol,unit,value,text_value,source,confidence,frozen,frozen_gate,updated_at';
@@ -36,13 +37,30 @@ export async function loadMaster(): Promise<Record<string, SpecRow>> {
     }
   }
   if (error || !data) {
+    // Offline (or the project is paused): fall back to the last Master this
+    // browser loaded, and say how old it is — a stale shared number is only
+    // acceptable when the page admits it (feature review Tier 2 #5).
+    const cached = readCachedMaster<Record<string, SpecRow>>();
+    if (cached && looksOffline(error?.message)) {
+      masterLoadError = `Offline — showing the Master as cached ${sinceLabel(cached.at)}. Values may have moved; saving is disabled until you reconnect.`;
+      return { ...cached.rows };
+    }
     masterLoadError = error ? error.message : 'Master unavailable (not signed in?).';
     if (error) console.error('[loadMaster]', error.message);
     return out;
   }
   for (const r of data as any[]) out[r.key] = r as SpecRow;
+  cacheMaster(out);
   return out;
 }
+
+/** True when we are plainly offline — used to refuse writes with a clear reason. */
+export function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+/** The message every write path shows instead of a raw fetch failure. */
+export const OFFLINE_WRITE = 'Offline — not saved. Shared values are never queued: reconnect and make the change again, so you are editing the live number.';
 
 /** Update one Master value. Returns an error message, or null on success. */
 export async function setMasterValue(key: string, value: number): Promise<string | null> {
