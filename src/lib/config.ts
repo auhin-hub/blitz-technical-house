@@ -121,6 +121,7 @@ export const TOP_NAV = [
   { href: 'validation', label: 'Validation' },
   { href: 'readiness', label: 'Design Readiness' },
   { href: 'tyre', label: 'Tyre' },
+  { href: 'taskmap', label: 'Task Map' },
   { href: 'gates', label: 'Gates / Phases' },
   { href: 'report', label: 'Report' },
   { href: 'resources', label: 'Resources' },
