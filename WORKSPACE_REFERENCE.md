@@ -106,9 +106,9 @@ row and highlights it.
 `/report` (printable design report) · `/sensitivity` (quantified coupling) ·
 `/resources` · `/change-log` · `/login`.
 
-**Planning / cost pages:** `/gantt` (season Gantt) · `/budget` · `/cost`
-(FSAE-J cost report) · `/points` · `/lapsim` · `/daq` (log interpretation) ·
-`/setup-sheet`.
+**Planning / cost pages:** `/taskmap` (the programme work map) · `/gantt`
+(season Gantt) · `/budget` · `/cost` (FSAE-J cost report) · `/points` ·
+`/lapsim` · `/daq` (log interpretation) · `/setup-sheet`.
 
 ---
 
@@ -716,6 +716,45 @@ the solver is a front-view model, so the **x (fore/aft)** coordinate in the hard
 table had no view that could reveal a typo. Each wishbone draws as its single
 effective link, matching the model rather than implying an A-arm the solver does not
 have.
+
+### 7.10 Task Map (`/taskmap`)
+
+The car programme as a directed graph: **13 buckets** (subteams) × **10 phases**,
+**109 activities**, **385 hand-offs**, seeded from the authored programme map
+(`public/data/taskmap-seed.json`, migration 0013 for the tables).
+
+Each activity carries live state — status (not started / in progress / blocked /
+done), percent, an assignee from the member roster, notes, and an optional deep
+link to the workspace tool it is done in — which is what lets the graph answer
+questions a plan on a wall cannot:
+
+- **Unblocked now**: not done, and every forward hand-off it needs is delivered.
+- **Blocked by**: the named upstream activities and the specific hand-off missing.
+- **Bottlenecks**: how much unfinished programme each activity is holding up.
+- **Progress** per phase and per subteam, with the phase strip optionally showing
+  a real gate's sign-off state (lead-only phase → gate mapping).
+
+Two edge kinds, and the distinction matters:
+- a normal edge is a prerequisite;
+- an **`is_feedback`** edge is a deliberate loop-back (test data informing next
+  year's concept, FEA sending a part back to detail design). The map exists to
+  show these, so they are **never** prerequisites — otherwise the graph deadlocks.
+
+**Co-design pairs.** Four pairs in the seeded programme each hand something to the
+other: aero targets ↔ mass budget, nose cone ↔ impact-attenuator envelope,
+logger inputs ↔ channel list, purchase requests ↔ approvals. Both directions are
+real, so neither can go first; they are reported as "settle these together" and
+excluded from blocking. A forward cycle **longer** than a pair is a genuine
+planning bug and is flagged as one.
+
+Views: Map (phase columns × subteam lanes with drawn hand-offs, filters, and
+direct-or-full-chain highlighting) · Start now · Loops · Hand-off matrix ·
+Register (+CSV) · Manage (seed fill/reset, add activity, add hand-off, phase →
+gate). Live via Realtime; deep-linkable as `/taskmap#VD7`.
+
+Graph logic lives in `src/lib/calc/taskmap.ts` (pure, 19 tests, including
+integrity tests against the shipped seed) and data access in
+`src/lib/taskmap-store.ts`.
 
 ---
 

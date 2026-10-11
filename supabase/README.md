@@ -90,6 +90,7 @@ Run them in order; each is idempotent and safe to re-run.
 | `0010_realtime` | realtime publication + `replica identity full` | no live updates; refresh to see a teammate's work |
 | `0011_roles` | `members`, `is_lead()`, lead-only gates/freezes | governance stays advisory: anyone can freeze or sign off |
 | `0012_snapshots` | `spec_snapshots` | `/snapshots` cannot save a baseline |
+| `0013_taskmap` | the Task Map tables (buckets, phases, loops, activities, dependencies) | `/taskmap` says the tables are missing and offers nothing else |
 
 **After `0011`:** sign in and set yourself to **lead** on **Gates → Members**.
 While no lead exists every member has lead rights, so nothing is locked out — but

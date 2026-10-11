@@ -135,6 +135,7 @@ Create/rename/delete folders and entries as the team needs.
 | **Search** | `Ctrl`/`⌘`+`K` or `/` | Jump to any page, tool or Master parameter by name. |
 | **Install / offline** | browser menu → Install | Works with no signal: cached pages, calculators computing from the last Master this device loaded (labelled with its age). Offline edits are **refused, not queued** — so you never save over a number you could not see. |
 | **3D hardpoints** | `/geometry` | Rotate the corner; the fore/aft (x) coordinates finally have a view that shows a typo. |
+| **Task Map** | `/taskmap` | The whole programme as a graph: 13 subteams x 10 phases, 109 activities, 385 hand-offs. Set a status and it tells you what is unblocked today, who is waiting on whom, and which activity is stalling the most work. |
 
 **Physics corrections you should know about** (older results differ):
 - **Roll gradient** now uses the **sprung** mass and the lever from the CoG to the
@@ -276,6 +277,7 @@ Run the migrations **in order** in the SQL editor (see `supabase/README.md`):
 | `0010_realtime` | puts the shared tables in the realtime publication (live updates) |
 | `0011_roles` | `members` + `is_lead()`; lead-only gate sign-off, freezing and frozen edits |
 | `0012_snapshots` | `spec_snapshots` (immutable design baselines; lead-only delete) |
+| `0013_taskmap` | the Task Map: buckets, phases, loops, activities + dependencies, with status/owner/notes on each activity |
 
 > **Run order matters.** Until `0008` runs, the Master loads in legacy mode and
 > every page shows an amber banner saying so. `0010`–`0012` each degrade safely if
