@@ -19,6 +19,7 @@ type Entry = { label: string; hint: string; href: string; kind: string };
 const entries: Entry[] = [
   ...TOP_NAV.map((n) => ({ label: n.label, hint: 'page', href: url(n.href), kind: 'page' })),
   { label: 'Snapshots', hint: 'design baselines · diff · restore', href: url('snapshots'), kind: 'page' },
+  { label: 'Task Map', hint: 'programme · what is unblocked, who waits on whom', href: url('taskmap'), kind: 'page' },
   { label: 'Coupling & sensitivity', hint: 'what-if · what moves if I change X', href: url('sensitivity'), kind: 'page' },
   { label: 'Design report', hint: 'printable · whole shared store', href: url('report'), kind: 'page' },
   { label: 'Season Gantt', hint: 'page · schedule', href: url('gantt'), kind: 'page' },

@@ -1,0 +1,922 @@
+---
+import Base from '../layouts/Base.astro';
+import ToolTabs from '../components/ToolTabs.astro';
+import { url } from '../lib/config';
+---
+<Base title="Task Map" description="The car programme as a live work map: 13 subteams across 10 phases, every hand-off between them, and where the programme actually is.">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Task Map
+  </nav>
+  <header style="margin-bottom:1rem;">
+    <p class="annot annot-tick">Cross-cutting · programme</p>
+    <h1 style="margin-top:0.4rem;">Task Map</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:76ch;">
+      The whole car programme in one graph: each subteam's activities laid out
+      across the ten phases, with every hand-off drawn between them. Because each
+      activity carries a <strong>status</strong>, the graph can answer the
+      questions a plan on a wall cannot — what is unblocked today, who is waiting
+      on whom, and which slip stalls the most work.
+    </p>
+  </header>
+
+  <div id="tm-alert" hidden role="status" style="border:1px solid var(--amber);border-left:3px solid var(--amber);background:var(--surface-2);border-radius:var(--radius);padding:0.7rem 0.9rem;margin-bottom:1rem;font-size:var(--fs-300);color:var(--amber-text);"></div>
+
+  <!-- Programme bar: overall state + the phase strip. -->
+  <section class="card" style="margin-bottom:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+      <span class="annot">Programme</span>
+      <span class="mono" id="tm-counts" style="font-size:var(--fs-200);color:var(--ink-3);"></span>
+    </div>
+    <div id="tm-phasestrip" class="tm-strip" style="margin-top:0.6rem;"></div>
+  </section>
+
+  <ToolTabs tabs={[
+    { id: 'tm-map', label: 'Map' },
+    { id: 'tm-now', label: 'Start now' },
+    { id: 'tm-loops', label: 'Loops' },
+    { id: 'tm-hand', label: 'Hand-offs' },
+    { id: 'tm-reg', label: 'Register' },
+    { id: 'tm-manage', label: 'Manage' },
+  ]}>
+    <!-- ------------------------------------------------------------------ MAP -->
+    <div data-tab-panel="tm-map">
+      <div class="card">
+        <div class="tm-controls">
+          <input type="search" id="tm-q" placeholder="Search code, title, why, tasks…" aria-label="Search activities"
+            style="flex:1;min-width:180px;background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.3rem 0.5rem;" />
+          <select id="tm-bucket" aria-label="Filter by subteam" class="tm-sel"></select>
+          <select id="tm-loop" aria-label="Filter by iteration loop" class="tm-sel"></select>
+          <select id="tm-status" aria-label="Filter by status" class="tm-sel">
+            <option value="">any status</option>
+            <option value="not_started">not started</option>
+            <option value="in_progress">in progress</option>
+            <option value="blocked">blocked</option>
+            <option value="done">done</option>
+          </select>
+          <label class="tm-chk"><input type="checkbox" id="tm-crit" /> critical only</label>
+          <label class="tm-chk"><input type="checkbox" id="tm-ready" /> unblocked only</label>
+          <label class="tm-chk"><input type="checkbox" id="tm-chain" /> full chain</label>
+          <label class="tm-chk"><input type="checkbox" id="tm-alledges" /> all hand-offs</label>
+          <button class="btn btn-ghost" id="tm-clear" style="font-size:var(--fs-100);">Clear</button>
+        </div>
+        <p class="annot" id="tm-filterinfo" style="margin-top:0.5rem;"></p>
+
+        <div id="tm-mapwrap" class="tm-mapwrap">
+          <div id="tm-map" class="tm-map">
+            <svg id="tm-edges" class="tm-edges" aria-hidden="true"></svg>
+          </div>
+        </div>
+        <p class="ct-foot">
+          Columns are phases, rows are subteams. Click an activity for its detail
+          and hand-offs; <span class="mono">full chain</span> extends the highlight
+          to everything up- and downstream. Dashed edges are deliberate feedback
+          loops — they are never treated as prerequisites.
+        </p>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------ START NOW -->
+    <div data-tab-panel="tm-now" hidden>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:1rem;" id="tm-nowgrid">
+        <div class="card">
+          <h2 style="font-size:var(--fs-600);">Unblocked — you could start these today</h2>
+          <p class="annot" style="margin-top:0.3rem;">Not done, and every forward hand-off they need has been delivered. Critical activities first.</p>
+          <div id="tm-ready-list" style="margin-top:0.6rem;"></div>
+        </div>
+        <div class="card">
+          <h2 style="font-size:var(--fs-600);">Biggest bottlenecks</h2>
+          <p class="annot" style="margin-top:0.3rem;">How much unfinished programme each activity is holding up, counting everything downstream of it.</p>
+          <div id="tm-stall-list" style="margin-top:0.6rem;"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:1rem;">
+        <h2 style="font-size:var(--fs-600);">Co-design pairs — settle these together</h2>
+        <p class="annot" style="margin-top:0.3rem;">
+          Each of these two activities hands something to the other, so neither can
+          go first. They are agreed in one conversation, not sequenced — and the
+          graph deliberately does not treat them as blocking each other.
+        </p>
+        <div id="tm-codesign" style="margin-top:0.6rem;"></div>
+      </div>
+    </div>
+
+    <!-- ---------------------------------------------------------------- LOOPS -->
+    <div data-tab-panel="tm-loops" hidden>
+      <div class="card">
+        <h2 style="font-size:var(--fs-600);">Iteration loops</h2>
+        <p style="color:var(--ink-2);margin-top:0.3rem;font-size:var(--fs-300);max-width:76ch;">
+          The programme is not a line. These are the cycles it really runs in —
+          each one a set of activities that keep feeding each other until they
+          converge. Click a loop to highlight it on the map.
+        </p>
+        <div id="tm-loopcards" style="margin-top:0.8rem;"></div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------- HANDOFFS -->
+    <div data-tab-panel="tm-hand" hidden>
+      <div class="card">
+        <h2 style="font-size:var(--fs-600);">Hand-off matrix</h2>
+        <p style="color:var(--ink-2);margin-top:0.3rem;font-size:var(--fs-300);max-width:76ch;">
+          Who gives what to whom, counted between subteams. These are the
+          interfaces worth a written agreement; sequencing inside one subteam is
+          listed separately.
+        </p>
+        <div id="tm-matrix" style="margin-top:0.8rem;overflow-x:auto;"></div>
+        <div id="tm-internal" style="margin-top:0.8rem;"></div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------- REGISTER -->
+    <div data-tab-panel="tm-reg" hidden>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+          <h2 style="font-size:var(--fs-600);">Activity register</h2>
+          <button class="btn btn-ghost" id="tm-csv" style="font-size:var(--fs-100);">Download CSV</button>
+        </div>
+        <div id="tm-register" style="margin-top:0.6rem;overflow-x:auto;"></div>
+      </div>
+    </div>
+
+    <!-- --------------------------------------------------------------- MANAGE -->
+    <div data-tab-panel="tm-manage" hidden>
+      <div class="card">
+        <h2 style="font-size:var(--fs-600);">Seed</h2>
+        <p style="color:var(--ink-2);margin-top:0.3rem;font-size:var(--fs-300);max-width:76ch;">
+          The authored programme map ships with the site. <strong>Fill</strong> adds
+          anything missing and refreshes the descriptive text, keeping every status,
+          owner and note. <strong>Reset</strong> deletes the activities first, so
+          progress goes with them.
+        </p>
+        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.8rem;align-items:center;">
+          <button class="btn btn-halftone" id="tm-seed-fill">Load / refresh from seed</button>
+          <button class="btn btn-ghost" id="tm-seed-reset">Reset to seed (loses progress)</button>
+          <span class="mono" id="tm-seed-status" style="font-size:var(--fs-200);color:var(--ink-3);"></span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1rem;">
+        <h2 style="font-size:var(--fs-600);">Phase → gate</h2>
+        <p class="annot" style="margin-top:0.3rem;">Tie a phase to a real gate (G0–G9) and the phase strip shows its sign-off state.</p>
+        <div id="tm-gatemap" style="margin-top:0.6rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:0.5rem;"></div>
+      </div>
+
+      <div class="card" style="margin-top:1rem;">
+        <h2 style="font-size:var(--fs-600);">Add an activity</h2>
+        <form id="tm-add-act" style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:flex-end;margin-top:0.6rem;">
+          <label class="tm-lbl">Code<input required id="tm-na-code" placeholder="VD17" class="tm-in" /></label>
+          <label class="tm-lbl" style="flex:1;min-width:200px;">Title<input required id="tm-na-title" class="tm-in" style="width:100%;" /></label>
+          <label class="tm-lbl">Subteam<select id="tm-na-bucket" class="tm-sel"></select></label>
+          <label class="tm-lbl">Phase<select id="tm-na-phase" class="tm-sel"></select></label>
+          <label class="tm-lbl">Owner role<input id="tm-na-owner" class="tm-in" /></label>
+          <label class="tm-chk"><input type="checkbox" id="tm-na-crit" /> critical</label>
+          <button class="btn btn-ghost" type="submit">Add</button>
+        </form>
+      </div>
+
+      <div class="card" style="margin-top:1rem;">
+        <h2 style="font-size:var(--fs-600);">Add a hand-off</h2>
+        <form id="tm-add-dep" style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:flex-end;margin-top:0.6rem;">
+          <label class="tm-lbl">From<input required id="tm-nd-from" list="tm-codes" class="tm-in" placeholder="VD3" /></label>
+          <label class="tm-lbl">To<input required id="tm-nd-to" list="tm-codes" class="tm-in" placeholder="CH2" /></label>
+          <label class="tm-lbl" style="flex:1;min-width:200px;">What is handed over<input id="tm-nd-label" class="tm-in" style="width:100%;" /></label>
+          <label class="tm-chk"><input type="checkbox" id="tm-nd-fb" /> feedback (loop-back, not a prerequisite)</label>
+          <button class="btn btn-ghost" type="submit">Add</button>
+        </form>
+        <datalist id="tm-codes"></datalist>
+        <p class="mono" id="tm-manage-status" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+      </div>
+    </div>
+  </ToolTabs>
+
+  <!-- Detail drawer. -->
+  <div id="tm-drawer" class="tm-drawer" hidden role="dialog" aria-modal="false" aria-labelledby="tm-d-title">
+    <div class="tm-dhead">
+      <div>
+        <span class="mono" id="tm-d-code" style="color:var(--amber-text);"></span>
+        <h2 id="tm-d-title" style="font-size:var(--fs-600);margin-top:0.2rem;"></h2>
+        <p class="mono" id="tm-d-meta" style="font-size:var(--fs-200);color:var(--ink-3);margin-top:0.2rem;"></p>
+      </div>
+      <button class="btn btn-ghost" id="tm-d-close" aria-label="Close detail">✕</button>
+    </div>
+    <div class="tm-dbody" id="tm-d-body"></div>
+  </div>
+</Base>
+
+<style>
+  .tm-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(96px, 1fr); gap: 0.3rem; overflow-x: auto; }
+  .tm-ph { border: 1px solid var(--rule); border-radius: var(--radius-sm); padding: 0.4rem 0.5rem; background: var(--surface-2); min-width: 96px; }
+  .tm-ph .k { font-family: var(--font-mono); font-size: var(--fs-100); color: var(--ink-3); }
+  .tm-ph .n { display: block; font-size: var(--fs-200); font-weight: 600; line-height: 1.2; margin-top: 0.1rem; }
+  .tm-ph.gate { border-color: var(--amber); }
+  .tm-bar { height: 4px; border-radius: 2px; background: var(--rule); margin-top: 0.3rem; overflow: hidden; }
+  .tm-bar > i { display: block; height: 100%; background: var(--state-linked); }
+
+  .tm-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+  .tm-sel, .tm-in {
+    background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius-sm);
+    color: var(--ink); padding: 0.28rem 0.45rem; font-size: var(--fs-200); font-family: var(--font-mono);
+  }
+  .tm-chk { font-size: var(--fs-200); display: inline-flex; gap: 0.3rem; align-items: center; color: var(--ink-2); white-space: nowrap; }
+  .tm-lbl { font-size: var(--fs-200); color: var(--ink-2); display: flex; flex-direction: column; gap: 0.2rem; }
+
+  .tm-mapwrap { margin-top: 0.8rem; overflow: auto; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface-2); max-height: 72vh; }
+  .tm-map { position: relative; display: grid; gap: 0.35rem; padding: 0.5rem; min-width: max-content; }
+  .tm-edges { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+  .tm-edges path { fill: none; stroke: var(--rule-strong); stroke-width: 1; opacity: 0.5; }
+  .tm-edges path.fb { stroke-dasharray: 4 3; }
+  .tm-edges path.in { stroke: var(--sky); stroke-width: 2; opacity: 1; }
+  .tm-edges path.out { stroke: var(--amber); stroke-width: 2; opacity: 1; }
+  .tm-edges path.co { stroke: var(--heritage); stroke-width: 2; opacity: 1; }
+
+  .tm-colhead { font-family: var(--font-mono); font-size: var(--fs-100); color: var(--ink-3); padding: 0 0.2rem 0.1rem; text-transform: uppercase; letter-spacing: 0.08em; position: sticky; top: 0; background: var(--surface-2); z-index: 2; }
+  .tm-lane { font-family: var(--font-mono); font-size: var(--fs-200); color: var(--ink-2); padding: 0.3rem 0.4rem; position: sticky; left: 0; background: var(--surface-2); z-index: 3; border-right: 1px solid var(--rule); }
+  .tm-lane .sc { display: block; font-size: var(--fs-100); color: var(--ink-3); }
+  .tm-cell { display: flex; flex-direction: column; gap: 0.25rem; min-width: 170px; padding: 0.1rem; }
+
+  .tm-blk {
+    position: relative; text-align: left; cursor: pointer; width: 100%;
+    background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--ink-3);
+    border-radius: var(--radius-sm); padding: 0.3rem 0.4rem; color: inherit; font: inherit;
+  }
+  .tm-blk:hover { border-color: var(--rule-strong); }
+  .tm-blk .c { font-family: var(--font-mono); font-size: var(--fs-100); color: var(--ink-3); }
+  .tm-blk .t { display: block; font-size: var(--fs-200); line-height: 1.25; margin-top: 0.05rem; }
+  .tm-blk.crit .c::after { content: ' ⚑'; color: var(--heritage); }
+  .tm-blk.s-in_progress { border-left-color: var(--sky); }
+  .tm-blk.s-blocked { border-left-color: var(--heritage); }
+  .tm-blk.s-done { border-left-color: var(--state-linked); }
+  .tm-blk.s-done .t { color: var(--ink-3); text-decoration: line-through; }
+  .tm-blk[aria-current='true'] { box-shadow: inset 0 0 0 1px var(--amber); border-color: var(--amber); }
+  .tm-map.dim .tm-blk { opacity: 0.25; }
+  .tm-map.dim .tm-blk.hl { opacity: 1; }
+  .tm-map.dim .tm-blk.up { opacity: 1; border-left-color: var(--sky); }
+  .tm-map.dim .tm-blk.down { opacity: 1; border-left-color: var(--amber); }
+
+  .tm-drawer {
+    position: fixed; right: 0; top: 0; bottom: 0; width: min(94vw, 460px); z-index: 70;
+    background: var(--surface); border-left: 1px solid var(--rule-strong); box-shadow: var(--shadow);
+    display: flex; flex-direction: column;
+  }
+  .tm-dhead { display: flex; gap: 0.6rem; align-items: flex-start; justify-content: space-between; padding: 0.9rem 1rem; border-bottom: 1px solid var(--rule); }
+  .tm-dbody { padding: 0.9rem 1rem 2rem; overflow-y: auto; }
+  .tm-sec { margin-top: 1rem; }
+  .tm-sec h3 { font-family: var(--font-mono); font-size: var(--fs-100); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+  .tm-sec p, .tm-sec li { font-size: var(--fs-300); color: var(--ink-2); }
+  .tm-sec ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
+  .tm-flow { list-style: none; padding: 0; margin: 0.3rem 0 0; display: flex; flex-direction: column; gap: 0.3rem; }
+  .tm-flow li { border-left: 2px solid var(--rule); padding-left: 0.5rem; }
+  .tm-flow .who { font-family: var(--font-mono); font-size: var(--fs-100); }
+  .tm-chip { display: inline-block; font-family: var(--font-mono); font-size: var(--fs-100); border: 1px solid var(--rule); border-radius: 999px; padding: 0 0.4rem; color: var(--ink-2); }
+
+  .tm-row { display: flex; gap: 0.5rem; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--rule); padding: 0.35rem 0; font-size: var(--fs-300); }
+  .tm-table { border-collapse: collapse; width: 100%; font-size: var(--fs-300); }
+  .tm-table th { text-align: left; border-bottom: 1px solid var(--rule-strong); padding: 0.35rem 0.5rem; font-family: var(--font-mono); font-size: var(--fs-100); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+  .tm-table td { border-bottom: 1px solid var(--rule); padding: 0.3rem 0.5rem; vertical-align: top; }
+  .tm-loopcard { border: 1px solid var(--rule); border-left: 3px solid var(--amber); border-radius: var(--radius); padding: 0.7rem 0.8rem; background: var(--surface-2); margin-bottom: 0.7rem; }
+
+  @media (max-width: 900px) {
+    #tm-nowgrid { grid-template-columns: 1fr !important; }
+    .tm-drawer { width: 100vw; }
+  }
+</style>
+
+<script>
+  import {
+    buildGraph, readyToStart, stallImpact, handoffMatrix, loopMembers, blockers,
+    coDesignPartners, coDesignPairs, chain, searchActivities, progressByPhase,
+    progressOf,
+    type Activity, type ActivityStatus, type Dependency, type Graph,
+  } from '../lib/calc/taskmap';
+  import {
+    loadTaskmap, seedTaskmap, setActivityState, createActivity, deleteActivity,
+    addDependency, deleteDependency, setPhaseGate, type TaskmapData,
+  } from '../lib/taskmap-store';
+  import { loadGates, type Gate } from '../lib/store';
+  import { myRole, loadMembers, type MemberRow } from '../lib/roles';
+  import { esc } from '../lib/html';
+  import { toCsv, downloadText } from '../lib/csv';
+  import { subscribeLive, liveToast } from '../lib/realtime';
+  import { url } from '../lib/config';
+
+  const STATUS_LABEL: Record<ActivityStatus, string> = {
+    not_started: 'not started', in_progress: 'in progress', blocked: 'blocked', done: 'done',
+  };
+  const GATE_KEYS = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
+
+  let data: TaskmapData = { buckets: [], phases: [], loops: [], activities: [], dependencies: [], error: null };
+  let g: Graph = buildGraph([], []);
+  let gates: Gate[] = [];
+  let members: MemberRow[] = [];
+  let lead = false;
+
+  /** View state: what is filtered and what is selected. */
+  const S = { q: '', bucket: '', loop: '', status: '', crit: false, ready: false, chain: false, allEdges: false, sel: '' };
+
+  const el = (id: string) => document.getElementById(id)!;
+  const alertEl = () => el('tm-alert');
+  const say = (id: string, msg: string, ok = true) => {
+    const n = el(id); n.textContent = msg; n.style.color = ok ? 'var(--state-linked)' : 'var(--heritage)';
+  };
+
+  // ---------------------------------------------------------------- rendering
+  function bucketOf(key: string) { return data.buckets.find((b) => b.key === key); }
+  function phaseOf(key: string) { return data.phases.find((p) => p.key === key); }
+  const codeChip = (code: string) => `<a href="#${esc(code)}" data-goto="${esc(code)}" class="tm-chip">${esc(code)}</a>`;
+
+  function statusDot(a: Activity): string {
+    const colour = a.status === 'done' ? 'var(--state-linked)'
+      : a.status === 'in_progress' ? 'var(--sky)'
+      : a.status === 'blocked' ? 'var(--heritage)' : 'var(--ink-3)';
+    return `<span title="${STATUS_LABEL[a.status ?? 'not_started']}" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${colour};"></span>`;
+  }
+
+  function renderPhaseStrip() {
+    const prog = progressByPhase(g);
+    el('tm-phasestrip').innerHTML = data.phases.map((p) => {
+      const pr = prog[p.key] ?? { total: 0, done: 0, pct: 0 };
+      const gate = p.gate_key ? gates.find((x) => x.id === p.gate_key) : null;
+      const gateChip = gate
+        ? `<span class="tm-chip" style="margin-top:0.25rem;color:${gate.status === 'signed_off' ? 'var(--state-linked)' : 'var(--amber-text)'}">${esc(gate.id)} ${esc(String(gate.status).replace('_', ' '))}</span>`
+        : '';
+      return `<div class="tm-ph${p.is_gate ? ' gate' : ''}" title="${esc(p.subtitle ?? '')}">
+        <span class="k">${esc(p.key)}${p.is_gate ? ' ⚑' : ''}</span>
+        <span class="n">${esc(p.name)}</span>
+        <div class="tm-bar"><i style="width:${pr.pct.toFixed(0)}%"></i></div>
+        <span class="k">${pr.done}/${pr.total}</span>
+        ${gateChip}
+      </div>`;
+    }).join('');
+
+    const all = progressOf(g.activities);
+    el('tm-counts').textContent = g.activities.length
+      ? `${all.done} done · ${all.inProgress} in progress · ${all.blocked} blocked · ${all.notStarted} not started · ${all.total} activities, ${g.dependencies.length} hand-offs`
+      : '';
+  }
+
+  /** Which codes pass the current filters. */
+  function matching(): Set<string> {
+    let codes = new Set(g.activities.map((a) => a.code));
+    const keep = (fn: (a: Activity) => boolean) => {
+      for (const c of [...codes]) { const a = g.byCode.get(c)!; if (!fn(a)) codes.delete(c); }
+    };
+    if (S.bucket) keep((a) => a.bucket_key === S.bucket);
+    if (S.loop) keep((a) => (a.loop_keys ?? []).includes(S.loop));
+    if (S.status) keep((a) => (a.status ?? 'not_started') === S.status);
+    if (S.crit) keep((a) => !!a.is_critical);
+    if (S.ready) { const ok = new Set(readyToStart(g).map((a) => a.code)); keep((a) => ok.has(a.code)); }
+    if (S.q.trim()) { const hits = new Set(searchActivities(g, S.q).map((a) => a.code)); keep((a) => hits.has(a.code)); }
+    return codes;
+  }
+
+  function renderMap() {
+    const map = el('tm-map');
+    const svg = el('tm-edges');
+    const cols = data.phases.length;
+    map.style.gridTemplateColumns = `max-content repeat(${cols}, minmax(170px, 1fr))`;
+
+    let html = `<div class="tm-colhead"></div>`;
+    for (const p of data.phases) html += `<div class="tm-colhead">${esc(p.key)} · ${esc(p.name)}</div>`;
+
+    for (const b of data.buckets) {
+      html += `<div class="tm-lane">${esc(b.key)}<span class="sc">${esc(b.name)}</span></div>`;
+      for (const p of data.phases) {
+        const rows = g.activities
+          .filter((a) => a.bucket_key === b.key && a.phase_key === p.key)
+          .sort((x, y) => (x.display_order ?? 0) - (y.display_order ?? 0));
+        html += `<div class="tm-cell">${rows.map((a) => `
+          <button class="tm-blk${a.is_critical ? ' crit' : ''} s-${a.status ?? 'not_started'}" id="tmb-${esc(a.code)}"
+            data-code="${esc(a.code)}" aria-current="${a.code === S.sel}" type="button"
+            style="${b.color ? `border-left-color:${a.status && a.status !== 'not_started' ? '' : esc(b.color)};` : ''}">
+            <span class="c">${statusDot(a)} ${esc(a.code)}</span>
+            <span class="t">${esc(a.title)}</span>
+          </button>`).join('')}</div>`;
+      }
+    }
+    map.innerHTML = html;
+    map.appendChild(svg);
+
+    map.querySelectorAll<HTMLButtonElement>('.tm-blk').forEach((btn) =>
+      btn.addEventListener('click', () => select(btn.dataset.code!)));
+
+    applyHighlight();
+  }
+
+  /** Dim/highlight per filters + selection, then redraw the edges. */
+  function applyHighlight() {
+    const map = el('tm-map');
+    const hit = matching();
+    const filtering = !!(S.q.trim() || S.bucket || S.loop || S.status || S.crit || S.ready);
+    const up = S.sel ? chain(g, S.sel, 'up', { maxDepth: S.chain ? Infinity : 1 }) : new Set<string>();
+    const down = S.sel ? chain(g, S.sel, 'down', { maxDepth: S.chain ? Infinity : 1 }) : new Set<string>();
+
+    map.classList.toggle('dim', filtering || !!S.sel);
+    map.querySelectorAll<HTMLElement>('.tm-blk').forEach((b) => {
+      const code = b.dataset.code!;
+      b.classList.toggle('hl', (filtering && hit.has(code)) || code === S.sel);
+      b.classList.toggle('up', up.has(code));
+      b.classList.toggle('down', down.has(code));
+      b.setAttribute('aria-current', String(code === S.sel));
+    });
+
+    const info: string[] = [];
+    if (filtering) info.push(`${hit.size} of ${g.activities.length} activities match`);
+    if (S.sel) {
+      const a = g.byCode.get(S.sel);
+      if (a) info.push(`${a.code} selected · ${up.size} upstream · ${down.size} downstream${S.chain ? ' (full chain)' : ' (direct)'}`);
+    }
+    el('tm-filterinfo').textContent = info.join(' · ');
+
+    drawEdges(up, down);
+  }
+
+  /**
+   * Draw the hand-offs. Blocks are laid out by the grid, so edge geometry comes
+   * from measured positions — the same approach as the original map, and it
+   * survives any reflow because we redraw on resize and scroll.
+   */
+  function drawEdges(up: Set<string>, down: Set<string>) {
+    const map = el('tm-map') as HTMLElement;
+    const svg = el('tm-edges') as unknown as SVGSVGElement;
+    const w = map.scrollWidth, h = map.scrollHeight;
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+    const base = map.getBoundingClientRect();
+    const box: Record<string, { x: number; y: number; w: number; h: number }> = {};
+    map.querySelectorAll<HTMLElement>('.tm-blk').forEach((b) => {
+      const r = b.getBoundingClientRect();
+      box[b.dataset.code!] = { x: r.left - base.left + map.scrollLeft, y: r.top - base.top + map.scrollTop, w: r.width, h: r.height };
+    });
+
+    const co = S.sel ? new Set(coDesignPartners(g, S.sel).map((p) => p.activity.code)) : new Set<string>();
+    const parts: string[] = [];
+    for (const e of g.dependencies) {
+      const a = box[e.from_code], b = box[e.to_code];
+      if (!a || !b) continue;
+      const touchesSel = S.sel && (e.from_code === S.sel || e.to_code === S.sel);
+      const inChain = S.sel && ((up.has(e.from_code) || e.from_code === S.sel) && (up.has(e.to_code) || e.to_code === S.sel)
+        || (down.has(e.from_code) || e.from_code === S.sel) && (down.has(e.to_code) || e.to_code === S.sel));
+      if (!S.allEdges && !touchesSel && !inChain) continue;
+
+      const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2;
+      let d: string;
+      if (x2 > x1 + 8) {
+        const dx = Math.max(26, (x2 - x1) * 0.45);
+        d = `M${x1} ${y1}C${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2 - 2} ${y2}`;
+      } else {
+        // Same column or backwards: bulge out to the right so it stays readable.
+        const k = 54 + Math.min(40, Math.abs(y2 - y1) * 0.06);
+        d = `M${x1} ${y1}C${x1 + k} ${y1} ${x2 - k} ${y2} ${x2 - 2} ${y2}`;
+      }
+      const cls = [
+        e.is_feedback ? 'fb' : '',
+        touchesSel && co.has(e.from_code === S.sel ? e.to_code : e.from_code) ? 'co'
+          : e.to_code === S.sel ? 'in' : e.from_code === S.sel ? 'out' : '',
+      ].filter(Boolean).join(' ');
+      parts.push(`<path d="${d}"${cls ? ` class="${cls}"` : ''}/>`);
+    }
+    svg.innerHTML = parts.join('');
+  }
+
+  // ------------------------------------------------------------------ drawer
+  function flowList(edges: Dependency[], dir: 'from' | 'to'): string {
+    if (!edges.length) return '<p style="color:var(--ink-3);">—</p>';
+    return `<ul class="tm-flow">${edges.map((e) => {
+      const other = g.byCode.get(dir === 'from' ? e.from_code : e.to_code);
+      if (!other) return '';
+      return `<li>
+        <span class="who">${statusDot(other)} ${codeChip(other.code)} ${esc(other.title)}</span>
+        ${e.label ? `<br><span style="font-size:var(--fs-200);color:var(--ink-2);">${esc(e.label)}</span>` : ''}
+        ${e.is_feedback ? ' <span class="tm-chip">feedback</span>' : ''}
+        ${e.id ? `<button class="btn btn-ghost" data-rmdep="${esc(e.id)}" title="Remove this hand-off" style="font-size:var(--fs-100);padding:0 0.3rem;">✕</button>` : ''}
+      </li>`;
+    }).join('')}</ul>`;
+  }
+
+  function renderDrawer() {
+    const drawer = el('tm-drawer');
+    const a = S.sel ? g.byCode.get(S.sel) : undefined;
+    if (!a) { drawer.hidden = true; return; }
+    drawer.hidden = false;
+
+    const b = bucketOf(a.bucket_key), p = phaseOf(a.phase_key);
+    el('tm-d-code').textContent = a.code + (a.is_critical ? ' ⚑ critical' : '');
+    el('tm-d-title').textContent = a.title;
+    el('tm-d-meta').textContent = [b?.name ?? a.bucket_key, `${p?.key ?? a.phase_key} ${p?.name ?? ''}`.trim(), a.owner_role ?? ''].filter(Boolean).join(' · ');
+
+    const block = blockers(g, a.code);
+    const co = coDesignPartners(g, a.code);
+    const list = (items: string[] | undefined) =>
+      items && items.length ? `<ul>${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : '<p style="color:var(--ink-3);">—</p>';
+
+    const ownerOpts = ['<option value="">— unassigned —</option>']
+      .concat(members.map((m) => `<option value="${esc(m.user_id)}"${m.user_id === a.owner_user_id ? ' selected' : ''}>${esc(m.full_name || m.email || m.user_id.slice(0, 8))}</option>`)).join('');
+
+    el('tm-d-body').innerHTML = `
+      <div class="tm-sec">
+        <h3>State</h3>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-top:0.35rem;">
+          <select id="tm-d-status" class="tm-sel" aria-label="Status">
+            ${(Object.keys(STATUS_LABEL) as ActivityStatus[]).map((s) => `<option value="${s}"${(a.status ?? 'not_started') === s ? ' selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}
+          </select>
+          <label class="tm-lbl">% <input type="number" min="0" max="100" step="1" id="tm-d-pct" class="tm-in" style="width:64px;" value="${a.percent ?? ''}" /></label>
+          <select id="tm-d-owner" class="tm-sel" aria-label="Assigned to">${ownerOpts}</select>
+        </div>
+        <textarea id="tm-d-notes" rows="2" placeholder="Notes — where this actually stands" aria-label="Notes"
+          style="width:100%;margin-top:0.4rem;background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.3rem 0.4rem;font-size:var(--fs-300);">${esc(a.notes ?? '')}</textarea>
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.35rem;flex-wrap:wrap;">
+          <input id="tm-d-tool" class="tm-in" style="flex:1;min-width:160px;" placeholder="Tool link, e.g. ${esc(url('geometry'))}" value="${esc(a.tool_href ?? '')}" aria-label="Workspace tool link" />
+          ${a.tool_href ? `<a class="btn btn-ghost" href="${esc(a.tool_href)}" style="font-size:var(--fs-100);">Open tool ↗</a>` : ''}
+        </div>
+        <p class="mono" id="tm-d-save" style="font-size:var(--fs-100);color:var(--ink-3);margin-top:0.3rem;"></p>
+      </div>
+
+      ${block.length ? `<div class="tm-sec">
+        <h3>Blocked by ${block.length}</h3>
+        <ul class="tm-flow">${block.map((x) => `<li><span class="who">${statusDot(x.activity)} ${codeChip(x.activity.code)} ${esc(x.activity.title)}</span>${x.label ? `<br><span style="font-size:var(--fs-200);">waiting on: ${esc(x.label)}</span>` : ''}</li>`).join('')}</ul>
+      </div>` : `<div class="tm-sec"><h3>Blocked by</h3><p style="color:var(--state-linked);">Nothing — every hand-off it needs has been delivered.</p></div>`}
+
+      ${co.length ? `<div class="tm-sec">
+        <h3>Co-design with</h3>
+        <p style="font-size:var(--fs-200);">Each hands something to the other, so neither goes first — agree these together.</p>
+        <ul class="tm-flow">${co.map((x) => `<li><span class="who">${statusDot(x.activity)} ${codeChip(x.activity.code)} ${esc(x.activity.title)}</span><br><span style="font-size:var(--fs-200);">${esc(x.labels.join(' · '))}</span></li>`).join('')}</ul>
+      </div>` : ''}
+
+      <div class="tm-sec"><h3>Why it matters</h3><p>${esc(a.why ?? '—')}</p></div>
+      <div class="tm-sec"><h3>Done when</h3><p>${esc(a.done_when ?? '—')}</p></div>
+      <div class="tm-sec"><h3>Needs from · ${(g.ins.get(a.code) ?? []).length}</h3>${flowList(g.ins.get(a.code) ?? [], 'from')}</div>
+      <div class="tm-sec"><h3>Feeds · ${(g.outs.get(a.code) ?? []).length}</h3>${flowList(g.outs.get(a.code) ?? [], 'to')}</div>
+      <div class="tm-sec"><h3>Tasks</h3>${list(a.tasks)}</div>
+      <div class="tm-sec"><h3>Pitfalls</h3>${list(a.pitfalls)}</div>
+      ${a.external_inputs?.length ? `<div class="tm-sec"><h3>External inputs</h3>${list(a.external_inputs)}</div>` : ''}
+      <div class="tm-sec"><h3>Tools</h3><p>${esc(a.tools ?? '—')}</p></div>
+      <div class="tm-sec"><h3>Rules</h3><p>${esc(a.rules ?? '—')}</p></div>
+      ${a.contributor_keys?.length ? `<div class="tm-sec"><h3>Works with</h3><p>${a.contributor_keys.map((k) => `<span class="tm-chip">${esc(bucketOf(k)?.name ?? k)}</span>`).join(' ')}</p></div>` : ''}
+      ${a.loop_keys?.length ? `<div class="tm-sec"><h3>Loops</h3><p>${a.loop_keys.map((k) => `<span class="tm-chip">${esc(data.loops.find((l) => l.key === k)?.name ?? k)}</span>`).join(' ')}</p></div>` : ''}
+
+      <div class="tm-sec">
+        <h3>Danger zone</h3>
+        <button class="btn btn-ghost" id="tm-d-del" style="font-size:var(--fs-100);">Delete this activity</button>
+      </div>`;
+
+    wireDrawer(a);
+  }
+
+  function wireDrawer(a: Activity) {
+    const saveNote = (msg: string, ok = true) => {
+      const n = el('tm-d-save'); n.textContent = msg; n.style.color = ok ? 'var(--state-linked)' : 'var(--heritage)';
+    };
+    const patch = async (p: Parameters<typeof setActivityState>[1]) => {
+      saveNote('Saving…');
+      (el('tm-d-save') as HTMLElement).style.color = 'var(--ink-3)';
+      const err = await setActivityState(a.code, p);
+      if (err) { saveNote('Failed: ' + err, false); return; }
+      Object.assign(a, p);
+      saveNote('Saved ✓');
+      renderAll({ keepDrawer: true });
+    };
+
+    el('tm-d-status').addEventListener('change', (e) =>
+      patch({ status: (e.target as HTMLSelectElement).value as ActivityStatus }));
+    el('tm-d-pct').addEventListener('change', (e) => {
+      const raw = (e.target as HTMLInputElement).value.trim();
+      patch({ percent: raw === '' ? null : Math.max(0, Math.min(100, Number(raw))) });
+    });
+    el('tm-d-owner').addEventListener('change', (e) =>
+      patch({ owner_user_id: (e.target as HTMLSelectElement).value || null }));
+    el('tm-d-notes').addEventListener('change', (e) =>
+      patch({ notes: (e.target as HTMLTextAreaElement).value.trim() || null }));
+    el('tm-d-tool').addEventListener('change', (e) =>
+      patch({ tool_href: (e.target as HTMLInputElement).value.trim() || null }));
+
+    el('tm-d-body').querySelectorAll<HTMLButtonElement>('[data-rmdep]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        if (!confirm('Remove this hand-off?')) return;
+        const err = await deleteDependency(b.dataset.rmdep!);
+        if (err) { saveNote('Failed: ' + err, false); return; }
+        await reload();
+      }));
+
+    el('tm-d-body').querySelectorAll<HTMLAnchorElement>('[data-goto]').forEach((link) =>
+      link.addEventListener('click', (ev) => { ev.preventDefault(); select(link.dataset.goto!); }));
+
+    el('tm-d-del').addEventListener('click', async () => {
+      if (!confirm(`Delete ${a.code} and every hand-off attached to it? This cannot be undone.`)) return;
+      const err = await deleteActivity(a.code);
+      if (err) { saveNote('Failed: ' + err, false); return; }
+      S.sel = '';
+      await reload();
+    });
+  }
+
+  function select(code: string) {
+    S.sel = S.sel === code ? '' : code;
+    renderDrawer();
+    applyHighlight();
+    const btn = document.getElementById(`tmb-${code}`);
+    if (S.sel && btn) btn.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
+  // ------------------------------------------------------------- other panels
+  function renderNow() {
+    const ready = readyToStart(g);
+    el('tm-ready-list').innerHTML = ready.length
+      ? ready.slice(0, 24).map((a) => `<div class="tm-row">
+          <span>${statusDot(a)} ${codeChip(a.code)} ${esc(a.title)}${a.is_critical ? ' <span class="tm-chip" style="color:var(--heritage);">critical</span>' : ''}
+            <br><span class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${esc(bucketOf(a.bucket_key)?.name ?? a.bucket_key)} · ${esc(a.phase_key)} · ${esc(a.owner_role ?? '')}</span></span>
+        </div>`).join('') + (ready.length > 24 ? `<p class="annot" style="margin-top:0.5rem;">+ ${ready.length - 24} more</p>` : '')
+      : '<p class="mono" style="color:var(--state-linked);">Nothing unblocked — either everything is done, or every remaining activity is waiting on something.</p>';
+
+    const stall = stallImpact(g).filter((r) => r.blocks > 0);
+    el('tm-stall-list').innerHTML = stall.length
+      ? stall.slice(0, 15).map((r) => `<div class="tm-row">
+          <span>${statusDot(r.activity)} ${codeChip(r.activity.code)} ${esc(r.activity.title)}
+            <br><span class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${esc(bucketOf(r.activity.bucket_key)?.name ?? '')}</span></span>
+          <span class="mono" style="white-space:nowrap;">blocks ${r.blocks}</span>
+        </div>`).join('')
+      : '<p class="mono" style="color:var(--ink-3);">Nothing is holding anything up.</p>';
+
+    const pairs = coDesignPairs(g);
+    el('tm-codesign').innerHTML = pairs.length
+      ? pairs.map((p) => `<div class="tm-row">
+          <span>${codeChip(p.a.code)} ${esc(p.a.title)} <span style="color:var(--ink-3);">↔</span> ${codeChip(p.b.code)} ${esc(p.b.title)}
+            <br><span style="font-size:var(--fs-200);color:var(--ink-2);">${esc(p.labels.join(' · '))}</span></span>
+        </div>`).join('')
+      : '<p class="mono" style="color:var(--ink-3);">None.</p>';
+  }
+
+  function renderLoops() {
+    el('tm-loopcards').innerHTML = data.loops.length
+      ? data.loops.map((l) => {
+          const mine = loopMembers(g, data.phases, l.key);
+          const pr = progressOf(mine);
+          return `<div class="tm-loopcard"${l.color ? ` style="border-left-color:${esc(l.color)}"` : ''}>
+            <div style="display:flex;justify-content:space-between;gap:0.6rem;align-items:baseline;flex-wrap:wrap;">
+              <strong>${esc(l.name)} <span class="mono" style="color:var(--ink-3);font-weight:400;">${esc(l.key)}</span></strong>
+              <span style="display:flex;gap:0.4rem;align-items:center;">
+                <span class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${pr.done}/${pr.total} done</span>
+                <button class="btn btn-ghost" data-loop="${esc(l.key)}" style="font-size:var(--fs-100);">Show on map</button>
+              </span>
+            </div>
+            <p style="font-size:var(--fs-300);color:var(--ink-2);margin-top:0.35rem;">${esc(l.description ?? '')}</p>
+            <p style="margin-top:0.4rem;">${mine.map((a) => codeChip(a.code)).join(' ')}</p>
+          </div>`;
+        }).join('')
+      : '<p class="mono" style="color:var(--ink-3);">No loops loaded.</p>';
+
+    el('tm-loopcards').querySelectorAll<HTMLButtonElement>('[data-loop]').forEach((b) =>
+      b.addEventListener('click', () => {
+        S.loop = b.dataset.loop!;
+        (el('tm-loop') as HTMLSelectElement).value = S.loop;
+        (document.querySelector('[data-tab="tm-map"]') as HTMLButtonElement | null)?.click();
+        applyHighlight();
+      }));
+  }
+
+  function renderHandoffs() {
+    const { cells, internal } = handoffMatrix(g);
+    const keys = data.buckets.map((b) => b.key);
+    const count = new Map(cells.map((c) => [`${c.from}>${c.to}`, c]));
+    el('tm-matrix').innerHTML = `<table class="tm-table" style="min-width:${Math.max(560, keys.length * 54)}px;">
+      <thead><tr><th>gives ↓ / to →</th>${keys.map((k) => `<th style="text-align:center;">${esc(k)}</th>`).join('')}</tr></thead>
+      <tbody>${keys.map((from) => `<tr>
+        <td class="mono">${esc(from)}</td>
+        ${keys.map((to) => {
+          if (from === to) return `<td style="text-align:center;color:var(--ink-3);">·</td>`;
+          const c = count.get(`${from}>${to}`);
+          if (!c) return '<td></td>';
+          return `<td style="text-align:center;" title="${esc(c.labels.join(' | '))}">
+            <button class="btn btn-ghost" data-hand="${esc(from)}>${esc(to)}" style="font-size:var(--fs-100);padding:0 0.3rem;">${c.count}${c.feedback ? `<span style="color:var(--amber-text);">·${c.feedback}f</span>` : ''}</button></td>`;
+        }).join('')}
+      </tr>`).join('')}</tbody></table>
+      <p class="annot" style="margin-top:0.4rem;">A number is how many hand-offs that row's subteam gives to that column's. "·Nf" counts the ones that are feedback. Hover for what is handed over.</p>`;
+
+    el('tm-internal').innerHTML = `<span class="annot">Sequencing inside one subteam</span><p style="margin-top:0.3rem;">${
+      Object.entries(internal).sort((a, b) => b[1] - a[1])
+        .map(([k, n]) => `<span class="tm-chip">${esc(bucketOf(k)?.name ?? k)} ${n}</span>`).join(' ') || '—'
+    }</p>`;
+
+    el('tm-matrix').querySelectorAll<HTMLButtonElement>('[data-hand]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const [from] = b.dataset.hand!.split('>');
+        S.bucket = from;
+        (el('tm-bucket') as HTMLSelectElement).value = from;
+        (document.querySelector('[data-tab="tm-map"]') as HTMLButtonElement | null)?.click();
+        applyHighlight();
+      }));
+  }
+
+  function renderRegister() {
+    const rows = [...g.activities].sort((a, b) =>
+      (phaseOf(a.phase_key)?.idx ?? 0) - (phaseOf(b.phase_key)?.idx ?? 0) || a.code.localeCompare(b.code));
+    const owner = (a: Activity) => members.find((m) => m.user_id === a.owner_user_id);
+    el('tm-register').innerHTML = `<table class="tm-table">
+      <thead><tr><th>Code</th><th>Activity</th><th>Subteam</th><th>Phase</th><th>Owner role</th><th>Assigned</th><th>Status</th><th>Blocked by</th></tr></thead>
+      <tbody>${rows.map((a) => {
+        const bl = blockers(g, a.code);
+        return `<tr>
+          <td class="mono">${codeChip(a.code)}${a.is_critical ? ' ⚑' : ''}</td>
+          <td>${esc(a.title)}</td>
+          <td>${esc(bucketOf(a.bucket_key)?.name ?? a.bucket_key)}</td>
+          <td class="mono">${esc(a.phase_key)}</td>
+          <td>${esc(a.owner_role ?? '')}</td>
+          <td>${esc(owner(a)?.full_name || owner(a)?.email || '')}</td>
+          <td>${statusDot(a)} ${STATUS_LABEL[a.status ?? 'not_started']}${a.percent != null ? ` <span class="mono" style="color:var(--ink-3);">${a.percent}%</span>` : ''}</td>
+          <td class="mono" style="font-size:var(--fs-100);">${bl.length ? bl.map((x) => esc(x.activity.code)).join(', ') : '—'}</td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
+  }
+
+  function renderManage() {
+    const buckets = data.buckets.map((b) => `<option value="${esc(b.key)}">${esc(b.key)} · ${esc(b.name)}</option>`).join('');
+    const phases = data.phases.map((p) => `<option value="${esc(p.key)}">${esc(p.key)} · ${esc(p.name)}</option>`).join('');
+    (el('tm-na-bucket') as HTMLSelectElement).innerHTML = buckets;
+    (el('tm-na-phase') as HTMLSelectElement).innerHTML = phases;
+    el('tm-codes').innerHTML = g.activities.map((a) => `<option value="${esc(a.code)}">${esc(a.title)}</option>`).join('');
+
+    el('tm-gatemap').innerHTML = data.phases.map((p) => `
+      <label class="tm-lbl">${esc(p.key)} · ${esc(p.name)}
+        <select class="tm-sel" data-gate-for="${esc(p.key)}"${lead ? '' : ' disabled title="Lead action"'}>
+          <option value="">— no gate —</option>
+          ${GATE_KEYS.map((gk) => `<option value="${gk}"${p.gate_key === gk ? ' selected' : ''}>${gk}</option>`).join('')}
+        </select>
+      </label>`).join('');
+
+    el('tm-gatemap').querySelectorAll<HTMLSelectElement>('[data-gate-for]').forEach((sel) =>
+      sel.addEventListener('change', async () => {
+        const err = await setPhaseGate(sel.dataset.gateFor!, sel.value || null);
+        if (err) { say('tm-manage-status', /row-level security|permission/i.test(err) ? 'Only a lead can map phases to gates.' : 'Failed: ' + err, false); return; }
+        say('tm-manage-status', 'Gate mapping saved ✓');
+        await reload();
+      }));
+  }
+
+  function renderAll(opts: { keepDrawer?: boolean } = {}) {
+    g = buildGraph(data.activities, data.dependencies);
+    renderPhaseStrip();
+    renderMap();
+    renderNow();
+    renderLoops();
+    renderHandoffs();
+    renderRegister();
+    renderManage();
+    if (opts.keepDrawer && S.sel) renderDrawer();
+    document.querySelectorAll<HTMLAnchorElement>('[data-goto]').forEach((link) =>
+      link.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        (document.querySelector('[data-tab="tm-map"]') as HTMLButtonElement | null)?.click();
+        select(link.dataset.goto!);
+      }));
+  }
+
+  // ------------------------------------------------------------------- load
+  async function reload(announce = false) {
+    data = await loadTaskmap();
+    const a = alertEl();
+    if (data.error) {
+      a.hidden = false;
+      a.textContent = data.error;
+    } else if (!data.activities.length) {
+      a.hidden = false;
+      a.innerHTML = 'The map is empty. Open <strong>Manage → Load / refresh from seed</strong> to load the authored programme (13 subteams, 10 phases, 109 activities, 385 hand-offs).';
+    } else {
+      a.hidden = true;
+    }
+    renderAll({ keepDrawer: true });
+    if (announce) liveToast('Task Map updated.');
+  }
+
+  (async () => {
+    const [role, ms, gs] = await Promise.all([myRole(), loadMembers(), loadGates()]);
+    lead = role.role === 'lead';
+    members = ms;
+    gates = gs;
+
+    // Filter dropdowns.
+    await reload();
+    (el('tm-bucket') as HTMLSelectElement).innerHTML = '<option value="">all subteams</option>'
+      + data.buckets.map((b) => `<option value="${esc(b.key)}">${esc(b.name)}</option>`).join('');
+    (el('tm-loop') as HTMLSelectElement).innerHTML = '<option value="">all loops</option>'
+      + data.loops.map((l) => `<option value="${esc(l.key)}">${esc(l.name)}</option>`).join('');
+
+    // Controls.
+    const bind = (id: string, fn: (v: string, checked: boolean) => void, ev = 'input') =>
+      el(id).addEventListener(ev, (e) => {
+        const t = e.target as HTMLInputElement;
+        fn(t.value, t.checked);
+        applyHighlight();
+      });
+    bind('tm-q', (v) => { S.q = v; });
+    bind('tm-bucket', (v) => { S.bucket = v; }, 'change');
+    bind('tm-loop', (v) => { S.loop = v; }, 'change');
+    bind('tm-status', (v) => { S.status = v; }, 'change');
+    bind('tm-crit', (_, c) => { S.crit = c; }, 'change');
+    bind('tm-ready', (_, c) => { S.ready = c; }, 'change');
+    bind('tm-chain', (_, c) => { S.chain = c; }, 'change');
+    bind('tm-alledges', (_, c) => { S.allEdges = c; }, 'change');
+    el('tm-clear').addEventListener('click', () => {
+      Object.assign(S, { q: '', bucket: '', loop: '', status: '', crit: false, ready: false, sel: '' });
+      (el('tm-q') as HTMLInputElement).value = '';
+      (el('tm-bucket') as HTMLSelectElement).value = '';
+      (el('tm-loop') as HTMLSelectElement).value = '';
+      (el('tm-status') as HTMLSelectElement).value = '';
+      (el('tm-crit') as HTMLInputElement).checked = false;
+      (el('tm-ready') as HTMLInputElement).checked = false;
+      el('tm-drawer').hidden = true;
+      applyHighlight();
+    });
+    el('tm-d-close').addEventListener('click', () => { S.sel = ''; el('tm-drawer').hidden = true; applyHighlight(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !el('tm-drawer').hidden) { S.sel = ''; el('tm-drawer').hidden = true; applyHighlight(); }
+    });
+
+    // Edges are measured, so anything that moves a block means a redraw.
+    const redraw = () => applyHighlight();
+    window.addEventListener('resize', redraw);
+    el('tm-mapwrap').addEventListener('scroll', redraw, { passive: true });
+
+    // Seeding.
+    el('tm-seed-fill').addEventListener('click', async () => {
+      say('tm-seed-status', 'Loading seed…');
+      (el('tm-seed-status') as HTMLElement).style.color = 'var(--ink-3)';
+      const r = await seedTaskmap('fill');
+      if (r.error) { say('tm-seed-status', 'Failed: ' + r.error, false); return; }
+      say('tm-seed-status', `Loaded ${r.counts.activities} activities and ${r.counts.dependencies} hand-offs ✓ (progress kept)`);
+      await reload();
+    });
+    el('tm-seed-reset').addEventListener('click', async () => {
+      if (!confirm('Delete every activity (and its hand-offs, status, owners and notes) and reload the seed?')) return;
+      if (!confirm('This cannot be undone. Really reset the Task Map?')) return;
+      say('tm-seed-status', 'Resetting…');
+      (el('tm-seed-status') as HTMLElement).style.color = 'var(--ink-3)';
+      const r = await seedTaskmap('reset');
+      if (r.error) { say('tm-seed-status', 'Failed: ' + r.error, false); return; }
+      say('tm-seed-status', `Reset to the seed: ${r.counts.activities} activities ✓`);
+      await reload();
+    });
+
+    // Add forms.
+    (el('tm-add-act') as HTMLFormElement).addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = (el('tm-na-code') as HTMLInputElement).value.trim();
+      const title = (el('tm-na-title') as HTMLInputElement).value.trim();
+      if (!code || !title) return;
+      const err = await createActivity({
+        code, title,
+        bucket_key: (el('tm-na-bucket') as HTMLSelectElement).value,
+        phase_key: (el('tm-na-phase') as HTMLSelectElement).value,
+        owner_role: (el('tm-na-owner') as HTMLInputElement).value.trim() || null,
+        is_critical: (el('tm-na-crit') as HTMLInputElement).checked,
+      });
+      if (err) { say('tm-manage-status', err.includes('duplicate') ? `"${code}" already exists.` : 'Failed: ' + err, false); return; }
+      say('tm-manage-status', `${code} added ✓`);
+      (el('tm-add-act') as HTMLFormElement).reset();
+      await reload();
+    });
+
+    (el('tm-add-dep') as HTMLFormElement).addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const from = (el('tm-nd-from') as HTMLInputElement).value.trim();
+      const to = (el('tm-nd-to') as HTMLInputElement).value.trim();
+      if (!g.byCode.has(from) || !g.byCode.has(to)) {
+        say('tm-manage-status', 'Both codes must be existing activities.', false);
+        return;
+      }
+      const err = await addDependency({
+        from_code: from, to_code: to,
+        label: (el('tm-nd-label') as HTMLInputElement).value.trim(),
+        is_feedback: (el('tm-nd-fb') as HTMLInputElement).checked,
+      });
+      if (err) { say('tm-manage-status', err, false); return; }
+      say('tm-manage-status', `${from} → ${to} added ✓`);
+      (el('tm-add-dep') as HTMLFormElement).reset();
+      await reload();
+    });
+
+    // CSV: activities and hand-offs, one file each click.
+    el('tm-csv').addEventListener('click', () => {
+      const owner = (a: Activity) => members.find((m) => m.user_id === a.owner_user_id);
+      downloadText('taskmap_activities.csv', toCsv(
+        ['code', 'title', 'bucket', 'phase', 'owner_role', 'assigned', 'status', 'percent', 'critical', 'blocked_by', 'notes'],
+        [...g.activities].sort((a, b) => a.code.localeCompare(b.code)).map((a) => [
+          a.code, a.title, a.bucket_key, a.phase_key, a.owner_role ?? '',
+          owner(a)?.email ?? '', a.status ?? 'not_started', a.percent ?? '',
+          a.is_critical ? 'yes' : '', blockers(g, a.code).map((x) => x.activity.code).join(' '), a.notes ?? '',
+        ]),
+      ));
+    });
+
+    // Live: a teammate moving an activity should move it here too.
+    subscribeLive({
+      name: 'taskmap',
+      tables: ['taskmap_activities', 'taskmap_dependencies', 'gates'],
+      onChange: async () => { gates = await loadGates(); await reload(true); },
+    });
+
+    // Deep link: /taskmap#VD7 opens that activity.
+    const hash = decodeURIComponent(location.hash.replace('#', ''));
+    if (hash && g.byCode.has(hash)) select(hash);
+  })();
+</script>

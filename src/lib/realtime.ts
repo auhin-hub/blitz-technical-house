@@ -20,7 +20,10 @@
  */
 import { supabase } from './supabase';
 
-export type LiveTable = 'vehicle_spec' | 'tool_outputs' | 'tool_state' | 'gates' | 'change_log';
+export type LiveTable =
+  | 'vehicle_spec' | 'tool_outputs' | 'tool_state' | 'gates' | 'change_log'
+  | 'taskmap_activities' | 'taskmap_dependencies' | 'taskmap_buckets'
+  | 'taskmap_phases' | 'taskmap_loops';
 
 export interface LiveEvent {
   table: LiveTable;
