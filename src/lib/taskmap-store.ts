@@ -103,9 +103,13 @@ export async function seedTaskmap(mode: 'fill' | 'reset' = 'fill'): Promise<Seed
   }
 
   // Structure first: activities reference buckets and phases.
+  //
+  // `gate_key` is deliberately not sent: a lead sets it, so it is live state and
+  // a "fill" that nulled it would break the promise this mode makes.
+  const phaseRows = rows.phases.map(({ gate_key, ...rest }) => rest);
   for (const [table, data, conflict] of [
     ['taskmap_buckets', rows.buckets, 'key'],
-    ['taskmap_phases', rows.phases, 'key'],
+    ['taskmap_phases', phaseRows, 'key'],
     ['taskmap_loops', rows.loops, 'key'],
   ] as const) {
     const err = await upsertChunked(table, data as any[], conflict);

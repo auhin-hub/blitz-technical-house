@@ -302,7 +302,9 @@ import { url } from '../lib/config';
   const STATUS_LABEL: Record<ActivityStatus, string> = {
     not_started: 'not started', in_progress: 'in progress', blocked: 'blocked', done: 'done',
   };
-  const GATE_KEYS = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
+  /** Fallback only: the real list comes from the gates table, so a mapping can
+   *  never reference a gate that does not exist (a foreign key would refuse it). */
+  const GATE_FALLBACK = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9'];
 
   let data: TaskmapData = { buckets: [], phases: [], loops: [], activities: [], dependencies: [], error: null };
   let g: Graph = buildGraph([], []);
@@ -312,6 +314,15 @@ import { url } from '../lib/config';
 
   /** View state: what is filtered and what is selected. */
   const S = { q: '', bucket: '', loop: '', status: '', crit: false, ready: false, chain: false, allEdges: false, sel: '' };
+
+  /**
+   * Only let a recognised colour literal into a style attribute. Bucket and loop
+   * colours are member-editable data, and `esc()` guards HTML, not CSS.
+   */
+  const cssColor = (v: string | null | undefined): string | null => {
+    const c = (v ?? '').trim();
+    return /^(#[0-9a-f]{3,8}|rgb\(\s*[\d.\s,%]+\)|rgba\(\s*[\d.\s,%]+\)|hsl\(\s*[\d.\s,%]+\)|[a-z]{3,20})$/i.test(c) ? c : null;
+  };
 
   const el = (id: string) => document.getElementById(id)!;
   const alertEl = () => el('tm-alert');
@@ -384,13 +395,18 @@ import { url } from '../lib/config';
         const rows = g.activities
           .filter((a) => a.bucket_key === b.key && a.phase_key === p.key)
           .sort((x, y) => (x.display_order ?? 0) - (y.display_order ?? 0));
-        html += `<div class="tm-cell">${rows.map((a) => `
+        html += `<div class="tm-cell">${rows.map((a) => {
+          // The left stripe shows status once there is one; until then it carries
+          // the subteam's colour, so an untouched map still reads by lane.
+          const lane = (a.status ?? 'not_started') === 'not_started' ? cssColor(b.color) : null;
+          return `
           <button class="tm-blk${a.is_critical ? ' crit' : ''} s-${a.status ?? 'not_started'}" id="tmb-${esc(a.code)}"
             data-code="${esc(a.code)}" aria-current="${a.code === S.sel}" type="button"
-            style="${b.color ? `border-left-color:${a.status && a.status !== 'not_started' ? '' : esc(b.color)};` : ''}">
+            ${lane ? `style="border-left-color:${lane};"` : ''}>
             <span class="c">${statusDot(a)} ${esc(a.code)}</span>
             <span class="t">${esc(a.title)}</span>
-          </button>`).join('')}</div>`;
+          </button>`;
+        }).join('')}</div>`;
       }
     }
     map.innerHTML = html;
@@ -599,9 +615,6 @@ import { url } from '../lib/config';
         await reload();
       }));
 
-    el('tm-d-body').querySelectorAll<HTMLAnchorElement>('[data-goto]').forEach((link) =>
-      link.addEventListener('click', (ev) => { ev.preventDefault(); select(link.dataset.goto!); }));
-
     el('tm-d-del').addEventListener('click', async () => {
       if (!confirm(`Delete ${a.code} and every hand-off attached to it? This cannot be undone.`)) return;
       const err = await deleteActivity(a.code);
@@ -609,6 +622,16 @@ import { url } from '../lib/config';
       S.sel = '';
       await reload();
     });
+  }
+
+  /** Jump to an activity from a code chip: always selects, never toggles. */
+  function goTo(code: string) {
+    if (!g.byCode.has(code)) return;
+    (document.querySelector('[data-tab="tm-map"]') as HTMLButtonElement | null)?.click();
+    S.sel = code;
+    renderDrawer();
+    applyHighlight();
+    document.getElementById(`tmb-${code}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
   function select(code: string) {
@@ -652,7 +675,8 @@ import { url } from '../lib/config';
       ? data.loops.map((l) => {
           const mine = loopMembers(g, data.phases, l.key);
           const pr = progressOf(mine);
-          return `<div class="tm-loopcard"${l.color ? ` style="border-left-color:${esc(l.color)}"` : ''}>
+          const accent = cssColor(l.color);
+          return `<div class="tm-loopcard"${accent ? ` style="border-left-color:${accent}"` : ''}>
             <div style="display:flex;justify-content:space-between;gap:0.6rem;align-items:baseline;flex-wrap:wrap;">
               <strong>${esc(l.name)} <span class="mono" style="color:var(--ink-3);font-weight:400;">${esc(l.key)}</span></strong>
               <span style="display:flex;gap:0.4rem;align-items:center;">
@@ -740,7 +764,8 @@ import { url } from '../lib/config';
       <label class="tm-lbl">${esc(p.key)} · ${esc(p.name)}
         <select class="tm-sel" data-gate-for="${esc(p.key)}"${lead ? '' : ' disabled title="Lead action"'}>
           <option value="">— no gate —</option>
-          ${GATE_KEYS.map((gk) => `<option value="${gk}"${p.gate_key === gk ? ' selected' : ''}>${gk}</option>`).join('')}
+          ${(gates.length ? gates.map((x) => x.id) : GATE_FALLBACK)
+            .map((gk) => `<option value="${esc(gk)}"${p.gate_key === gk ? ' selected' : ''}>${esc(gk)}</option>`).join('')}
         </select>
       </label>`).join('');
 
@@ -763,12 +788,6 @@ import { url } from '../lib/config';
     renderRegister();
     renderManage();
     if (opts.keepDrawer && S.sel) renderDrawer();
-    document.querySelectorAll<HTMLAnchorElement>('[data-goto]').forEach((link) =>
-      link.addEventListener('click', (ev) => {
-        ev.preventDefault();
-        (document.querySelector('[data-tab="tm-map"]') as HTMLButtonElement | null)?.click();
-        select(link.dataset.goto!);
-      }));
   }
 
   // ------------------------------------------------------------------- load
@@ -832,10 +851,26 @@ import { url } from '../lib/config';
       if (e.key === 'Escape' && !el('tm-drawer').hidden) { S.sel = ''; el('tm-drawer').hidden = true; applyHighlight(); }
     });
 
-    // Edges are measured, so anything that moves a block means a redraw.
-    const redraw = () => applyHighlight();
+    // Edge geometry is in the map's own content coordinates and the SVG scrolls
+    // with it, so scrolling needs no redraw — only a reflow does. Throttled to
+    // one frame, because measuring 109 blocks is not free.
+    let queued = false;
+    const redraw = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; applyHighlight(); });
+    };
     window.addEventListener('resize', redraw);
-    el('tm-mapwrap').addEventListener('scroll', redraw, { passive: true });
+    // A revealed tab was display:none when it was first drawn, so its blocks had
+    // no size; ToolTabs fires resize on switch, which the listener above catches.
+
+    // One delegated listener for every code chip, anywhere on the page.
+    document.addEventListener('click', (ev) => {
+      const link = (ev.target as HTMLElement | null)?.closest<HTMLElement>('[data-goto]');
+      if (!link) return;
+      ev.preventDefault();
+      goTo(link.dataset.goto!);
+    });
 
     // Seeding.
     el('tm-seed-fill').addEventListener('click', async () => {
