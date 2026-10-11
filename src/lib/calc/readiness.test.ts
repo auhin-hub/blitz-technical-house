@@ -1,6 +1,6 @@
 /** Component Readiness logic (Handoff v2 P4). */
 import { it, expect } from 'vitest';
-import { prereqStatus, componentReadiness, blockingSummary, type Component, type MasterCell } from './readiness';
+import { prereqStatus, componentReadiness, blockingSummary, unfrozenUpstream, type Component, type MasterCell } from './readiness';
 
 const master: Record<string, MasterCell> = {
   rolling_radius: { value: 228, frozen: true },          // green
@@ -18,6 +18,23 @@ it('resolves status by freeze mechanic', () => {
   expect(prereqStatus(mk('procurement', 'engine_selected'), master, outputs)).toBe('green');
   expect(prereqStatus(mk('tool_output', 'rc_height_static'), master, outputs)).toBe('green');
   expect(prereqStatus(mk('tool_output', 'brake_torque_front'), master, outputs)).toBe('grey');
+});
+
+it('a contributed output on unfrozen upstream is amber, not green (P2.4)', () => {
+  const mk = (source_key: string): any => ({ label: '', bin: 'blocking', source_type: 'tool_output', source_key, produced_by_team: 'VD' });
+  // brake_torque_front is contributed, but its CoG upstream is set-and-unfrozen.
+  const outs = { brake_torque_front: { value: 120 } };
+  const up = { brake_torque_front: ['rolling_radius', 'cog_height'] };
+  expect(prereqStatus(mk('brake_torque_front'), master, outs, up)).toBe('amber');
+  expect(unfrozenUpstream('brake_torque_front', master, up)).toEqual(['cog_height']);
+  // An unset upstream key counts as not frozen too.
+  expect(unfrozenUpstream('brake_torque_front', master, { brake_torque_front: ['wheelbase'] })).toEqual(['wheelbase']);
+  // All upstream frozen ⇒ genuinely green.
+  expect(prereqStatus(mk('brake_torque_front'), master, outs, { brake_torque_front: ['rolling_radius'] })).toBe('green');
+  // No declared upstream ⇒ unchanged behaviour (green once contributed).
+  expect(prereqStatus(mk('brake_torque_front'), master, outs, {})).toBe('green');
+  // Still grey when nothing was contributed, whatever the upstream says.
+  expect(prereqStatus(mk('rc_migration'), master, outs, { rc_migration: ['rolling_radius'] })).toBe('grey');
 });
 
 const comp: Component = {

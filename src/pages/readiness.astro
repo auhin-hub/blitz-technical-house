@@ -12,8 +12,10 @@ import { url } from '../lib/config';
     <p style="color:var(--ink-2);margin-top:0.5rem;max-width:76ch;">
       Each component lists its prerequisites — Master values or tool outputs it
       needs. A prerequisite is <strong style="color:var(--state-linked)">green</strong>
-      when its source is frozen (Master) or contributed (tool), <strong style="color:var(--amber-text)">amber</strong>
-      when set but not frozen, grey when not set. A component is
+      when its source is frozen (Master) or contributed off frozen inputs (tool),
+      <strong style="color:var(--amber-text)">amber</strong> when set but not frozen —
+      including a contributed result whose own Master inputs can still move (hover the
+      chip to see which) — and grey when not set. A component is
       <strong>Ready to start</strong> only when every <em>blocking</em> prerequisite
       is green. Drag a requirement between Blocking and Soft to change what gates it.
     </p>
@@ -64,7 +66,8 @@ import { url } from '../lib/config';
 <script>
   import { PARAM_SEED } from '../lib/master';
   import { TOOL_OUTPUT_KEYS, url } from '../lib/config';
-  import { componentReadiness, blockingSummary, type Component, type Prereq, type MasterCell, type Bin } from '../lib/calc/readiness';
+  import { componentReadiness, blockingSummary, unfrozenUpstream, type Component, type Prereq, type MasterCell, type Bin } from '../lib/calc/readiness';
+  import { subscribeLive, liveToast, describeBurst } from '../lib/realtime';
   import { loadMaster, loadToolOutputsMap, loadToolJson, saveToolJson, debounce } from '../lib/store';
   import { mountListControls } from '../lib/list-controls';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
@@ -82,6 +85,8 @@ import { url } from '../lib/config';
   const teamFromSource = (s: string) => ({ Tyre: 'VD(Tyre)', MassBudget: 'VD', VD: 'VD', Geometry: 'VD', target: 'VD', input: 'VD' } as Record<string, string>)[s] ?? 'VD';
   const MASTER_PICK = PARAM_SEED.map((p) => ({ key: p.key, label: p.label, team: teamFromSource(p.source), source_type: 'master' as const }));
   const OUTPUT_PICK = TOOL_OUTPUT_KEYS.map((o) => ({ key: o.key, label: o.label, team: o.team, source_type: 'tool_output' as const }));
+  // A contributed result is only as solid as the Master keys behind it (audit P2.4).
+  const UPSTREAM: Record<string, string[] | undefined> = Object.fromEntries(TOOL_OUTPUT_KEYS.map((o) => [o.key, o.upstream]));
   const PICK = [...MASTER_PICK, ...OUTPUT_PICK];
   const pickByKey = new Map(PICK.map((p) => [p.key, p]));
 
@@ -129,7 +134,7 @@ import { url } from '../lib/config';
       `<optgroup label="Tool outputs">${OUTPUT_PICK.map((p) => `<option value="${p.key}">${esc(p.label)} — ${p.key}</option>`).join('')}</optgroup>`;
 
     // blocking summary
-    const sum = blockingSummary(components, master, outputs).slice(0, 6);
+    const sum = blockingSummary(components, master, outputs, UPSTREAM).slice(0, 6);
     summaryEl.innerHTML = `<span class="annot">What's blocking the most components</span>` + (sum.length
       ? `<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.4rem;">${sum.map((s) => `<span class="badge">${esc(s.source_key)} <span style="color:var(--ink-3)">· ${esc(s.team)}</span> × ${s.count}</span>`).join('')}</div>`
       : `<p style="color:var(--state-linked);margin-top:0.3rem;">Nothing blocking — every blocking prerequisite is green.</p>`);
@@ -161,13 +166,16 @@ import { url } from '../lib/config';
   }
 
   function card(c: Component, idx: number): string {
-    const r = componentReadiness(c, master, outputs);
+    const r = componentReadiness(c, master, outputs, UPSTREAM);
     const pct = r.blockingTotal ? Math.round((r.blockingGreen / r.blockingTotal) * 100) : 100;
     const ring = `<span class="mono" style="font-size:var(--fs-200);color:${r.ready ? 'var(--state-linked)' : 'var(--amber-text)'}">${r.blockingGreen}/${r.blockingTotal} blocking</span>`;
     const go = r.ready ? `<span class="badge badge-live">GO</span>` : `<span class="badge">${pct}%</span>`;
     const chip = (p: Prereq, pi: number) => {
       const st = r.statuses.find((s) => s.prereq === p)!.status;
-      return `<div class="rd-chip" draggable="true" data-ref="${idx}:${pi}" title="${esc(p.source_type)} · ${esc(p.source_key)} · ${esc(p.produced_by_team)}">
+      const floating = p.source_type === 'tool_output' && st === 'amber'
+        ? unfrozenUpstream(p.source_key, master, UPSTREAM) : [];
+      const why = floating.length ? ` · contributed, but still moves with: ${floating.join(', ')}` : '';
+      return `<div class="rd-chip" draggable="true" data-ref="${idx}:${pi}" title="${esc(p.source_type)} · ${esc(p.source_key)} · ${esc(p.produced_by_team)}${esc(why)}">
         <span class="rd-dot rd-${st}"></span><span style="flex:1;">${esc(p.label)}</span>
         <span class="mono" style="color:var(--ink-3);font-size:var(--fs-100);">${esc(p.produced_by_team)}</span>
         <button class="btn btn-ghost" data-del-req="${idx}:${pi}" style="padding:0 0.3rem;font-size:var(--fs-100);">✕</button></div>`;
@@ -199,6 +207,20 @@ import { url } from '../lib/config';
       components = rebuild(rows, headers);
     }
     render();
+
+    // The board exists to answer "can I start this part yet", so it must not go
+    // stale while it is open on a workshop screen (feature review Tier 1 #1).
+    subscribeLive({
+      name: 'readiness',
+      tables: ['vehicle_spec', 'tool_outputs'],
+      onChange: async (events) => {
+        const [mr, om] = await Promise.all([loadMaster(), loadToolOutputsMap()]);
+        master = Object.fromEntries(Object.entries(mr).map(([k, v]) => [k, { value: (v as any).value ?? null, text_value: (v as any).text_value ?? null, frozen: !!(v as any).frozen }]));
+        outputs = Object.fromEntries(Object.entries(om).map(([k, v]) => [k, { value: (v as any).value ?? null }]));
+        render();
+        liveToast(`Readiness re-evaluated: ${describeBurst(events)}.`);
+      },
+    });
 
     // Controls
     document.getElementById('rd-filter')!.addEventListener('change', render);

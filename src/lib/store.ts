@@ -6,18 +6,61 @@
  */
 import { supabase } from './supabase';
 import type { SpecRow } from './master';
+import { cacheMaster, readCachedMaster, looksOffline, sinceLabel } from './offline';
+
+/** Columns we need; `text_value` only exists from migration 0008 onwards. */
+const MASTER_COLS = 'key,label,symbol,unit,value,text_value,source,confidence,frozen,frozen_gate,updated_at';
+const MASTER_COLS_LEGACY = 'key,label,symbol,unit,value,source,confidence,frozen,frozen_gate,updated_at';
+
+/**
+ * The last load error, if any. A schema lag (e.g. migration 0008 not run) used to
+ * blank the whole Master silently; now we retry without the new column and record
+ * the problem so the UI can say so instead of showing "—" everywhere.
+ */
+export let masterLoadError: string | null = null;
 
 /** Load the whole Master, keyed by parameter key. Empty object if not signed in. */
 export async function loadMaster(): Promise<Record<string, SpecRow>> {
-  const { data, error } = await supabase
-    .from('vehicle_spec')
-    .select('key,label,symbol,unit,value,text_value,source,confidence,frozen,frozen_gate,updated_at')
-    .order('display_order', { ascending: true });
+  masterLoadError = null;
   const out: Record<string, SpecRow> = {};
-  if (error || !data) return out;
+  let { data, error } = await supabase
+    .from('vehicle_spec').select(MASTER_COLS).order('display_order', { ascending: true });
+
+  // Unknown column (PostgREST 42703) ⇒ migration 0008 hasn't been run. Degrade
+  // loudly but keep the site usable with the legacy columns.
+  if (error && /text_value|42703|column/i.test(error.message)) {
+    const legacy = await supabase
+      .from('vehicle_spec').select(MASTER_COLS_LEGACY).order('display_order', { ascending: true });
+    if (!legacy.error && legacy.data) {
+      masterLoadError = 'Master loaded without text keys — run migration 0008 (vehicle_spec.text_value).';
+      data = legacy.data as any; error = null;
+    }
+  }
+  if (error || !data) {
+    // Offline (or the project is paused): fall back to the last Master this
+    // browser loaded, and say how old it is — a stale shared number is only
+    // acceptable when the page admits it (feature review Tier 2 #5).
+    const cached = readCachedMaster<Record<string, SpecRow>>();
+    if (cached && looksOffline(error?.message)) {
+      masterLoadError = `Offline — showing the Master as cached ${sinceLabel(cached.at)}. Values may have moved; saving is disabled until you reconnect.`;
+      return { ...cached.rows };
+    }
+    masterLoadError = error ? error.message : 'Master unavailable (not signed in?).';
+    if (error) console.error('[loadMaster]', error.message);
+    return out;
+  }
   for (const r of data as any[]) out[r.key] = r as SpecRow;
+  cacheMaster(out);
   return out;
 }
+
+/** True when we are plainly offline — used to refuse writes with a clear reason. */
+export function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+/** The message every write path shows instead of a raw fetch failure. */
+export const OFFLINE_WRITE = 'Offline — not saved. Shared values are never queued: reconnect and make the change again, so you are editing the live number.';
 
 /** Update one Master value. Returns an error message, or null on success. */
 export async function setMasterValue(key: string, value: number): Promise<string | null> {
@@ -34,25 +77,99 @@ export async function loadToolState(
   tool: string,
   defaults: Record<string, number>,
 ): Promise<Record<string, number>> {
-  const { data, error } = await supabase
-    .from('tool_state')
-    .select('data')
-    .eq('tool', tool)
-    .maybeSingle();
-  if (error || !data || !data.data) return { ...defaults };
-  return { ...defaults, ...(data.data as Record<string, number>) };
+  return (await loadToolStateVersioned(tool, defaults)).data;
 }
 
-/** Upsert a tool's shared editable inputs. */
+/**
+ * The row's `updated_at` as the client last saw it — the optimistic-concurrency
+ * token for `saveToolState` (feature review Tier 1 #2). `null` means "no row
+ * yet"; a save then expects to create one.
+ */
+export type StateVersion = string | null;
+
+/** Load a tool's inputs with the version token and who last wrote them. */
+export async function loadToolStateVersioned(
+  tool: string,
+  defaults: Record<string, number>,
+): Promise<{ data: Record<string, number>; version: StateVersion; updatedBy: string | null }> {
+  const { data, error } = await supabase
+    .from('tool_state')
+    .select('data,updated_at,updated_by')
+    .eq('tool', tool)
+    .maybeSingle();
+  if (error || !data) return { data: { ...defaults }, version: null, updatedBy: null };
+  return {
+    data: { ...defaults, ...((data.data ?? {}) as Record<string, number>) },
+    version: (data as any).updated_at ?? null,
+    updatedBy: (data as any).updated_by ?? null,
+  };
+}
+
+/** A save that lost a race: somebody else wrote the row after we read it. */
+export const STATE_CONFLICT = 'STATE_CONFLICT';
+
+let cachedUid: string | null | undefined;
+/** The signed-in member's id (cached) — used to tell my writes from theirs. */
+export async function currentUserId(): Promise<string | null> {
+  if (cachedUid !== undefined) return cachedUid;
+  const { data } = await supabase.auth.getUser();
+  cachedUid = data.user?.id ?? null;
+  return cachedUid;
+}
+
+/**
+ * Save a tool's shared inputs. With `expected`, the write only lands if the row
+ * is still the version we read — otherwise it returns STATE_CONFLICT and the
+ * caller offers a choice instead of silently flattening a teammate's edit. Pass
+ * no `expected` for the old last-write-wins behaviour.
+ *
+ * Returns the new version in `version` so a caller can keep saving.
+ */
+export async function saveToolStateVersioned(
+  tool: string,
+  data: Record<string, number>,
+  expected?: StateVersion,
+): Promise<{ error: string | null; version: StateVersion }> {
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id ?? null;
+
+  if (expected === undefined) {
+    const { data: up, error } = await supabase
+      .from('tool_state')
+      .upsert({ tool, data, updated_by: uid }, { onConflict: 'tool' })
+      .select('updated_at')
+      .maybeSingle();
+    return { error: error ? error.message : null, version: (up as any)?.updated_at ?? null };
+  }
+
+  if (expected === null) {
+    // We believe no row exists. A unique violation means one appeared meanwhile.
+    const { data: ins, error } = await supabase
+      .from('tool_state')
+      .insert({ tool, data, updated_by: uid })
+      .select('updated_at')
+      .maybeSingle();
+    if (error) return { error: error.code === '23505' ? STATE_CONFLICT : error.message, version: null };
+    return { error: null, version: (ins as any)?.updated_at ?? null };
+  }
+
+  const { data: rows, error } = await supabase
+    .from('tool_state')
+    .update({ data, updated_by: uid })
+    .eq('tool', tool)
+    .eq('updated_at', expected)
+    .select('updated_at');
+  if (error) return { error: error.message, version: expected };
+  if (!rows || !rows.length) return { error: STATE_CONFLICT, version: expected };
+  return { error: null, version: (rows[0] as any).updated_at ?? null };
+}
+
+/** Upsert a tool's shared editable inputs (last write wins). */
 export async function saveToolState(
   tool: string,
   data: Record<string, number>,
 ): Promise<string | null> {
-  const { data: u } = await supabase.auth.getUser();
-  const { error } = await supabase
-    .from('tool_state')
-    .upsert({ tool, data, updated_by: u.user?.id ?? null }, { onConflict: 'tool' });
-  return error ? error.message : null;
+  return (await saveToolStateVersioned(tool, data)).error;
 }
 
 /** Change a FROZEN parameter through the enforced, change-logged path (BRIEF §E5). */
@@ -75,6 +192,28 @@ export async function setMasterText(key: string, text: string): Promise<string |
 export async function editFrozenText(key: string, text: string, reason: string): Promise<string | null> {
   const { error } = await supabase.rpc('edit_param_text', { p_key: key, p_text: text, p_reason: reason });
   return error ? error.message : null;
+}
+
+/**
+ * The one sanctioned way for a TOOL to write a Master value (handoff ground rule).
+ * Unfrozen → ordinary update. Frozen → the change-logged edit_param() path, which
+ * needs a reason; `askReason` supplies it (the caller can show the coupling
+ * knock-ons first). Returns null on success, an error/skip message otherwise.
+ */
+export async function writeMaster(
+  key: string,
+  value: number,
+  askReason?: (key: string) => string | null,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('vehicle_spec').select('frozen').eq('key', key).maybeSingle();
+  if (error) return error.message;
+  if (!data) return `unknown parameter "${key}"`;
+  if (!data.frozen) return setMasterValue(key, value);
+  if (!askReason) return `"${key}" is frozen — edit it in Vehicle Spec with a reason.`;
+  const reason = askReason(key);
+  if (!reason || !reason.trim()) return `"${key}" is frozen — change cancelled (a reason is required).`;
+  return editFrozenParam(key, value, reason.trim());
 }
 
 /** Freeze / unfreeze a parameter at a gate (logged by trigger). */

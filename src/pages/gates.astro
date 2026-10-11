@@ -9,7 +9,9 @@ import { url } from '../lib/config';
     G0–G9 phase status and sign-off. Freezing a parameter at a gate locks it in
     <a href={url('vehicle-spec')}>Vehicle Spec</a>; any later change needs a reason
     and is recorded in the <a href={url('change-log')}>Change Log</a> — enforced in
-    the database, not just by convention.
+    the database, not just by convention. Take a
+    <a href={url('snapshots')}>snapshot</a> at each sign-off and you keep a design
+    baseline you can diff against later.
   </p>
 
   <div class="notice" style="margin:1.25rem 0;" data-note>Sign in to load live gate status.</div>
@@ -25,10 +27,29 @@ import { url } from '../lib/config';
     <div class="annot-dim" style="margin-bottom:1rem;">Freeze-list — parameters locked at a gate</div>
     <div id="freeze-list"><p class="mono" style="color:var(--ink-3);">Loading…</p></div>
   </section>
+
+  <section style="margin-top:2.5rem;">
+    <div class="annot-dim" style="margin-bottom:1rem;">Members — who can freeze and sign off</div>
+    <div class="card">
+      <p style="font-size:var(--fs-300);color:var(--ink-2);margin:0 0 0.6rem;" id="mb-note">Loading…</p>
+      <div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:var(--fs-300);min-width:420px;">
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+          <th style="padding:0.4rem 0.6rem;" class="annot">Member</th>
+          <th style="padding:0.4rem 0.6rem;" class="annot">Team</th>
+          <th style="padding:0.4rem 0.6rem;" class="annot">Role</th>
+        </tr></thead>
+        <tbody id="mb-rows"></tbody>
+      </table></div>
+      <p class="mono" id="mb-status" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+    </div>
+  </section>
 </Base>
 
 <script>
   import { loadGates, setGateStatus, loadMaster, fmt, type Gate } from '../lib/store';
+  import { myRole, gateToLead, roleNote, loadMembers, updateMember } from '../lib/roles';
+  import { esc } from '../lib/html';
+  import { subscribeLive, liveToast } from '../lib/realtime';
 
   const note = document.querySelector('[data-note]') as HTMLElement;
   const grid = document.getElementById('gate-grid')!;
@@ -57,19 +78,29 @@ import { url } from '../lib/config';
       </div>`;
   }
 
+  // Sign-off is an act of authority, so it is lead-only (enforced by RLS in
+  // migration 0011; this just says so before you click).
+  let lead = true, note2 = '';
+
   async function renderGates() {
     const gates = await loadGates();
     if (!gates.length) return;
-    note.innerHTML = 'Live gate status. Sign-off is attributed to you and timestamped.';
+    note.innerHTML = 'Live gate status. Sign-off is attributed to you and timestamped.'
+      + (note2 ? ` <span style="color:var(--amber-text);">${note2}</span>` : '');
     grid.innerHTML = gates.map(gateCard).join('');
     grid.querySelectorAll<HTMLButtonElement>('[data-act]').forEach((btn) => {
+      if (!lead) { gateToLead(btn, 'Changing a gate'); return; }
       btn.addEventListener('click', async () => {
         const id = btn.dataset.id!;
         const act = btn.dataset.act!;
         btn.disabled = true;
         const status = act === 'sign' ? 'signed_off' : act === 'review' ? 'in_review' : 'open';
         const err = await setGateStatus(id, status as Gate['status']);
-        if (err) { alert('Failed: ' + err); btn.disabled = false; return; }
+        if (err) {
+          alert(/row-level security|permission/i.test(err)
+            ? 'Only a team lead can change a gate.' : 'Failed: ' + err);
+          btn.disabled = false; return;
+        }
         renderGates();
       });
     });
@@ -96,7 +127,69 @@ import { url } from '../lib/config';
         <th style="padding:0.6rem 0.75rem;" class="annot">Frozen at</th>
       </tr></thead><tbody>${rows}</tbody></table></div>`;
   }
+  /**
+   * The roster. Everyone can see who their leads are; a lead can promote or
+   * demote. While nobody is a lead yet, everyone can — that's how the first lead
+   * appoints themselves without opening the SQL editor (migration 0011).
+   */
+  async function renderMembers() {
+    const rowsEl = document.getElementById('mb-rows')!;
+    const noteEl = document.getElementById('mb-note')!;
+    const statusEl = document.getElementById('mb-status')!;
+    const members = await loadMembers();
+    noteEl.textContent = lead
+      ? (note2 || 'You are a lead: you can freeze parameters, sign off gates and set roles.')
+      : 'Freezing parameters and signing off gates are lead actions. Ask a lead below.';
+    if (!members.length) {
+      rowsEl.innerHTML = '<tr><td colspan="3" class="mono" style="padding:0.4rem 0.6rem;color:var(--ink-3);">No members listed yet — each member appears here after their first sign-in.</td></tr>';
+      return;
+    }
+    const sel = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;font-size:var(--fs-200);';
+    rowsEl.innerHTML = members.map((m) => `
+      <tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.35rem 0.6rem;">${esc(m.full_name || m.email || m.user_id.slice(0, 8))}</td>
+        <td style="padding:0.35rem 0.6rem;"><input data-mb-team="${m.user_id}" value="${esc(m.team ?? '')}" style="${sel}width:110px;" aria-label="team" /></td>
+        <td style="padding:0.35rem 0.6rem;"><select data-mb-role="${m.user_id}" style="${sel}" aria-label="role">
+          ${['lead', 'member', 'viewer'].map((r) => `<option value="${r}"${r === m.role ? ' selected' : ''}>${r}</option>`).join('')}
+        </select></td>
+      </tr>`).join('');
 
-  renderGates();
-  renderFreezeList();
+    const say = (msg: string, ok = true) => { statusEl.textContent = msg; statusEl.style.color = ok ? 'var(--state-linked)' : 'var(--heritage)'; };
+    rowsEl.querySelectorAll<HTMLElement>('[data-mb-role],[data-mb-team]').forEach((el) => {
+      const id = el.dataset.mbRole ?? el.dataset.mbTeam!;
+      const field = el.dataset.mbRole ? 'role' : 'team';
+      if (!lead) { gateToLead(el as HTMLSelectElement, 'Setting roles'); return; }
+      el.addEventListener('change', async () => {
+        const value = (el as HTMLInputElement | HTMLSelectElement).value;
+        const err = await updateMember(id, { [field]: value } as any);
+        if (err) { say(/row-level security|permission/i.test(err) ? 'Only a lead can set roles.' : 'Failed: ' + err, false); return; }
+        say('Saved ✓');
+        // Appointing the first lead ends the bootstrap, so re-read my own rights.
+        const mine = await myRole();
+        lead = mine.role === 'lead';
+        note2 = roleNote(mine);
+        await renderGates();
+        await renderMembers();
+      });
+    });
+  }
+
+  (async () => {
+    const r = await myRole();
+    lead = r.role === 'lead';
+    note2 = roleNote(r);
+    await renderGates();
+    await renderFreezeList();
+    await renderMembers();
+    subscribeLive({
+      name: 'gates',
+      tables: ['gates', 'vehicle_spec'],
+      onChange: async (events) => {
+        await renderGates();
+        await renderFreezeList();
+        if (events.some((e) => e.table === 'gates')) liveToast('A gate changed.', 'warn');
+      },
+    });
+  })();
+
 </script>

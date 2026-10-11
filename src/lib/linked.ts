@@ -8,13 +8,32 @@
  * Pure DOM; call it with the raw rows from loadMaster (which carry frozen state).
  */
 import type { SpecRow } from './master';
-import { fmt } from './store';
+import { fmt, masterLoadError } from './store';
+
+/**
+ * If the Master failed to load (or loaded degraded — e.g. migration 0008 not run),
+ * say so at the top of the page. Silently showing "—" everywhere used to look like
+ * the whole site was broken (audit P0.1).
+ */
+export function showMasterAlert(): void {
+  const existing = document.getElementById('master-alert');
+  if (!masterLoadError) { existing?.remove(); return; }
+  const host = document.querySelector('main') ?? document.body;
+  const el = existing ?? document.createElement('div');
+  el.id = 'master-alert';
+  el.setAttribute('role', 'status');
+  el.style.cssText = 'border:1px solid var(--amber);border-left:3px solid var(--amber);background:var(--surface-2);'
+    + 'border-radius:var(--radius);padding:0.6rem 0.8rem;margin-bottom:1rem;font-size:var(--fs-300);color:var(--amber-text);';
+  el.textContent = `Vehicle Spec: ${masterLoadError}`;
+  if (!existing) host.prepend(el);
+}
 
 export function decorateLinkedCells(
   scope: ParentNode,
   rows: Record<string, SpecRow>,
   digits = 3,
 ): void {
+  showMasterAlert();
   scope.querySelectorAll<HTMLElement>('[data-master]').forEach((el) => {
     const k = el.dataset.master!;
     const row = rows[k];

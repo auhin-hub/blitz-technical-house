@@ -71,6 +71,7 @@ import { url } from '../lib/config';
   import { teamRollups, totals, topOvershoots, alarmFor, type BudgetRow } from '../lib/calc/budget';
   import { loadToolJson, saveToolJson, debounce } from '../lib/store';
   import { mountListControls } from '../lib/list-controls';
+  import { esc } from '../lib/html';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
@@ -83,7 +84,7 @@ import { url } from '../lib/config';
   let log: { item: string; old: number | null; new: number | null; reason: string; at: string }[] = [];
   let chart: Chart | null = null;
 
-  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  
   const inp = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;font-size:var(--fs-200);';
   const numI = inp + 'width:72px;text-align:right;font-family:var(--font-mono);';
 
@@ -101,14 +102,14 @@ import { url } from '../lib/config';
       const pct = (r.planned && r.planned > 0) ? Math.round((Number(r.actual) || 0) / r.planned * 100) : (r.actual ? '∞' : 0);
       const varc = (Number(r.actual) || 0) - (Number(r.planned) || 0);
       return `<tr class="${cls}" style="border-bottom:1px solid var(--rule);">
-        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="item" value="${esc(r.item)}" style="${inp}width:120px;"></td>
-        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="subassembly" value="${esc(r.subassembly)}" style="${inp}width:100px;"></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="item" value="${esc(r.item)}" style="${inp}width:120px;" aria-label="item"></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="subassembly" value="${esc(r.subassembly)}" style="${inp}width:100px;" aria-label="sub-assembly"></td>
         <td style="padding:0.2rem 0.4rem;"><select data-i="${i}" data-k="team" style="${inp}">${TEAMS.map((t) => `<option${t === r.team ? ' selected' : ''}>${t}</option>`).join('')}</select></td>
-        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="category" value="${esc(r.category)}" style="${inp}width:90px;"></td>
-        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="planned" value="${r.planned ?? ''}" ${r.committed ? 'data-locked="1"' : ''} style="${numI}"></td>
-        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="actual" value="${r.actual ?? ''}" style="${numI}"></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="category" value="${esc(r.category)}" style="${inp}width:90px;" aria-label="category"></td>
+        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="planned" value="${r.planned ?? ''}" ${r.committed ? 'data-locked="1"' : ''} style="${numI}" aria-label="planned cost"></td>
+        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="actual" value="${r.actual ?? ''}" style="${numI}" aria-label="actual cost"></td>
         <td style="padding:0.2rem 0.4rem;text-align:right;" class="mono">${pct}% <span style="color:var(--ink-3)">${varc >= 0 ? '+' : ''}${varc.toFixed(0)}</span></td>
-        <td style="padding:0.2rem 0.4rem;text-align:center;"><input type="checkbox" data-i="${i}" data-k="committed" ${r.committed ? 'checked' : ''} title="lock planned baseline"></td>
+        <td style="padding:0.2rem 0.4rem;text-align:center;"><input type="checkbox" data-i="${i}" data-k="committed" ${r.committed ? 'checked' : ''} title="lock planned baseline" aria-label="committed baseline"></td>
         <td style="padding:0.2rem 0.4rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-100);padding:0.1rem 0.4rem;">✕</button></td>
       </tr>`;
     }).join('');

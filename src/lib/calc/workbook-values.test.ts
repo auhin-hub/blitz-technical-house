@@ -120,6 +120,13 @@ describe('Powertrain · Drivetrain & traction (Powertrain sheet)', () => {
     expect(out.launchAccel).toBeCloseTo(0.8146994, 6);
     expect(out.gripLimited).toBe('Yes — traction limited');
   });
+  it('a set mu_long_peak takes over the traction limit (P1.4)', () => {
+    const o = tractionCompute(
+      { peakTorque: 35.3, peakPower: 32, peakRpm: 9500, primary: 3, firstGear: 2.5, finalDrive: 3, drivelineEff: 0.9 },
+      { rolling_radius: 228, axle_load_rear: 1406.62741935484, mu_lat_peak: MU, mu_long_peak: 1.2, mass_total: MASS },
+    );
+    expect(o.tractionLimit).toBeCloseTo(1.2 * 1406.62741935484, 6);   // not the lateral μ
+  });
 });
 
 describe('Aerodynamics · downforce/drag (Aero sheet)', () => {

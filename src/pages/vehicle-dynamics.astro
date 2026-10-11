@@ -238,6 +238,7 @@ const STEER_OUTPUTS = [
       <span>CoG h <span class="field field-linked mono" data-master="cog_height">—</span> mm</span>
       <span>Track F/R <span class="field field-linked mono" data-master="track_front">—</span>/<span class="field field-linked mono" data-master="track_rear">—</span> mm</span>
       <span>Unsprung/corner <span class="field field-linked mono" data-master="unsprung_corner">—</span> kg</span>
+      <span>Rear RC height <span class="field field-linked mono" data-master="rear_rc_height">—</span> mm</span>
     </div>
     <div class="ct-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem 1.5rem;align-items:start;margin-top:0.7rem;">
       <div>
@@ -277,7 +278,8 @@ const STEER_OUTPUTS = [
   import { steeringCompute, steeringEffortCompute } from '../lib/calc/vd-steering';
   import { loadTransfer } from '../lib/calc/vd-loadtransfer';
   import { rpSweep, rackTravelPerRev } from '../lib/calc/extras';
-  import { loadMaster, setMasterValue } from '../lib/store';
+  import { loadMaster } from '../lib/store';
+  import { contributeMaster } from '../lib/master-write';
 
   const noOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } } };
 
@@ -335,7 +337,10 @@ const STEER_OUTPUTS = [
 
   // Load transfer: map Master keys + inputs into loadTransfer's shapes.
   const ltCompute = (inp: Record<string, number>, m: Record<string, number>) => loadTransfer(
-    { ay: inp.ay, rcFront: inp.rcFront, rcRear: inp.rcRear, kRollFront: inp.kRollFront, kRollRear: inp.kRollRear, unsprungCog: inp.unsprungCog },
+    // Rear RC height lives in the Master (written by Geometry); the local input is
+    // only a fallback while it is unset (audit P1.6).
+    { ay: inp.ay, rcFront: inp.rcFront, rcRear: Number.isFinite(m.rear_rc_height) ? m.rear_rc_height : inp.rcRear,
+      kRollFront: inp.kRollFront, kRollRear: inp.kRollRear, unsprungCog: inp.unsprungCog },
     { mass: m.mass_total, ff: m.mass_frac_front, cogHeight: m.cog_height, trackFront: m.track_front, trackRear: m.track_rear, unsprungCorner: m.unsprung_corner },
   ) as unknown as Record<string, number>;
   mountCalculator({ root: 'loadtransfer', tool: 'vd_loadtransfer', compute: ltCompute, defaultDigits: 0, digits: { tlltdFront: 3 } });
@@ -351,7 +356,7 @@ const STEER_OUTPUTS = [
     );
     if (!Number.isFinite(r.tlltdFront)) { st.textContent = 'Fill in Master (mass, ff, tracks…) first.'; st.style.color = 'var(--heritage)'; return; }
     st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
-    const err = await setMasterValue('tlltd_front', +r.tlltdFront.toFixed(4));
+    const err = await contributeMaster('tlltd_front', +r.tlltdFront.toFixed(4));
     st.textContent = err ? 'Failed (frozen?): ' + err : 'Written to Master ✓';
     st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
   });

@@ -13,7 +13,12 @@
 import type { Out } from './engine';
 const TWO_PI = 2 * Math.PI;
 
-export interface SpringsMaster { mass: number; ff: number; kt: number; cogHeight: number; trackFront: number; trackRear: number; }
+export interface SpringsMaster {
+  mass: number; ff: number; kt: number; cogHeight: number; trackFront: number; trackRear: number;
+  /** Roll-centre heights (mm) — the roll moment acts on the lever above the roll
+   *  axis, not the full CoG height. Omit → treated as 0 (roll axis on the ground). */
+  rcFront?: number; rcRear?: number;
+}
 export interface SpringSide {
   targetFreq: number; unsprung: number; motionRatio: number;
   chosenSpringRate: number; bump: number; droop: number; dampingRatio: number;
@@ -72,7 +77,17 @@ export function springsCompute(front: SpringSide, rear: SpringSide, m: SpringsMa
   const kRollTotal = kRollFront + kRollRear;
   out.rollStiffFront = (kRollFront * Math.PI) / 180;       // N·m/deg
   out.rollStiffRear = (kRollRear * Math.PI) / 180;
-  const rollMomentPerG = m.mass * 9.81 * (m.cogHeight / 1000); // N·m at 1 g
+  // Roll moment = SPRUNG weight × the lever ABOVE THE ROLL AXIS (not total mass ×
+  // full CoG height, which over-read the gradient and disagreed with the
+  // load-transfer tool). Roll-axis height under the CG is interpolated between the
+  // two roll-centre heights, as in vd-loadtransfer.ts.
+  const sprungMass = m.mass - 2 * front.unsprung - 2 * rear.unsprung;
+  const rcF = (m.rcFront ?? 0) / 1000, rcR = (m.rcRear ?? 0) / 1000;
+  const hRollAxis = rcF + (rcR - rcF) * (1 - m.ff);
+  const rollLever = m.cogHeight / 1000 - hRollAxis;          // m
+  out.sprungMass = sprungMass;
+  out.rollLever = rollLever * 1000;                           // mm, for display
+  const rollMomentPerG = sprungMass * 9.81 * rollLever;       // N·m at 1 g
   out.rollGradient = Number.isFinite(kRollTotal) && kRollTotal > 0
     ? (rollMomentPerG / kRollTotal) * (180 / Math.PI) : NaN;  // deg/g
   return out;

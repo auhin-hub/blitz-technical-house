@@ -8,6 +8,10 @@
  *   spring travel  B19 = (bump + droop) * MR
  *   crit. damping  B21 = 2√(wheelRate*1000 * sprung)  (N·s/m)
  *   damper rate    B22 = ζ * Cc
+ *
+ * STATUS: superseded by `springs.ts` (the shipped tool, which adds the tyre in
+ * series and the roll-axis lever). Kept because `workbook-values.test.ts` pins
+ * the original workbook numbers against it — do not wire it into a page.
  */
 type Flat = Record<string, number>;
 

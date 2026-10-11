@@ -19,6 +19,7 @@ const INPUTS = [
   { key: 'bump', label: 'Wheel travel — bump', unit: 'mm', f: 30, r: 25, ref: '' },
   { key: 'droop', label: 'Wheel travel — droop', unit: 'mm', f: 25, r: 25, ref: '' },
   { key: 'dampingRatio', label: 'Target damping ratio ζ', unit: '-', f: 0.65, r: 0.65, ref: '0.6–0.7' },
+  { key: 'rcHeight', label: 'Roll-centre height (from Geometry)', unit: 'mm', f: 30, r: 45, ref: '40–60' },
 ];
 const OUTPUTS = [
   { key: 'sprungCorner', label: 'Sprung corner mass', unit: 'kg' },
@@ -133,7 +134,9 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
   });
 
   function recompute() {
-    const m: SpringsMaster = { mass: master.mass_total, ff: master.mass_frac_front, kt: master.tyre_vert_stiffness, cogHeight: master.cog_height, trackFront: master.track_front, trackRear: master.track_rear };
+    const m: SpringsMaster = { mass: master.mass_total, ff: master.mass_frac_front, kt: master.tyre_vert_stiffness,
+      cogHeight: master.cog_height, trackFront: master.track_front, trackRear: master.track_rear,
+      rcFront: gi('f_rcHeight'), rcRear: gi('r_rcHeight') };
     const r = springsCompute(sideIn('f'), sideIn('r'), m);
     last = r;
     const outs = ['sprungCorner', 'rideRate', 'wheelRate', 'springRate', 'recheckFreq', 'springTravel', 'critDamping', 'damperRate'];

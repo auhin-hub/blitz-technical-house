@@ -120,6 +120,40 @@ Create/rename/delete folders and entries as the team needs.
 
 ---
 
+### 1.x What was added in v2 (and what it changes for you)
+
+| Feature | Where | Why you care |
+| --- | --- | --- |
+| **Live updates** | every calculator | A teammate's Master edit recomputes your open tool and tells you which key moved. |
+| **Conflict bar** | every calculator | Two people on one tool no longer overwrite each other silently. |
+| **Roles** | `/gates` → Members | Freezing a parameter and signing off a gate are **lead-only**. While nobody is a lead, everyone is — appoint your leads first. |
+| **Snapshots** | `/snapshots` | Capture the whole spec at a gate, diff it against today, restore selected values (logged, key by key). |
+| **Design report** | `/report` | One printable document of everything, including an honest "still floating" list. Print to PDF for design events. |
+| **Coupling & sensitivity** | `/sensitivity` | Pick a parameter, choose a step, see exactly which results move and by how much — computed with the real tool formulas. |
+| **Range guards** | `/vehicle-spec` | A value outside its cited typical FS range gets an amber underline and a note. Advisory, never a block. |
+| **Activity feed** | Home | Last eight changes: who, what, old → new, why. |
+| **Search** | `Ctrl`/`⌘`+`K` or `/` | Jump to any page, tool or Master parameter by name. |
+| **Install / offline** | browser menu → Install | Works with no signal: cached pages, calculators computing from the last Master this device loaded (labelled with its age). Offline edits are **refused, not queued** — so you never save over a number you could not see. |
+| **3D hardpoints** | `/geometry` | Rotate the corner; the fore/aft (x) coordinates finally have a view that shows a typo. |
+
+**Physics corrections you should know about** (older results differ):
+- **Roll gradient** now uses the **sprung** mass and the lever from the CoG to the
+  **roll axis**, not total mass × full CoG height. Springs gained roll-centre
+  height inputs, and the reference figure moved 2.197 → **1.664 deg/g**.
+- **μ is two numbers.** The traction limit and the brake cases use
+  `mu_long_peak`; cornering uses `mu_lat_peak`. Leave the longitudinal one unset
+  and both fall back to the lateral value (the old behaviour), so nothing changed
+  silently — fill it in from the Tyre tool to get the honest number.
+- **DAQ** roll gradient now divides damper travel by the motion ratio, and the
+  understeer gradient subtracts the Ackermann term when a wheelbase is in the
+  Master (it says "raw steer gradient" when it can't).
+- **Lap sim** has its own longitudinal μ, which now actually caps launch and
+  braking.
+- **Readiness** shows a contributed result as **amber** while the Master keys
+  behind it are unfrozen — green means "and its inputs are locked".
+
+---
+
 ## Part 2 — How the website works (overview)
 
 - **Front-end:** [Astro](https://astro.build) — a static site (plain HTML/CSS
@@ -145,18 +179,23 @@ Create/rename/delete folders and entries as the team needs.
 
 ## Part 3 — Limitations & things to know
 
-- **Not real-time.** You see other members' edits on your next page load/refresh,
-  not instantly.
+- **Live, with one caveat.** A Master change reaches an open tool within a second
+  or two and the tool recomputes with a note saying which key moved. Two members
+  editing the *same tool's inputs* get a "Load theirs / Keep mine" bar rather than
+  a silent overwrite. This needs migration 0010; without it you are back to
+  "refresh to see their work".
 - **Free-tier Supabase pauses after ~7 days of no activity.** Un-pause with one
   click in the Supabase dashboard; then the site works again.
 - **No automatic backups on the free tier.** The **Excel Master stays the
-  authoritative archive** — export a snapshot of the data periodically. Treat the
-  web store as the working copy, not the only copy.
+  authoritative archive**. Use **Snapshots** (`/snapshots`) to capture the whole
+  shared state — take one at every gate sign-off, and download the CSV or JSON for
+  the archive. Treat the web store as the working copy, not the only copy.
 - **Auth gating is cosmetic; RLS is the real wall** (see Part 2). Don't put
   anything in the page source you wouldn't want public.
 - **Shared, not per-member inputs.** A tool has one set of inputs for the whole
   team. There's no "my private scenario" — if you want to try numbers without
-  disturbing others, note the originals first.
+  disturbing others, note the originals first, or use **Coupling & sensitivity**
+  (`/sensitivity`), which is a pure what-if and writes nothing.
 - **Cooling tool** is the original standalone app, re-skinned. It isn't deeply
   wired into Master beyond the rolling-radius → tyre-Ø helper (it has no vehicle
   mass input and computes speed itself).
@@ -231,6 +270,17 @@ Run the migrations **in order** in the SQL editor (see `supabase/README.md`):
 | `0004_freeze_and_log` | `edit_param()` RPC + guard trigger + freeze/unfreeze logger (freeze enforcement) |
 | `0005_tyre_storage` | private `tyre` bucket + `author_email` |
 | `0006_resources` | `resource_folders` + `resources` + private `resources` bucket |
+| `0007_vehicle_spec_blank` | the Master starts blank (no inherited numbers) |
+| `0008_promote_keys` | `vehicle_spec.text_value` + `edit_param_text()`; the promoted rules/procurement keys |
+| `0009_mu_long` | `mu_long_peak` (longitudinal μ, falls back to lateral while unset) |
+| `0010_realtime` | puts the shared tables in the realtime publication (live updates) |
+| `0011_roles` | `members` + `is_lead()`; lead-only gate sign-off, freezing and frozen edits |
+| `0012_snapshots` | `spec_snapshots` (immutable design baselines; lead-only delete) |
+
+> **Run order matters.** Until `0008` runs, the Master loads in legacy mode and
+> every page shows an amber banner saying so. `0010`–`0012` each degrade safely if
+> skipped — the site works, the features they back stay inert. After `0011`,
+> appoint your leads on **Gates → Members** before anyone needs to freeze.
 
 - Every table has **RLS** limited to authenticated members. Freeze enforcement:
   a frozen `vehicle_spec` value can only change via `edit_param(key, value,

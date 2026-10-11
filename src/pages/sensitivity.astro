@@ -1,0 +1,180 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+---
+<Base title="Coupling & sensitivity" description="Change one Master number and see exactly which results move, and by how much — driven by the real tool formulas.">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Coupling &amp; sensitivity
+  </nav>
+  <header style="margin-bottom:1.25rem;">
+    <p class="annot annot-tick">Cross-cutting · coupling</p>
+    <h1 style="margin-top:0.4rem;">Coupling &amp; sensitivity</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
+      The handbook's coupling table says <em>that</em> raising the CoG hurts load
+      transfer, dive, squat and brakes. This says <em>by how much</em>: pick a
+      Master parameter, choose a step, and every downstream result is recomputed
+      with the <strong>real tool formulas</strong> — the same pure functions the
+      calculators mount — so the numbers here and the numbers in the tools cannot
+      disagree. Nothing is written; this is a what-if.
+    </p>
+  </header>
+
+  <div class="card">
+    <div style="display:flex;gap:0.9rem;flex-wrap:wrap;align-items:flex-end;">
+      <label style="font-size:var(--fs-300);">Parameter
+        <select id="sv-key" style="display:block;margin-top:0.2rem;min-width:240px;background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;"></select>
+      </label>
+      <label style="font-size:var(--fs-300);">Step
+        <input type="number" step="any" id="sv-step" style="display:block;margin-top:0.2rem;width:100px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" />
+      </label>
+      <span class="mono" id="sv-base" style="font-size:var(--fs-200);color:var(--ink-3);"></span>
+    </div>
+    <p id="sv-coupling" class="annot" style="margin-top:0.8rem;max-width:74ch;line-height:1.5;"></p>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.1fr 1fr;gap:1rem;margin-top:1rem;" id="sv-grid">
+    <div class="card">
+      <h2 style="font-size:var(--fs-600);">What moves</h2>
+      <div style="overflow-x:auto;margin-top:0.5rem;">
+        <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:420px;">
+          <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+            <th style="padding:0.4rem 0.6rem;" class="annot">Result</th>
+            <th style="padding:0.4rem 0.6rem;text-align:right;" class="annot">Now</th>
+            <th style="padding:0.4rem 0.6rem;text-align:right;" class="annot">Δ for the step</th>
+            <th style="padding:0.4rem 0.6rem;text-align:right;" class="annot">Per unit</th>
+          </tr></thead>
+          <tbody id="sv-rows"></tbody>
+        </table>
+      </div>
+      <p class="ct-foot" id="sv-foot"></p>
+    </div>
+    <div class="card">
+      <h2 style="font-size:var(--fs-600);">Tornado — biggest movers</h2>
+      <div style="height:360px;position:relative;margin-top:0.5rem;"><canvas id="sv-chart"></canvas></div>
+      <p class="ct-foot">Percent change in each result for the step you chose. Bars are signed: right = increases.</p>
+    </div>
+  </div>
+</Base>
+
+<style>@media (max-width: 900px) { #sv-grid { grid-template-columns: 1fr !important; } }</style>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import { sensitivity, SENSITIVE_KEYS } from '../lib/calc/sensitivity';
+  import { COUPLING_BY_KEY } from '../lib/config';
+  import { loadMaster, loadToolState, fmt } from '../lib/store';
+  import { esc } from '../lib/html';
+  import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+  import { subscribeLive, liveToast } from '../lib/realtime';
+
+  const TOOLS = ['vd_brakes', 'vd_loads', 'vd_steering', 'vd_steering_effort', 'pt_traction', 'aero_balance', 'vd_springs', 'vd_loadtransfer'];
+
+  const keyEl = document.getElementById('sv-key') as HTMLSelectElement;
+  const stepEl = document.getElementById('sv-step') as HTMLInputElement;
+  const baseEl = document.getElementById('sv-base')!;
+  const couplingEl = document.getElementById('sv-coupling')!;
+  const rowsEl = document.getElementById('sv-rows')!;
+  const footEl = document.getElementById('sv-foot')!;
+  let chart: Chart | null = null;
+  let master: Record<string, number> = {};
+  let labels: Record<string, { label: string; unit: string }> = {};
+  let inputsByTool: Record<string, Record<string, number>> = {};
+
+  function recompute() {
+    const key = keyEl.value;
+    const meta = labels[key] ?? { label: key, unit: '' };
+    const base = master[key];
+    const step = Number(stepEl.value);
+    baseEl.textContent = Number.isFinite(base)
+      ? `now ${fmt(base, 3)} ${meta.unit} → what if it were ${fmt(base + (Number.isFinite(step) ? step : 0), 3)} ${meta.unit}?`
+      : 'not set in Vehicle Spec — nothing to perturb.';
+    const coupling = COUPLING_BY_KEY[key];
+    couplingEl.textContent = coupling ? `Handbook coupling: ${coupling}` : '';
+    couplingEl.hidden = !coupling;
+
+    const rows = sensitivity(key, master, { step: Number.isFinite(step) && step > 0 ? step : undefined, inputsByTool });
+    if (!rows.length) {
+      rowsEl.innerHTML = `<tr><td colspan="4" class="mono" style="padding:0.4rem 0.6rem;color:var(--ink-3);">${
+        Number.isFinite(base)
+          ? 'No built calculator reads this parameter yet.'
+          : 'Set this parameter in Vehicle Spec first — a sensitivity around a missing value would be invented.'
+      }</td></tr>`;
+      footEl.textContent = '';
+      if (chart) { chart.destroy(); chart = null; }
+      return;
+    }
+
+    rowsEl.innerHTML = rows.map((r) => {
+      const pct = Number.isFinite(r.relative) ? `${(r.relative * 100 >= 0 ? '+' : '')}${fmt(r.relative * 100, 2)}%` : '—';
+      return `<tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.35rem 0.6rem;">${esc(r.label)}<br><span class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${esc(r.toolLabel)}</span></td>
+        <td style="padding:0.35rem 0.6rem;text-align:right;" class="mono">${fmt(r.base, 3)} ${esc(r.unit)}</td>
+        <td style="padding:0.35rem 0.6rem;text-align:right;" class="mono" style="white-space:nowrap;">${r.delta >= 0 ? '+' : ''}${fmt(r.delta, 3)} <span style="color:var(--ink-3);">(${pct})</span></td>
+        <td style="padding:0.35rem 0.6rem;text-align:right;" class="mono">${fmt(r.slope, 4)}</td>
+      </tr>`;
+    }).join('');
+    footEl.textContent = `Slopes are central differences around the live value, in result-units per ${meta.unit || 'unit'} of ${meta.label}. `
+      + 'A capped or saturated result shows a smaller slope rather than a misleading jump.';
+
+    const top = rows.filter((r) => Number.isFinite(r.relative)).slice(0, 10);
+    const p = palette();
+    const cfg: any = {
+      type: 'bar',
+      data: {
+        labels: top.map((r) => r.label),
+        datasets: [{
+          label: '% change', data: top.map((r) => r.relative * 100),
+          backgroundColor: top.map((r) => (r.relative >= 0 ? p.sky : p.maroon)),
+        }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { title: { display: true, text: '% change for the step' } } },
+      },
+    };
+    if (chart) { chart.data = cfg.data; chart.options = cfg.options; chart.update(); }
+    else { const cv = document.getElementById('sv-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
+  }
+
+  async function reload(announce = false) {
+    const rows = await loadMaster();
+    master = Object.fromEntries(Object.entries(rows).map(([k, v]) => {
+      const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)];
+    }));
+    labels = Object.fromEntries(Object.entries(rows).map(([k, v]) => [k, { label: (v as any).label ?? k, unit: (v as any).unit ?? '' }]));
+    if (announce) liveToast('Vehicle Spec changed — sensitivities recomputed.');
+  }
+
+  (async () => {
+    applyChartDefaults();
+    await reload();
+    // The team's real saved inputs, so the slopes describe THIS car's setup.
+    const loaded = await Promise.all(TOOLS.map((t) => loadToolState(t, {})));
+    inputsByTool = Object.fromEntries(TOOLS.map((t, i) => [t, loaded[i]]));
+
+    // Only offer keys a built calculator actually consumes — anything else would
+    // produce an empty table and look broken.
+    const options = SENSITIVE_KEYS.map((k) => ({ k, label: labels[k]?.label ?? k, set: Number.isFinite(master[k]) }));
+    keyEl.innerHTML = options.map((o) =>
+      `<option value="${esc(o.k)}">${esc(o.label)}${o.set ? '' : ' — not set'}</option>`).join('');
+    const firstSet = options.find((o) => o.set) ?? options[0];
+    if (firstSet) keyEl.value = firstSet.k;
+    const base = master[keyEl.value];
+    stepEl.value = String(Number.isFinite(base) && base !== 0 ? +(Math.abs(base) * 0.05).toPrecision(2) : 1);
+
+    recompute();
+    keyEl.addEventListener('change', () => {
+      const b = master[keyEl.value];
+      stepEl.value = String(Number.isFinite(b) && b !== 0 ? +(Math.abs(b) * 0.05).toPrecision(2) : 1);
+      recompute();
+    });
+    stepEl.addEventListener('input', recompute);
+    watchTheme(() => { applyChartDefaults(); recompute(); });
+    subscribeLive({
+      name: 'sensitivity',
+      tables: ['vehicle_spec', 'tool_state'],
+      onChange: async () => { await reload(true); recompute(); },
+    });
+  })();
+</script>

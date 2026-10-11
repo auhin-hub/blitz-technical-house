@@ -38,8 +38,30 @@ import logo from '../assets/blitz-logo.png';
           <span class="annot">g–g snapshot</span>
           <a href={url('gg')} style="font-size:var(--fs-200);">open →</a>
         </div>
-        <div style="height:250px;position:relative;margin-top:0.4rem;"><canvas id="dash-gg"></canvas></div>
+        <div style="height:250px;position:relative;margin-top:0.4rem;">
+          <canvas id="dash-gg"></canvas>
+          <p id="dash-gg-empty" hidden style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;margin:0;padding:0 1rem;font-size:var(--fs-300);color:var(--ink-3);">
+            No envelope yet — set <strong style="color:var(--ink-2);font-weight:600;">peak lateral μ</strong> and
+            <strong style="color:var(--ink-2);font-weight:600;">total mass</strong> in
+            <a href={url('vehicle-spec')}>Vehicle Spec</a>, then open the
+            <a href={url('gg')}>g–g tool</a> to set the longitudinal limits.
+          </p>
+        </div>
       </div>
+    </div>
+  </section>
+
+  <!-- Activity feed: who moved what, latest first (feature review Tier 3 #6).
+       The Change Log is the record; this is the glance that makes people open it. -->
+  <section style="margin-top:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;">
+      <div class="annot-dim">Recent activity</div>
+      <a href={url('change-log')} style="font-size:var(--fs-200);">full change log →</a>
+    </div>
+    <div class="card" style="margin-top:0.6rem;">
+      <ul id="dash-activity" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.5rem;">
+        <li class="mono" style="color:var(--ink-3);font-size:var(--fs-200);">Loading…</li>
+      </ul>
     </div>
   </section>
 
@@ -51,6 +73,14 @@ import logo from '../assets/blitz-logo.png';
         G0–G9 phase tracking with freeze-and-log change control.
       </p>
       <p style="margin-top:0.8rem;"><a href={url('gates')}>Open Gates / Phases →</a></p>
+    </div>
+    <div class="card">
+      <span class="annot">Report &amp; baselines</span>
+      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
+        One printable <a href={url('report')}>design report</a> of the whole shared
+        store, and <a href={url('snapshots')}>snapshots</a> you can diff against a gate.
+      </p>
+      <p style="margin-top:0.8rem;"><a href={url('report')}>Open the report →</a></p>
     </div>
     <div class="card">
       <span class="annot">Vehicle Spec</span>
@@ -105,8 +135,10 @@ import logo from '../assets/blitz-logo.png';
 
 <script>
   import Chart from 'chart.js/auto';
-  import { loadMaster, loadToolOutputsMap, fmt } from '../lib/store';
-  import { ggCurve } from '../lib/calc/gg';
+  import { loadMaster, loadToolOutputsMap, loadToolJson, loadChangeLog, fmt } from '../lib/store';
+  import { esc } from '../lib/html';
+  import { subscribeLive, describeBurst, liveToast } from '../lib/realtime';
+  import { ggCurve, type GgInput } from '../lib/calc/gg';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
   const setKpi = (k: string, v: number | null | undefined, d = 2) => {
@@ -115,10 +147,16 @@ import logo from '../assets/blitz-logo.png';
   };
 
   let ggChart: Chart | null = null;
-  function renderGg(muY: number, mass: number) {
+  // The snapshot mirrors the real /gg tool: Master μ and mass, plus that tool's own
+  // saved blue inputs. It never invents a number (audit P1.7) — with no μ or mass
+  // the card says what to fill in instead of drawing a made-up envelope.
+  function renderGg(i: GgInput | null) {
+    const empty = document.getElementById('dash-gg-empty') as HTMLElement | null;
+    const cvEl = document.getElementById('dash-gg') as HTMLCanvasElement | null;
+    if (empty) empty.hidden = !!i;
+    if (cvEl) cvEl.style.visibility = i ? 'visible' : 'hidden';
+    if (!i) { ggChart?.destroy(); ggChart = null; return; }
     const p = palette();
-    const i = { muX: 1.4, muY: Number.isFinite(muY) ? muY : 1.5, accelLimit: 0.8, brakeLimit: 0,
-      mass: Number.isFinite(mass) ? mass : 264, rho: 1.18, clA: 0, speedKmh: 0 };
     const env = ggCurve(i).map((q) => ({ x: q.ay, y: q.ax }));
     const cfg: any = { type: 'scatter', data: { datasets: [{ label: 'g–g', data: env, showLine: true, borderColor: p.sky, backgroundColor: 'transparent', pointRadius: 0 }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
@@ -126,15 +164,68 @@ import logo from '../assets/blitz-logo.png';
     if (ggChart) { ggChart.data = cfg.data; ggChart.update(); } else { const cv = document.getElementById('dash-gg') as HTMLCanvasElement | null; if (cv) ggChart = new Chart(cv, cfg); }
   }
 
-  (async () => {
-    applyChartDefaults();
+  let ggInput: GgInput | null = null;
+
+  /** Human line for one change_log row: who, what, old → new, when. */
+  function activityLine(r: { param_key: string | null; field: string; old_value: string | null; new_value: string | null; reason: string | null; actor_email: string | null; changed_at: string }): string {
+    const who = r.actor_email ? r.actor_email.split('@')[0] : 'someone';
+    const when = new Date(r.changed_at);
+    const key = r.param_key ?? '(spec)';
+    const from = r.old_value === null || r.old_value === '' ? '—' : r.old_value;
+    const to = r.new_value === null || r.new_value === '' ? '—' : r.new_value;
+    const what = r.field === 'frozen'
+      ? (r.new_value === 'true' ? 'froze' : 'unfroze') + ` <strong>${esc(key)}</strong>`
+      : `changed <strong>${esc(key)}</strong> <span class="mono">${esc(from)} → ${esc(to)}</span>`;
+    return `<li style="border-bottom:1px solid var(--rule);padding-bottom:0.45rem;font-size:var(--fs-300);color:var(--ink-2);">
+      <span style="color:var(--ink);">${esc(who)}</span> ${what}
+      <span class="mono" style="color:var(--ink-3);font-size:var(--fs-100);"> · ${when.toLocaleString()}</span>
+      ${r.reason ? `<br><span style="color:var(--ink-3);font-size:var(--fs-200);">“${esc(r.reason)}”</span>` : ''}
+    </li>`;
+  }
+
+  async function renderActivity(): Promise<void> {
+    const el = document.getElementById('dash-activity');
+    if (!el) return;
+    const rows = await loadChangeLog(8);
+    el.innerHTML = rows.length
+      ? rows.map(activityLine).join('')
+      : '<li class="mono" style="color:var(--ink-3);font-size:var(--fs-200);">No changes recorded yet. Freezing a parameter or editing a frozen one writes a line here.</li>';
+  }
+
+  async function refresh(): Promise<void> {
     const m = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
     const o = await loadToolOutputsMap();
     setKpi('mass', m.mass_total, 1); setKpi('ff', m.mass_frac_front, 3); setKpi('cog', m.cog_height, 1);
     setKpi('izz', m.yaw_inertia, 1); setKpi('latg', m.accel_lat_target, 2);
     setKpi('springF', o.spring_rate_front?.value, 2); setKpi('springR', o.spring_rate_rear?.value, 2);
     setKpi('bias', o.achieved_front_bias?.value, 3); setKpi('rollgrad', o.roll_gradient?.value, 2);
-    renderGg(m.mu_lat_peak, m.mass_total);
-    watchTheme(() => { applyChartDefaults(); renderGg(m.mu_lat_peak, m.mass_total); });
+    // The g–g tool's saved inputs (blue) complete the envelope; the two Master
+    // numbers are required — without them there is nothing honest to draw.
+    const g = await loadToolJson<Record<string, number>>('gg', {});
+    const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : NaN; };
+    ggInput = Number.isFinite(m.mu_lat_peak) && Number.isFinite(m.mass_total)
+      ? { muY: m.mu_lat_peak, mass: m.mass_total,
+          muX: num(g.muX) || m.mu_lat_peak, accelLimit: num(g.accelLimit) || 0, brakeLimit: num(g.brakeLimit) || 0,
+          rho: num(g.rho) || 1.225, clA: num(g.clA) || 0, speedKmh: 0 }
+      : null;
+    renderGg(ggInput);
+  }
+
+  (async () => {
+    applyChartDefaults();
+    await refresh();
+    await renderActivity();
+    watchTheme(() => { applyChartDefaults(); renderGg(ggInput); });
+    // The dashboard is the one page people leave open on a second screen, so it
+    // follows the shared store live (feature review Tier 1 #1).
+    subscribeLive({
+      name: 'dashboard',
+      tables: ['vehicle_spec', 'tool_outputs'],
+      onChange: async (events) => {
+        await refresh();
+        await renderActivity();
+        liveToast(`Dashboard updated: ${describeBurst(events)}.`);
+      },
+    });
   })();
 </script>

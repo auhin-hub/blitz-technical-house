@@ -24,7 +24,8 @@ const colOf = (rows: LogRow[], k: string) => rows.map((r) => r[k]);
 export interface DaqInterp {
   nSamples: number;
   gg: { ay: number; ax: number }[];
-  understeerGradient: number;   // deg(road steer)/g, incl. kinematic term
+  understeerGradient: number;   // deg/g (road steer − Ackermann), or raw steer if no wheelbase
+  understeerIsRawSteer: boolean; // true ⇒ kinematic term not removed (no wheelbase given)
   rollGradient: number;         // deg/g (front axle)
   brakeBias: number;            // mean front pressure fraction under braking
   driveSlip: number;            // mean rear slip vs GPS (fraction)
@@ -32,25 +33,56 @@ export interface DaqInterp {
   damperHist: { lowBump: number; highBump: number; lowReb: number; highReb: number };
 }
 
-/** Front-axle roll angle (deg) from the L/R damper split over the front track. */
-export function rollAngleDeg(damperL: number, damperR: number, trackMm: number): number {
-  if (!(trackMm > 0)) return NaN;
-  return (Math.atan((damperL - damperR) / trackMm) * 180) / Math.PI;
+/**
+ * Front-axle roll angle (deg) from the L/R damper split over the front track.
+ * Dampers move less than the wheels, so damper travel must be divided by the
+ * motion ratio first (audit P1.2) — omitting it under-read the roll gradient by
+ * roughly that factor. `mr` = damper travel ÷ wheel travel (≈0.6–0.9); 1 = none.
+ */
+export function rollAngleDeg(damperL: number, damperR: number, trackMm: number, mr = 1): number {
+  if (!(trackMm > 0) || !(mr > 0)) return NaN;
+  const wheelDelta = (damperL - damperR) / mr;
+  return (Math.atan(wheelDelta / trackMm) * 180) / Math.PI;
 }
 
-export function interpretLog(rows: LogRow[], cfg: { trackFront?: number; steeringRatio?: number } = {}): DaqInterp {
+/**
+ * Kinematic (Ackermann) steer for one sample, deg: δ_Ack = atan(L/R) with the
+ * instantaneous radius R = v²/a_lat. Subtracting it turns a raw steer gradient
+ * into the understeer gradient (audit P1.3).
+ */
+export function ackermannDeg(wheelbaseMm: number, speedKmh: number, ayG: number): number {
+  const L = wheelbaseMm / 1000, v = speedKmh / 3.6, aLat = Math.abs(ayG) * 9.81;
+  if (!(L > 0) || !(v > 1) || !(aLat > 0.05)) return NaN;   // straight line ⇒ undefined
+  const R = (v * v) / aLat;
+  return (Math.atan(L / R) * 180) / Math.PI;
+}
+
+export function interpretLog(
+  rows: LogRow[],
+  cfg: { trackFront?: number; steeringRatio?: number; motionRatio?: number; wheelbase?: number } = {},
+): DaqInterp {
   const ratio = cfg.steeringRatio && cfg.steeringRatio > 0 ? cfg.steeringRatio : 1;
   const track = cfg.trackFront && cfg.trackFront > 0 ? cfg.trackFront : 1200;
+  const mr = cfg.motionRatio && cfg.motionRatio > 0 ? cfg.motionRatio : 1;
+  const wheelbase = cfg.wheelbase && cfg.wheelbase > 0 ? cfg.wheelbase : 0;
   const ay = colOf(rows, 'ay_g');
 
   const gg = rows.map((r) => ({ ay: r.ay_g, ax: r.ax_g })).filter((p) => Number.isFinite(p.ay) && Number.isFinite(p.ax));
 
-  // Understeer: road steer (SW/ratio) vs lateral g.
-  const roadSteer = colOf(rows, 'steer_deg').map((s) => s / ratio);
-  const understeerGradient = slope(ay, roadSteer);
+  // Understeer gradient: (road steer − Ackermann) vs lateral g. Without a
+  // wheelbase we cannot form the kinematic term, so fall back to the raw steer
+  // gradient and say so via `understeerIsRawSteer`.
+  const roadSteer = rows.map((r) => r.steer_deg / ratio);
+  const understeerIsRawSteer = !(wheelbase > 0);
+  const steerMinusAck = rows.map((r, i) => {
+    if (understeerIsRawSteer) return roadSteer[i];
+    const ack = ackermannDeg(wheelbase, r.speed_gps_kmh, r.ay_g);
+    return Number.isFinite(ack) ? roadSteer[i] - Math.sign(r.ay_g || 1) * ack : NaN;
+  });
+  const understeerGradient = slope(ay, steerMinusAck);
 
-  // Roll gradient: front roll angle vs lateral g.
-  const roll = rows.map((r) => rollAngleDeg(r.damper_FL, r.damper_FR, track));
+  // Roll gradient: front roll angle (wheel travel = damper ÷ MR) vs lateral g.
+  const roll = rows.map((r) => rollAngleDeg(r.damper_FL, r.damper_FR, track, mr));
   const rollGradient = slope(ay, roll);
 
   // Brake bias: mean front fraction where meaningful pressure is applied.
@@ -81,5 +113,5 @@ export function interpretLog(rows: LogRow[], cfg: { trackFront?: number; steerin
     else { if (v > -25) hist.lowReb++; else hist.highReb++; }
   }
 
-  return { nSamples: rows.length, gg, understeerGradient, rollGradient, brakeBias, driveSlip, tyreTempSpread, damperHist: hist };
+  return { nSamples: rows.length, gg, understeerGradient, understeerIsRawSteer, rollGradient, brakeBias, driveSlip, tyreTempSpread, damperHist: hist };
 }

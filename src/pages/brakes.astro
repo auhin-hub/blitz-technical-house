@@ -9,7 +9,8 @@ const LINKED = [
   { k: 'mass_frac_front', l: 'Front fraction', s: 'ff', u: '-' },
   { k: 'cog_height', l: 'CoG height', s: 'h', u: 'mm' },
   { k: 'wheelbase', l: 'Wheelbase', s: 'L', u: 'mm' },
-  { k: 'mu_lat_peak', l: 'Peak μ', s: 'μ', u: '-' },
+  { k: 'mu_long_peak', l: 'Peak longitudinal μ (falls back to lateral)', s: 'μx', u: '-' },
+  { k: 'mu_lat_peak', l: 'Peak lateral μ', s: 'μy', u: '-' },
   { k: 'rolling_radius', l: 'Rolling radius', s: 'Re', u: 'mm' },
 ];
 const INPUTS = [
@@ -214,7 +215,8 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
     const targetDecel = Number.isFinite(master.accel_brake_target) ? master.accel_brake_target : localDecel;
     const m: BrakeSystemMaster = {
       ff: master.mass_frac_front, h: master.cog_height, L: master.wheelbase,
-      mu: master.mu_lat_peak, tyreRadius: master.rolling_radius, mass: master.mass_total,
+      mu: Number.isFinite(master.mu_long_peak) ? master.mu_long_peak : master.mu_lat_peak,
+      tyreRadius: master.rolling_radius, mass: master.mass_total,
     };
     const r = computeBrakeSystem(side('f'), side('r'), m, targetDecel);
     last = r;

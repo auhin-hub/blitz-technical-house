@@ -77,8 +77,12 @@ own full pages and appear in the rail as a card that links out.
 - The **discipline grid** — six cards, each opens a discipline cockpit.
 
 **Persistent top navigation** (every page):
-`Home · VD Workspace · Vehicle Spec · Validation · Tyre · Gates / Phases ·
-Resources · Change Log`.
+`Home · VD Workspace · Vehicle Spec · Validation · Design Readiness · Tyre ·
+Gates / Phases · Report · Resources · Change Log`, plus a **Search** button.
+
+**Command palette:** `Ctrl`/`⌘`+`K` (or `/`) searches every page, every tool
+anchor and every Master parameter; picking a parameter jumps to its Vehicle Spec
+row and highlights it.
 
 **The six disciplines and their routes:**
 | Discipline | Route | Tools (rail) |
@@ -97,8 +101,14 @@ Resources · Change Log`.
 `/measurement` (CoG tilt test, corner-weight, quarter-car ride).
 
 **Platform pages:** `/vehicle-spec` (the Master editor + freeze control) ·
-`/validation` (targets vs achieved) · `/tyre` · `/gates` · `/resources` ·
-`/change-log` · `/login`.
+`/validation` (targets vs achieved) · `/readiness` (component readiness board) ·
+`/tyre` · `/gates` (+ the Members roster) · `/snapshots` (design baselines) ·
+`/report` (printable design report) · `/sensitivity` (quantified coupling) ·
+`/resources` · `/change-log` · `/login`.
+
+**Planning / cost pages:** `/gantt` (season Gantt) · `/budget` · `/cost`
+(FSAE-J cost report) · `/points` · `/lapsim` · `/daq` (log interpretation) ·
+`/setup-sheet`.
 
 ---
 
@@ -623,6 +633,90 @@ EDP (Engineering Design Process) limit:
 - **Workbook downloads:** each discipline page offers the original `.xlsx`
   (private bucket) — the Excel Master stays the authoritative archive.
 
+### 7.1 Live shared state (Realtime)
+
+Every calculator subscribes to `vehicle_spec` and `tool_state`. When another
+member changes a Master value a tool is reading, that tool **re-reads, re-decorates
+its green cells, recomputes and says so** in a transient note naming the key —
+"enter mass once, see it everywhere" now holds while the page stays open, not just
+on the next load. The Vehicle Spec editor, Home dashboard, Readiness board, Gates
+page and Sensitivity page follow the same pattern. Realtime honours RLS, and if
+the publication (migration 0010) is missing, everything behaves as it did before.
+
+**Concurrent edits:** `tool_state` saves carry the `updated_at` they were read
+with. If a teammate wrote first, the save is refused with `STATE_CONFLICT` and the
+tool shows a bar offering **"Load theirs"** or **"Keep mine"** — it never silently
+flattens somebody's work.
+
+### 7.2 Roles (who can freeze and sign off)
+
+A `members` table carries `role` = `lead` | `member` | `viewer`. **Lead-only**, in
+the database: signing off a gate, freezing/unfreezing a parameter, and editing a
+frozen value (`edit_param`). Everything else is open to any member. The Gates page
+has a **Members** panel; members self-register on first sign-in and a lead
+promotes them. While **no lead exists**, everyone has lead rights, so the first
+person can appoint themselves without touching SQL.
+
+### 7.3 Snapshots (`/snapshots`)
+
+A snapshot captures the whole Master (values, text, frozen flags, gates) plus every
+contributed tool output. Take one at each gate sign-off; later, **compare** it to
+the live spec (value moved / newly frozen / unfrozen / new key / retired key),
+**download** it as CSV or JSON, or **restore** selected values. Restore writes key
+by key through the freeze-aware path, so it appears in the Change Log with a reason
+and a frozen key still needs a lead. There is no bulk overwrite.
+
+### 7.4 Design report (`/report`)
+
+One printable document of the whole shared store: summary band, full Master with
+freeze state, contributed results by team (each flagged with the Master keys it
+still moves with), gate status, an explicit **"still floating"** list of everything
+unset or unfrozen, and the change history. Print CSS turns it into a black-on-white
+document; a CSV export feeds the Excel archive.
+
+### 7.5 Coupling & sensitivity (`/sensitivity`)
+
+Pick a Master parameter and a step; every downstream result is recomputed with the
+**real tool formulas** (the same pure `compute()` functions the calculators mount,
+driven by the team's own saved tool inputs). Shows now / Δ for the step / per-unit
+slope, a signed tornado chart of the biggest movers, and the handbook's qualitative
+coupling note beside it. Slopes are central differences. It refuses to invent a
+sensitivity around a parameter that is not set.
+
+Covered today: brakes, suspension loads, steering, steering effort, drivetrain
+traction, aero, springs & dampers, lateral load transfer.
+
+### 7.6 Range guards
+
+Every Master parameter carries a cited typical FS range. Vehicle Spec flags a value
+outside it with an amber underline and a sentence naming the range. **Advisory, never
+a block** — a deliberate outlier is a design choice; a mistyped wheelbase is not.
+
+### 7.7 Activity feed
+
+The Home dashboard lists the last eight `change_log` rows as "who changed what, old
+→ new, when" with the reason, so the Change Log gets read and not just written.
+
+### 7.8 Installable / offline (PWA)
+
+A generated base-aware manifest and a service worker make the site installable and
+openable with no signal. Pages you have visited are cached; build assets are
+cache-first; **Supabase is never cached**. Offline, calculators keep computing from
+the **last Master this browser loaded**, with a banner saying how old it is, and
+writes are **refused rather than queued** — replaying a Master edit from a stale
+base is how two members silently overwrite each other. Reconnecting re-reads the
+Master, recomputes and retries the pending save.
+
+### 7.9 3D hardpoint view (`/geometry`)
+
+A rotatable orthographic wireframe of the corner — links, upright, kingpin axis,
+tyre circle, ground plane, centreline, half-track — with Front/Side/Top/Iso presets,
+yaw/pitch sliders, drag-to-rotate and an optional mirrored pair. It exists because
+the solver is a front-view model, so the **x (fore/aft)** coordinate in the hardpoint
+table had no view that could reveal a typo. Each wishbone draws as its single
+effective link, matching the model rather than implying an A-arm the solver does not
+have.
+
 ---
 
 ## Part 8 — Constants & conventions (so generated maths matches the site)
@@ -634,7 +728,20 @@ EDP (Engineering Design Process) limit:
   (`·1000`) inside frequency/damping maths.
 - Render rule: non-finite or missing → shown as **"—"**. A tool reading a blank
   Master value shows "—" rather than computing a misleading 0.
-- "Typical" ranges are orientation only — **not targets, not validated.**
+- "Typical" ranges are orientation only — **not targets, not validated.** They are
+  machine-read by `src/lib/calc/ranges.ts` for the advisory range guard.
+- **μ is two numbers now.** `mu_lat_peak` is the cornering peak; `mu_long_peak`
+  (migration 0009) is the longitudinal one, used by the traction limit and the
+  brake load-transfer cases. While `mu_long_peak` is unset both fall back to
+  `mu_lat_peak` — the workbook's own isotropic friction-circle assumption, now
+  stated rather than implied.
+- **Roll gradient** is sprung mass × the lever from the CoG **to the roll axis**
+  (interpolated from the front and rear RC heights), not total mass × full CoG
+  height. The reference figure is **1.664 deg/g**.
+- A **contributed result is only as solid as its upstream Master keys.**
+  `TOOL_OUTPUT_KEYS[].upstream` lists the keys that enter each result's formula;
+  Readiness and the Report show a contributed result as amber while any of them is
+  unset or unfrozen.
 
 ---
 

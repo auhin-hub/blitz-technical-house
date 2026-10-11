@@ -58,10 +58,11 @@ import { url } from '../lib/config';
 </Base>
 
 <script>
-  import { TECH_TEAMS, parseDate, bounds, isOverdue, DAY, type GanttTask } from '../lib/calc/gantt';
+  import { TECH_TEAMS, parseDate, bounds, isOverdue, DAY, ensureIds, newTaskId, depTarget, depLabel, type GanttTask } from '../lib/calc/gantt';
   import { PARAM_SEED } from '../lib/master';
   import { loadToolJson, saveToolJson, debounce } from '../lib/store';
   import { mountListControls } from '../lib/list-controls';
+  import { esc } from '../lib/html';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
   import { palette, watchTheme } from '../lib/chart-theme';
 
@@ -74,7 +75,7 @@ import { url } from '../lib/config';
   let tasks: GanttTask[] = [];
   let gateDates: Record<string, string> = {};
 
-  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  
   const inp = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;font-size:var(--fs-200);';
   const MASTER_KEYS = PARAM_SEED.map((p) => p.key);
 
@@ -94,16 +95,16 @@ import { url } from '../lib/config';
   function renderRows() {
     body.innerHTML = tasks.map((t, i) => `
       <tr style="border-bottom:1px solid var(--rule);">
-        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="task" value="${esc(t.task)}" style="${inp}width:140px;"></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="task" value="${esc(t.task)}" style="${inp}width:140px;" aria-label="task"></td>
         <td style="padding:0.2rem 0.4rem;"><select data-i="${i}" data-k="team" style="${inp}">${TECH_TEAMS.map((x) => `<option${x === t.team ? ' selected' : ''}>${x}</option>`).join('')}</select></td>
-        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="owner" value="${esc(t.owner)}" style="${inp}width:80px;"></td>
-        <td style="padding:0.2rem 0.4rem;"><input type="date" data-i="${i}" data-k="start" value="${esc(t.start)}" style="${inp}"></td>
-        <td style="padding:0.2rem 0.4rem;"><input type="date" data-i="${i}" data-k="end" value="${esc(t.end)}" style="${inp}"></td>
-        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="depends_on" value="${esc(t.depends_on)}" list="gt-tasknames" style="${inp}width:120px;"></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="owner" value="${esc(t.owner)}" style="${inp}width:80px;" aria-label="owner"></td>
+        <td style="padding:0.2rem 0.4rem;"><input type="date" data-i="${i}" data-k="start" value="${esc(t.start)}" style="${inp}" aria-label="start date"></td>
+        <td style="padding:0.2rem 0.4rem;"><input type="date" data-i="${i}" data-k="end" value="${esc(t.end)}" style="${inp}" aria-label="end date"></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="depends_on" value="${esc(depLabel(tasks, t.depends_on))}" list="gt-tasknames" style="${inp}width:120px;" aria-label="depends on"></td>
         <td style="padding:0.2rem 0.4rem;"><select data-i="${i}" data-k="gate" style="${inp}"><option value=""></option>${GATES.map((x) => `<option${x === t.gate ? ' selected' : ''}>${x}</option>`).join('')}</select></td>
-        <td style="padding:0.2rem 0.4rem;"><select data-i="${i}" data-k="status" style="${inp}">${STATUS.map((x) => `<option${x === t.status ? ' selected' : ''}>${x}</option>`).join('')}</select></td>
-        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="percent" value="${t.percent ?? ''}" style="${inp}width:52px;text-align:right;"></td>
-        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="masterKey" value="${esc(t.masterKey ?? '')}" list="gt-masterkeys" style="${inp}width:120px;"></td>
+        <td style="padding:0.2rem 0.4rem;"><select data-i="${i}" data-k="status" style="${inp}" aria-label="status">${STATUS.map((x) => `<option${x === t.status ? ' selected' : ''}>${x}</option>`).join('')}</select></td>
+        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-i="${i}" data-k="percent" value="${t.percent ?? ''}" style="${inp}width:52px;text-align:right;" aria-label="percent complete"></td>
+        <td style="padding:0.2rem 0.4rem;"><input data-i="${i}" data-k="masterKey" value="${esc(t.masterKey ?? '')}" list="gt-masterkeys" style="${inp}width:120px;" aria-label="master key"></td>
         <td style="padding:0.2rem 0.4rem;"><button class="btn btn-ghost" data-del="${i}" style="font-size:var(--fs-100);padding:0.1rem 0.4rem;">✕</button></td>
       </tr>`).join('') +
       `<datalist id="gt-tasknames">${tasks.map((t) => `<option value="${esc(t.task)}">`).join('')}</datalist>` +
@@ -111,7 +112,15 @@ import { url } from '../lib/config';
     body.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-i]').forEach((el) => {
       const i = +el.dataset.i!, k = el.dataset.k! as keyof GanttTask;
       const ev = el.tagName === 'SELECT' ? 'change' : 'input';
-      el.addEventListener(ev, () => { (tasks[i] as any)[k] = k === 'percent' ? ((el as HTMLInputElement).value.trim() === '' ? null : Number((el as HTMLInputElement).value)) : (el as HTMLInputElement).value; if (k === 'task' || k === 'team' || k === 'start' || k === 'end' || k === 'depends_on' || k === 'percent' || k === 'status') { renderRows(); draw(); } persist(); });
+      el.addEventListener(ev, () => {
+        const raw = (el as HTMLInputElement).value;
+        if (k === 'percent') (tasks[i] as any)[k] = raw.trim() === '' ? null : Number(raw);
+        // Typed/picked by name, stored as the target's id so renames don't break it.
+        else if (k === 'depends_on') { const hit = depTarget(tasks, raw); tasks[i].depends_on = hit && hit.id !== tasks[i].id ? hit.id! : raw.trim(); }
+        else (tasks[i] as any)[k] = raw;
+        if (k === 'task' || k === 'team' || k === 'start' || k === 'end' || k === 'depends_on' || k === 'percent' || k === 'status') { renderRows(); draw(); }
+        persist();
+      });
     });
     body.querySelectorAll<HTMLButtonElement>('[data-del]').forEach((b) =>
       b.addEventListener('click', () => { tasks.splice(+b.dataset.del!, 1); renderRows(); draw(); persist(); }));
@@ -152,7 +161,7 @@ import { url } from '../lib/config';
       const a = parseDate(t.start), b = parseDate(t.end);
       if (!Number.isFinite(a) || !Number.isFinite(b) || !TECH_TEAMS.includes(t.team)) return;
       const x1 = X(a), x2 = Math.max(X(b), X(a) + 3), y = laneY(t.team) + 7, bh = laneH - 14;
-      pos[t.task] = { x1, x2, y: y + bh / 2 };
+      pos[t.id!] = { x1, x2, y: y + bh / 2 };
       const col = statusColour(t);
       const over = isOverdue(t, today);
       el += `<rect x="${x1.toFixed(1)}" y="${y}" width="${(x2 - x1).toFixed(1)}" height="${bh}" rx="3" fill="${col}" opacity="0.35"${over ? ' stroke="var(--heritage)" stroke-width="2"' : ''}/>`;
@@ -162,7 +171,8 @@ import { url } from '../lib/config';
     });
     // dependency arrows
     tasks.forEach((t) => {
-      const from = pos[(t.depends_on || '').trim()]; const to = pos[t.task];
+      const dep = depTarget(tasks, t.depends_on);
+      const from = dep ? pos[dep.id!] : undefined; const to = pos[t.id!];
       if (!from || !to) return;
       el += `<path d="M ${from.x2.toFixed(1)} ${from.y.toFixed(1)} C ${(from.x2 + 14).toFixed(1)} ${from.y.toFixed(1)}, ${(to.x1 - 14).toFixed(1)} ${to.y.toFixed(1)}, ${to.x1.toFixed(1)} ${to.y.toFixed(1)}" fill="none" stroke="var(--ink-3)" stroke-width="1"/>`;
       el += `<circle cx="${to.x1.toFixed(1)}" cy="${to.y.toFixed(1)}" r="2.5" fill="var(--ink-3)"/>`;
@@ -172,7 +182,7 @@ import { url } from '../lib/config';
   }
 
   const CSV_COLS = ['task', 'team', 'owner', 'start', 'end', 'depends_on', 'gate', 'status', 'percent', 'master_key'];
-  function getCsv(): string { return toCsv(CSV_COLS, tasks.map((t) => [t.task, t.team, t.owner, t.start, t.end, t.depends_on, t.gate, t.status, t.percent ?? '', t.masterKey ?? ''])); }
+  function getCsv(): string { return toCsv(CSV_COLS, tasks.map((t) => [t.task, t.team, t.owner, t.start, t.end, depLabel(tasks, t.depends_on), t.gate, t.status, t.percent ?? '', t.masterKey ?? ''])); }
   function applyCsv(text: string, mode: 'replace' | 'append'): string | void {
     const { headers, rows } = parseCsv(text);
     const miss = missingColumns(headers, ['task', 'team']);
@@ -183,17 +193,17 @@ import { url } from '../lib/config';
       depends_on: g(r, 'depends_on'), gate: g(r, 'gate'), status: g(r, 'status'), percent: g(r, 'percent') === '' ? null : Number(g(r, 'percent')), masterKey: g(r, 'master_key'),
     }));
     if (!parsed.length) return 'no tasks';
-    tasks = mode === 'append' ? tasks.concat(parsed) : parsed;
+    tasks = ensureIds(mode === 'append' ? tasks.concat(parsed) : parsed);
     renderRows(); draw(); persist();
   }
 
   (async () => {
     const saved = await loadToolJson<any>(TOOL, {});
-    tasks = Array.isArray(saved?.tasks) ? saved.tasks : [];
+    tasks = ensureIds(Array.isArray(saved?.tasks) ? saved.tasks : []);
     gateDates = saved?.gateDates && typeof saved.gateDates === 'object' ? saved.gateDates : {};
     renderGates(); renderRows(); draw();
-    document.getElementById('gt-add')!.addEventListener('click', () => { tasks.push({ task: 'New task', team: 'VD', owner: '', start: '', end: '', depends_on: '', gate: '', status: 'not started', percent: 0 }); renderRows(); draw(); persist(); });
-    mountListControls({ container: document.getElementById('gt-ctrls')!, tool: TOOL, filename: 'season_gantt.csv', getCsv, applyCsv, getPresetPayload: () => ({ tasks, gateDates }), applyPreset: (p: any) => { if (Array.isArray(p?.tasks)) { tasks = p.tasks; gateDates = p.gateDates ?? {}; renderGates(); renderRows(); draw(); persist(); } } });
+    document.getElementById('gt-add')!.addEventListener('click', () => { tasks.push({ id: newTaskId(), task: 'New task', team: 'VD', owner: '', start: '', end: '', depends_on: '', gate: '', status: 'not started', percent: 0 }); renderRows(); draw(); persist(); });
+    mountListControls({ container: document.getElementById('gt-ctrls')!, tool: TOOL, filename: 'season_gantt.csv', getCsv, applyCsv, getPresetPayload: () => ({ tasks, gateDates }), applyPreset: (p: any) => { if (Array.isArray(p?.tasks)) { tasks = ensureIds(p.tasks); gateDates = p.gateDates ?? {}; renderGates(); renderRows(); draw(); persist(); } } });
     watchTheme(() => draw());
   })();
 </script>

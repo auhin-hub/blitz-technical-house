@@ -116,9 +116,11 @@ const LINKED = [
 <script>
   import Chart from 'chart.js/auto';
   import { massBudget, MB_COMPONENTS, type MbRow } from '../lib/calc/massbudget';
-  import { loadMaster, setMasterValue, loadToolJson, saveToolJson, fmt, debounce } from '../lib/store';
+  import { loadMaster, loadToolJson, saveToolJson, fmt, debounce } from '../lib/store';
+  import { contributeMaster } from '../lib/master-write';
   import { decorateLinkedCells } from '../lib/linked';
   import { mountListControls } from '../lib/list-controls';
+  import { esc } from '../lib/html';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
@@ -142,7 +144,7 @@ const LINKED = [
     unsprung: r.unsprung, subsystem: r.assembly || '—', localIzz: r.localIzz == null ? undefined : r.localIzz,
   }));
 
-  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  
   const txt = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;font-size:var(--fs-200);';
   const num = txt + 'width:70px;text-align:right;font-family:var(--font-mono);';
 
@@ -313,7 +315,7 @@ const LINKED = [
       const errs: string[] = [];
       for (const [k, v] of [['mass_total', last.total], ['mass_frac_front', last.frontFraction], ['cog_height', last.zCg], ['yaw_inertia', last.izz]] as [string, number][]) {
         if (!Number.isFinite(v)) continue;
-        const e = await setMasterValue(k, +v.toFixed(4)); if (e) errs.push(`${k}: ${e}`);
+        const e = await contributeMaster(k, +v.toFixed(4)); if (e) errs.push(`${k}: ${e}`);
       }
       saveStatus.textContent = errs.length ? 'Some failed (frozen?): ' + errs.join('; ') : 'Contributed to Master ✓';
       saveStatus.style.color = errs.length ? 'var(--heritage)' : 'var(--state-linked)';

@@ -5,6 +5,7 @@ import '../styles/components.css';
 import '../styles/cockpit.css';
 import Masthead from '../components/Masthead.astro';
 import AuthGuard from '../components/AuthGuard.astro';
+import CommandPalette from '../components/CommandPalette.astro';
 import { SITE, url } from '../lib/config';
 import logo from '../assets/blitz-logo.png';
 
@@ -28,6 +29,12 @@ const year = new Date().getFullYear();
     <meta name="description" content={description} />
     <title>{fullTitle}</title>
     <link rel="icon" type="image/png" href={logo.src} />
+
+    <!-- Installable on a phone and able to open with no signal (BRIEF §I:
+         fast on a mid-range Android; pit wifi is not a given). -->
+    <link rel="manifest" href={url('manifest.webmanifest')} />
+    <meta name="theme-color" content="#0E1620" />
+    <link rel="apple-touch-icon" href={url('icons/blitz-icon.svg')} />
 
     <!-- No-flash theme init: set [data-theme] from the saved choice before paint. -->
     <script is:inline>
@@ -56,6 +63,7 @@ const year = new Date().getFullYear();
     <main id="main" class="container" style="padding-block: 2rem;">
       <slot />
     </main>
+    {!bare && <CommandPalette />}
     {!bare && (
       <footer class="site-footer">
         <div class="container">
@@ -69,5 +77,17 @@ const year = new Date().getFullYear();
         </div>
       </footer>
     )}
+
+    <!-- Offline shell. Registered after load so it never delays first paint, and
+         only on https/localhost (service workers are refused elsewhere). -->
+    <script is:inline define:vars={{ swPath: url('sw.js'), swScope: url('') }}>
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register(swPath, { scope: swScope }).catch(function (e) {
+            console.warn('[sw] registration failed', e);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

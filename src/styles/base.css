@@ -116,3 +116,32 @@ button, input, select, textarea { font: inherit; color: inherit; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================================
+   Phone polish (feature review Tier 4 #12). BRIEF §I asks for "fast and usable
+   on a mid-range Android"; these are the things that make a dense engineering
+   tool actually workable with a thumb.
+   ========================================================================== */
+
+/* iOS Safari zooms the whole page when a focused field is under 16px. Every
+   calculator is a grid of number inputs, so that zoom fires constantly and
+   leaves the layout shifted. 16px at phone width stops it for good. */
+@media (max-width: 760px) {
+  input, select, textarea { font-size: 16px; }
+}
+
+/* Thumb-sized controls on touch devices, without bulking up the desktop view. */
+@media (pointer: coarse) {
+  button, .btn, [role='button'], summary { min-height: 44px; }
+  input[type='checkbox'], input[type='radio'] { min-width: 22px; min-height: 22px; }
+  /* A bare checkbox in a dense grid keeps its own size but gains a tap halo. */
+  td > input[type='checkbox'] { padding: 10px; margin: -10px; }
+}
+
+/* Horizontal scrollers (wide tables, the tool rail) get momentum and a thin
+   scrollbar so it is obvious there is more to the right. */
+.ct-wrap, .rp-wrap, .cockpit-rail, .vd-flow, [data-scroll-x] {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}

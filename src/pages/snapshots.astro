@@ -1,0 +1,213 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/config';
+---
+<Base title="Snapshots" description="Design baselines: capture the whole shared spec at a gate, compare it to today, export it for the Excel archive.">
+  <nav class="annot" style="margin-bottom:0.75rem;">
+    <a href={url('')} style="color:inherit;">Home</a> / Snapshots
+  </nav>
+  <header style="margin-bottom:1.25rem;">
+    <p class="annot annot-tick">Cross-cutting · governance</p>
+    <h1 style="margin-top:0.4rem;">Snapshots</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:74ch;">
+      A snapshot is the whole shared design state at one moment — every
+      <a href={url('vehicle-spec')}>Vehicle Spec</a> row with its frozen flag, plus
+      every contributed tool output. Take one at each <a href={url('gates')}>gate</a>
+      and you have a design baseline you can diff against later; download it and
+      you have the backup the free tier does not give you (the Excel Master stays
+      the authoritative archive).
+    </p>
+  </header>
+
+  <div class="card">
+    <div class="annot" style="margin-bottom:0.5rem;">Take a snapshot</div>
+    <form id="sn-form" style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:flex-end;">
+      <label style="font-size:var(--fs-300);">Label
+        <input required id="sn-label" placeholder="G3 baseline" style="display:block;margin-top:0.2rem;min-width:180px;background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
+      <label style="font-size:var(--fs-300);">Gate (optional)
+        <input id="sn-gate" placeholder="G3" style="display:block;margin-top:0.2rem;width:80px;background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
+      <label style="font-size:var(--fs-300);flex:1;min-width:220px;">Note (optional)
+        <input id="sn-note" placeholder="Hardpoints frozen, aero still open" style="display:block;margin-top:0.2rem;width:100%;background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
+      <button class="btn btn-halftone" type="submit">Capture</button>
+    </form>
+    <p class="mono" id="sn-status" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </div>
+
+  <section style="margin-top:1.5rem;">
+    <div class="annot-dim" style="margin-bottom:1rem;">Snapshots</div>
+    <div id="sn-list"><p class="mono" style="color:var(--ink-3);">Loading…</p></div>
+  </section>
+
+  <section style="margin-top:1.5rem;" id="sn-diff-wrap" hidden>
+    <div class="annot-dim" style="margin-bottom:1rem;">What has moved since <span id="sn-diff-label"></span></div>
+    <div class="card">
+      <p style="font-size:var(--fs-300);color:var(--ink-2);margin:0 0 0.6rem;" id="sn-diff-summary"></p>
+      <div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:var(--fs-300);min-width:520px;">
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+          <th style="padding:0.4rem 0.6rem;" class="annot"><input type="checkbox" id="sn-all" aria-label="select all" /></th>
+          <th style="padding:0.4rem 0.6rem;" class="annot">Parameter</th>
+          <th style="padding:0.4rem 0.6rem;text-align:right;" class="annot">Then</th>
+          <th style="padding:0.4rem 0.6rem;text-align:right;" class="annot">Now</th>
+          <th style="padding:0.4rem 0.6rem;" class="annot">Change</th>
+        </tr></thead>
+        <tbody id="sn-diff-rows"></tbody>
+      </table></div>
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.9rem;align-items:center;">
+        <button class="btn btn-ghost" id="sn-restore">Restore selected</button>
+        <span class="annot">Each restored value is written through the normal freeze path, so it appears in the <a href={url('change-log')}>Change Log</a> with a reason.</span>
+      </div>
+      <p class="mono" id="sn-diff-status" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { takeSnapshot, loadSnapshots, loadSnapshot, deleteSnapshot, diffAgainstNow, restoreSnapshot, snapshotCsv, type Snapshot, type DiffRow } from '../lib/snapshots';
+  import { myRole } from '../lib/roles';
+  import { downloadText } from '../lib/csv';
+  import { esc } from '../lib/html';
+  import { fmt } from '../lib/store';
+  import { subscribeLive } from '../lib/realtime';
+
+  const listEl = document.getElementById('sn-list')!;
+  const statusEl = document.getElementById('sn-status')!;
+  const diffWrap = document.getElementById('sn-diff-wrap') as HTMLElement;
+  const diffRows = document.getElementById('sn-diff-rows')!;
+  const diffStatus = document.getElementById('sn-diff-status')!;
+  let lead = false;
+  let current: Snapshot | null = null;
+  let currentDiff: DiffRow[] = [];
+
+  const say = (el: Element, msg: string, ok = true) => {
+    el.textContent = msg;
+    (el as HTMLElement).style.color = ok ? 'var(--state-linked)' : 'var(--heritage)';
+  };
+  const show = (v: number | string | null) =>
+    v === null || v === undefined || v === '' ? '—' : typeof v === 'number' ? fmt(v, 3) : esc(String(v));
+
+  async function renderList() {
+    const snaps = await loadSnapshots();
+    if (!snaps.length) {
+      listEl.innerHTML = '<p class="mono" style="color:var(--ink-3);">No snapshots yet. Take one now, and one at every gate sign-off.</p>';
+      return;
+    }
+    listEl.innerHTML = `<div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:var(--fs-300);min-width:560px;">
+      <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+        <th style="padding:0.4rem 0.6rem;" class="annot">Label</th>
+        <th style="padding:0.4rem 0.6rem;" class="annot">Gate</th>
+        <th style="padding:0.4rem 0.6rem;" class="annot">Taken</th>
+        <th style="padding:0.4rem 0.6rem;" class="annot">By</th>
+        <th style="padding:0.4rem 0.6rem;" class="annot">Actions</th>
+      </tr></thead><tbody>
+      ${snaps.map((s) => `<tr style="border-bottom:1px solid var(--rule);">
+        <td style="padding:0.35rem 0.6rem;"><strong>${esc(s.label)}</strong>${s.note ? `<br><span class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${esc(s.note)}</span>` : ''}</td>
+        <td style="padding:0.35rem 0.6rem;">${s.gate ? `<span class="badge">${esc(s.gate)}</span>` : ''}</td>
+        <td style="padding:0.35rem 0.6rem;" class="mono">${new Date(s.taken_at).toLocaleString()}</td>
+        <td class="mono" style="padding:0.35rem 0.6rem;font-size:var(--fs-100);">${esc(s.actor_email ?? '')}</td>
+        <td style="padding:0.35rem 0.6rem;display:flex;gap:0.3rem;flex-wrap:wrap;">
+          <button class="btn btn-ghost" data-diff="${s.id}" style="font-size:var(--fs-100);">Compare</button>
+          <button class="btn btn-ghost" data-csv="${s.id}" style="font-size:var(--fs-100);">CSV</button>
+          <button class="btn btn-ghost" data-json="${s.id}" style="font-size:var(--fs-100);">JSON</button>
+          ${lead ? `<button class="btn btn-ghost" data-del="${s.id}" style="font-size:var(--fs-100);">Delete</button>` : ''}
+        </td></tr>`).join('')}
+      </tbody></table></div>`;
+
+    listEl.querySelectorAll<HTMLButtonElement>('[data-diff]').forEach((b) =>
+      b.addEventListener('click', () => openDiff(b.dataset.diff!)));
+    listEl.querySelectorAll<HTMLButtonElement>('[data-csv]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        const snap = await loadSnapshot(b.dataset.csv!);
+        if (snap) downloadText(`snapshot_${snap.label.replace(/\W+/g, '_')}.csv`, snapshotCsv(snap));
+      }));
+    listEl.querySelectorAll<HTMLButtonElement>('[data-json]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        const snap = await loadSnapshot(b.dataset.json!);
+        if (snap) downloadText(`snapshot_${snap.label.replace(/\W+/g, '_')}.json`, JSON.stringify(snap, null, 2), 'application/json');
+      }));
+    listEl.querySelectorAll<HTMLButtonElement>('[data-del]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        if (!confirm('Delete this snapshot? Baselines are how you prove what changed since a gate.')) return;
+        const err = await deleteSnapshot(b.dataset.del!);
+        if (err) { say(statusEl, /row-level security|permission/i.test(err) ? 'Only a lead can delete a snapshot.' : 'Failed: ' + err, false); return; }
+        say(statusEl, 'Deleted.');
+        renderList();
+      }));
+  }
+
+  async function openDiff(id: string) {
+    current = await loadSnapshot(id);
+    if (!current) return;
+    currentDiff = await diffAgainstNow(current.payload);
+    document.getElementById('sn-diff-label')!.textContent = `${current.label} (${new Date(current.taken_at).toLocaleString()})`;
+    const changed = currentDiff.filter((d) => d.kind === 'changed').length;
+    const froze = currentDiff.filter((d) => d.kind === 'froze').length;
+    const thawed = currentDiff.filter((d) => d.kind === 'thawed').length;
+    document.getElementById('sn-diff-summary')!.textContent = currentDiff.length
+      ? `${changed} value${changed === 1 ? '' : 's'} moved · ${froze} newly frozen · ${thawed} unfrozen · ${currentDiff.length} rows differ in total.`
+      : 'Nothing has moved since this snapshot.';
+    const KIND: Record<string, string> = {
+      changed: '<span class="badge badge-est">value moved</span>',
+      added: '<span class="badge">new key</span>',
+      removed: '<span class="badge">key retired</span>',
+      froze: '<span class="badge badge-live">frozen since</span>',
+      thawed: '<span class="badge badge-frozen">unfrozen since</span>',
+    };
+    diffRows.innerHTML = currentDiff.map((d) => `<tr style="border-bottom:1px solid var(--rule);">
+      <td style="padding:0.35rem 0.6rem;">${d.kind === 'changed' ? `<input type="checkbox" data-key="${esc(d.key)}" aria-label="restore ${esc(d.key)}" />` : ''}</td>
+      <td style="padding:0.35rem 0.6rem;">${esc(d.label)}<br><span class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${esc(d.key)}${d.frozenNow ? ' · frozen' : ''}</span></td>
+      <td style="padding:0.35rem 0.6rem;text-align:right;" class="mono">${show(d.then)}</td>
+      <td style="padding:0.35rem 0.6rem;text-align:right;" class="mono">${show(d.now)}</td>
+      <td style="padding:0.35rem 0.6rem;">${KIND[d.kind]}</td></tr>`).join('')
+      || '<tr><td colspan="5" class="mono" style="padding:0.4rem 0.6rem;color:var(--state-linked);">Identical to the live spec.</td></tr>';
+    diffWrap.hidden = false;
+    diffStatus.textContent = '';
+    diffWrap.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  document.getElementById('sn-all')!.addEventListener('change', (e) => {
+    const on = (e.target as HTMLInputElement).checked;
+    diffRows.querySelectorAll<HTMLInputElement>('[data-key]').forEach((c) => { c.checked = on; });
+  });
+
+  document.getElementById('sn-restore')!.addEventListener('click', async () => {
+    if (!current) return;
+    const keys = Array.from(diffRows.querySelectorAll<HTMLInputElement>('[data-key]:checked')).map((c) => c.dataset.key!);
+    if (!keys.length) { say(diffStatus, 'Select the values to restore first.', false); return; }
+    if (!confirm(`Write ${keys.length} value${keys.length === 1 ? '' : 's'} back from "${current.label}"? Each one is logged in the Change Log.`)) return;
+    say(diffStatus, 'Restoring…');
+    (diffStatus as HTMLElement).style.color = 'var(--ink-3)';
+    const res = await restoreSnapshot(current, keys);
+    if (res.errors.length) {
+      const needsLead = res.errors.some((e) => /team lead/i.test(e.error));
+      say(diffStatus, `${res.applied} restored, ${res.errors.length} refused`
+        + (needsLead ? ' — frozen parameters can only be changed by a lead.' : `: ${res.errors.map((e) => e.key).join(', ')}`), false);
+    } else {
+      say(diffStatus, `${res.applied} value${res.applied === 1 ? '' : 's'} restored ✓`);
+    }
+    await openDiff(current.id);
+  });
+
+  (document.getElementById('sn-form') as HTMLFormElement).addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const label = (document.getElementById('sn-label') as HTMLInputElement).value.trim();
+    if (!label) return;
+    say(statusEl, 'Capturing…');
+    (statusEl as HTMLElement).style.color = 'var(--ink-3)';
+    const { error } = await takeSnapshot(
+      label,
+      (document.getElementById('sn-note') as HTMLInputElement).value.trim() || undefined,
+      (document.getElementById('sn-gate') as HTMLInputElement).value.trim() || undefined,
+    );
+    if (error) { say(statusEl, 'Failed: ' + error, false); return; }
+    say(statusEl, 'Snapshot taken ✓');
+    (document.getElementById('sn-form') as HTMLFormElement).reset();
+    renderList();
+  });
+
+  (async () => {
+    lead = (await myRole()).role === 'lead';
+    await renderList();
+    // Someone else taking a baseline should appear here without a reload.
+    subscribeLive({ name: 'snapshots', tables: ['vehicle_spec'], onChange: () => { if (current) openDiff(current.id); } });
+  })();
+</script>

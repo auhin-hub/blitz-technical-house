@@ -1,6 +1,7 @@
 /** Geometry synthesis (Handoff v2 P3.1) vs Suspension_Geometry.xlsx values. */
 import { it, expect } from 'vitest';
 import { synthesize, solvedScrub, solvedKpiDeg } from './geometry-synth';
+import { staticRcHeight, type Hardpoints } from './geometry';
 
 const WB = synthesize({
   rcHeight: 50, vsal: 3000, scrub: 40, kpi: 2, lowerOuterHeight: 135, upperOuterHeight: 365,
@@ -31,4 +32,15 @@ it('reproduces the workbook hardpoints', () => {
 it('solved scrub/KPI recover the synthesis targets at static', () => {
   expect(solvedScrub(WB.hp.lbj, WB.hp.ubj)).toBeCloseTo(40, 0);   // scrub target
   expect(solvedKpiDeg(WB.hp.lbj, WB.hp.ubj)).toBeCloseTo(2, 0);   // KPI target
+});
+
+it('transformed into the solver frame, the solver recovers the RC target', () => {
+  // The page maps synthesis Y → solver Y via track/2 − Y (centreline at Y=0).
+  const half = 1600 / 2;
+  const T = (p: { x: number; y: number; z: number }) => ({ y: half - p.y, z: p.z });
+  const hp: Hardpoints = { lip: T(WB.hp.lip), uip: T(WB.hp.uip), lbj: T(WB.hp.lbj), ubj: T(WB.hp.ubj), wc: T(WB.hp.wc), cp: T(WB.hp.cp) };
+  expect(staticRcHeight(hp)).toBeCloseTo(50, 0);                  // RC height target
+  // Scrub as distance from the contact patch to the kingpin-axis ground point.
+  const gy = hp.lbj.y + (hp.ubj.y - hp.lbj.y) * ((0 - hp.lbj.z) / (hp.ubj.z - hp.lbj.z));
+  expect(Math.abs(hp.cp.y - gy)).toBeCloseTo(40, 0);
 });
