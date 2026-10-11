@@ -88,6 +88,28 @@ const SYNTH = [
         <div id="geo-front-svg" style="border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface-2);margin-top:0.3rem;overflow:hidden;"></div>
         <p class="ct-ref" style="margin-top:0.3rem;">Arms extended to the instant centre (IC); contact-patch→IC crosses the centreline at the roll centre (RC).</p>
 
+        <h3 class="ct-h3" style="margin-top:1rem;">3D view (rotatable)</h3>
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center;margin-top:0.3rem;">
+          <div style="display:flex;gap:0.25rem;flex-wrap:wrap;" role="group" aria-label="Camera presets">
+            <button class="btn btn-ghost" data-view3d="front" style="font-size:var(--fs-100);">Front</button>
+            <button class="btn btn-ghost" data-view3d="side" style="font-size:var(--fs-100);">Side</button>
+            <button class="btn btn-ghost" data-view3d="top" style="font-size:var(--fs-100);">Top</button>
+            <button class="btn btn-ghost" data-view3d="iso" style="font-size:var(--fs-100);">Iso</button>
+          </div>
+          <label class="mono" style="font-size:var(--fs-100);display:flex;gap:0.3rem;align-items:center;">yaw
+            <input type="range" id="geo-yaw" min="-180" max="180" step="1" value="35" style="width:110px;accent-color:var(--amber);" /></label>
+          <label class="mono" style="font-size:var(--fs-100);display:flex;gap:0.3rem;align-items:center;">pitch
+            <input type="range" id="geo-pitch" min="-85" max="85" step="1" value="22" style="width:110px;accent-color:var(--amber);" /></label>
+          <label class="mono" style="font-size:var(--fs-100);display:flex;gap:0.3rem;align-items:center;">
+            <input type="checkbox" id="geo-mirror" /> mirror the pair</label>
+        </div>
+        <div id="geo-3d-svg" style="border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface-2);margin-top:0.3rem;overflow:hidden;touch-action:none;cursor:grab;"></div>
+        <p class="ct-ref" style="margin-top:0.3rem;">
+          Drag to rotate. The solver is a front-view model, so each wishbone draws
+          as its single effective link — but the x you type is shown here, which is
+          the only way to catch a fore/aft typo.
+        </p>
+
         <h3 class="ct-h3" style="margin-top:1rem;">Side view (anti-geometry schematic)</h3>
         <div id="geo-side-svg" style="border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface-2);margin-top:0.3rem;overflow:hidden;"></div>
         <p class="ct-ref" style="margin-top:0.3rem;">Schematic from the side-view swing-arm angle below; the line from the contact patch meets the % of the way to the CoG set by anti-dive/squat.</p>
@@ -135,6 +157,7 @@ const SYNTH = [
 <script>
   import Chart from 'chart.js/auto';
   import { geometrySweep, geometrySummary, antiGeometry, frontViewConstruction, staticCamber, type Hardpoints } from '../lib/calc/geometry';
+  import { toScreen, fitView, wheelRing, VIEWS, type Camera, type Pt3 } from '../lib/calc/iso3d';
   import { synthesize, solvedScrub, solvedKpiDeg, type SynthInput } from '../lib/calc/geometry-synth';
   import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
   import { contributeMaster } from '../lib/master-write';
@@ -161,6 +184,12 @@ const SYNTH = [
   }
   const KEYS = ['lip', 'uip', 'lbj', 'ubj', 'wc', 'cp'] as const;
   const hp3d = () => Object.fromEntries(KEYS.map((k) => [k, { x: gh(`${k}_x`), y: gh(`${k}_y`), z: gh(`${k}_z`) }])) as Record<string, { x: number; y: number; z: number }>;
+
+  function render3d() {
+    const el = document.getElementById('geo-3d-svg');
+    const mirror = (document.getElementById('geo-mirror') as HTMLInputElement | null)?.checked ?? false;
+    if (el) el.innerHTML = build3d(hp3d(), mirror);
+  }
 
   // ---- Live diagrams (P2.1) ----
   const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -192,6 +221,88 @@ const SYNTH = [
     el += dot(hp.cp, 'var(--amber)');
     return `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" width="100%" style="display:block;height:auto;" role="img" aria-label="front-view suspension diagram">${el}</svg>`;
   }
+  /**
+   * Rotatable wireframe of the corner (feature review Tier 4 #11).
+   *
+   * Orthographic, hand-rolled (see lib/calc/iso3d.ts) rather than a 3D library:
+   * a dozen points do not justify WebGL on a phone. Members are painted
+   * back-to-front by depth so the near side reads as near.
+   *
+   * It draws only what the model holds. The solver is a front-view (y-z) model,
+   * so each wishbone is one effective link, not an A-arm with two chassis
+   * pickups - saying otherwise would imply precision the tool does not have.
+   */
+  const cam3d: Camera = { yaw: 35, pitch: 22 };
+
+  function build3d(hp: Record<string, { x: number; y: number; z: number }>, mirror: boolean): string {
+    const W = 560, H = 300;
+    const keys = ['lip', 'uip', 'lbj', 'ubj', 'wc', 'cp'] as const;
+    const ok = keys.every((k) => Number.isFinite(hp[k]?.x) && Number.isFinite(hp[k]?.y) && Number.isFinite(hp[k]?.z));
+    if (!ok) return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;height:auto;" role="img" aria-label="3D hardpoint view"><text x="12" y="24" fill="var(--ink-3)" font-size="12">Fill in every hardpoint coordinate to see the 3D view.</text></svg>`;
+
+    const radius = Math.abs(hp.wc.z - hp.cp.z) || 228;
+    const mir = (p: Pt3): Pt3 => ({ x: p.x, y: -p.y, z: p.z });
+    const corner = (m: boolean) => {
+      const q = (k: typeof keys[number]) => (m ? mir(hp[k]) : hp[k]);
+      return { lip: q('lip'), uip: q('uip'), lbj: q('lbj'), ubj: q('ubj'), wc: q('wc'), cp: q('cp') };
+    };
+    const sides = mirror ? [corner(false), corner(true)] : [corner(false)];
+
+    // Ground outline through the contact patch, so "down" is unmistakable.
+    const span = Math.max(Math.abs(hp.lip.y), Math.abs(hp.cp.y)) * 1.25 || 800;
+    const depth = Math.max(240, radius * 1.6);
+    const ground: Pt3[] = [
+      { x: hp.cp.x - depth, y: -span, z: 0 }, { x: hp.cp.x - depth, y: span, z: 0 },
+      { x: hp.cp.x + depth, y: span, z: 0 }, { x: hp.cp.x + depth, y: -span, z: 0 },
+    ];
+
+    const all: Pt3[] = [...sides.flatMap((c) => Object.values(c) as Pt3[]), ...ground,
+      ...sides.flatMap((c) => wheelRing(c.wc, radius, 12))];
+    const view = fitView(all, cam3d, W, H, 26);
+    const P = (p: Pt3) => toScreen(p, cam3d, view);
+
+    type Seg = { d: string; stroke: string; width: number; dash?: string; depth: number };
+    const segs: Seg[] = [];
+    const seg = (a: Pt3, b: Pt3, stroke: string, width = 2, dash?: string) => {
+      const pa = P(a), pb = P(b);
+      segs.push({ d: `M ${pa.x.toFixed(1)} ${pa.y.toFixed(1)} L ${pb.x.toFixed(1)} ${pb.y.toFixed(1)}`, stroke, width, dash, depth: (pa.depth + pb.depth) / 2 });
+    };
+    const poly = (pts: Pt3[], stroke: string, width = 1, dash?: string) => {
+      const ps = pts.map(P);
+      segs.push({
+        d: ps.map((q, i) => `${i ? 'L' : 'M'} ${q.x.toFixed(1)} ${q.y.toFixed(1)}`).join(' '),
+        stroke, width, dash, depth: ps.reduce((t, q) => t + q.depth, 0) / ps.length,
+      });
+    };
+
+    poly([...ground, ground[0]], 'var(--rule-strong)', 1, '4 4');
+    // Centreline on the ground (y = 0), the reference the RC is measured against.
+    seg({ x: hp.cp.x - depth, y: 0, z: 0 }, { x: hp.cp.x + depth, y: 0, z: 0 }, 'var(--rule-strong)', 1, '2 4');
+
+    for (const c of sides) {
+      poly(wheelRing(c.wc, radius, 48), 'var(--ink-3)', 1.5);              // tyre
+      seg(c.lip, c.lbj, 'var(--sky)', 2.5);                                 // lower link
+      seg(c.uip, c.ubj, 'var(--sky)', 2.5);                                 // upper link
+      seg(c.lbj, c.ubj, 'var(--ink)', 3);                                   // upright
+      seg(c.lbj, c.ubj, 'var(--amber)', 1, '3 3');                          // kingpin axis
+      seg(c.wc, c.cp, 'var(--ink-3)', 1, '3 3');                            // wheel centre to patch
+      seg({ x: c.wc.x, y: 0, z: c.wc.z }, c.wc, 'var(--rule-strong)', 1, '2 4'); // half-track
+    }
+
+    segs.sort((a, b) => b.depth - a.depth);                                  // far first
+    let el = segs.map((g) => `<path d="${g.d}" fill="none" stroke="${g.stroke}" stroke-width="${g.width}"${g.dash ? ` stroke-dasharray="${g.dash}"` : ''} stroke-linecap="round"/>`).join('');
+
+    // Points last, nearest on top, each labelled.
+    const dots = sides.flatMap((c, i) => (Object.entries(c) as [string, Pt3][]).map(([k, p]) => ({ k, p, s: P(p), first: i === 0 })))
+      .sort((a, b) => b.s.depth - a.s.depth);
+    for (const d of dots) {
+      el += `<circle cx="${d.s.x.toFixed(1)}" cy="${d.s.y.toFixed(1)}" r="3.4" fill="var(--amber)" stroke="var(--surface)" stroke-width="1"/>`;
+      if (d.first) el += `<text x="${(d.s.x + 6).toFixed(1)}" y="${(d.s.y - 5).toFixed(1)}" fill="var(--ink-2)" font-size="10" font-family="var(--font-mono)">${d.k}</text>`;
+    }
+    el += `<text x="10" y="${H - 10}" fill="var(--ink-3)" font-size="10" font-family="var(--font-mono)">yaw ${Math.round(cam3d.yaw)}deg / pitch ${Math.round(cam3d.pitch)}deg - tyre r ${Math.round(radius)} mm</text>`;
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;height:auto;" role="img" aria-label="Rotatable 3D view of the suspension hardpoints">${el}</svg>`;
+  }
+
   function buildSide(hp: Record<string, { x: number; y: number; z: number }>, svsaDeg: number, antiPct: number, wheelbase: number): string {
     // Clip the view to a car-scaled window around the wheel (not a runaway SVSA
     // circle): x window = ±~¼ wheelbase (fallback 450 mm). The side-view swing arm
@@ -243,6 +354,7 @@ const SYNTH = [
     const { ic, rc } = frontViewConstruction(hp);
     const frontEl = document.getElementById('geo-front-svg'); if (frontEl) frontEl.innerHTML = buildFront(hp, ic, rc.z);
     const sideEl = document.getElementById('geo-side-svg'); if (sideEl) sideEl.innerHTML = buildSide(hp3d(), gi('f_svsa'), Number.isFinite(fAnti) ? fAnti : 0, master.wheelbase);
+    render3d();
 
     // Target vs achieved (retained synthesis targets vs the solved geometry).
     // Solver frame: Y=0 centreline, contact patch outboard. Scrub = distance from
@@ -324,6 +436,45 @@ const SYNTH = [
       else { const el = document.querySelector(`[data-hp="${k}"]`) as HTMLInputElement | null; if (el) el.value = String(v); }
     }
     recompute();
+    // ---- 3D view controls (feature review Tier 4 #11) ----
+    const yawEl = document.getElementById('geo-yaw') as HTMLInputElement | null;
+    const pitchEl = document.getElementById('geo-pitch') as HTMLInputElement | null;
+    const mirrorEl = document.getElementById('geo-mirror') as HTMLInputElement | null;
+    const svg3d = document.getElementById('geo-3d-svg');
+    if (yawEl && pitchEl && svg3d) {
+      const sync = () => { yawEl.value = String(Math.round(cam3d.yaw)); pitchEl.value = String(Math.round(cam3d.pitch)); };
+      yawEl.addEventListener('input', () => { cam3d.yaw = Number(yawEl.value); render3d(); });
+      pitchEl.addEventListener('input', () => { cam3d.pitch = Number(pitchEl.value); render3d(); });
+      mirrorEl?.addEventListener('change', render3d);
+      document.querySelectorAll<HTMLButtonElement>('[data-view3d]').forEach((b) =>
+        b.addEventListener('click', () => {
+          const v = VIEWS[b.dataset.view3d!];
+          if (!v) return;
+          cam3d.yaw = v.yaw; cam3d.pitch = v.pitch; sync(); render3d();
+        }));
+      // Drag to rotate: pointer events cover mouse, pen and touch alike.
+      let dragging = false, lastX = 0, lastY = 0;
+      svg3d.addEventListener('pointerdown', (e) => {
+        dragging = true; lastX = e.clientX; lastY = e.clientY;
+        (svg3d as HTMLElement).style.cursor = 'grabbing';
+        svg3d.setPointerCapture?.(e.pointerId);
+      });
+      svg3d.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        cam3d.yaw = ((cam3d.yaw + (e.clientX - lastX) * 0.5 + 180) % 360 + 360) % 360 - 180;
+        cam3d.pitch = Math.max(-85, Math.min(85, cam3d.pitch + (e.clientY - lastY) * 0.4));
+        lastX = e.clientX; lastY = e.clientY;
+        sync(); render3d();
+      });
+      const stop = (e: PointerEvent) => {
+        dragging = false;
+        (svg3d as HTMLElement).style.cursor = 'grab';
+        svg3d.releasePointerCapture?.(e.pointerId);
+      };
+      svg3d.addEventListener('pointerup', stop);
+      svg3d.addEventListener('pointercancel', stop);
+    }
+
     document.querySelectorAll('[data-hp],[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
     document.querySelectorAll('[data-synth]').forEach((el) => el.addEventListener('input', persist));
     document.getElementById('geo-generate')!.addEventListener('click', generate);

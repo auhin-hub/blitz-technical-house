@@ -137,3 +137,29 @@
   .cockpit-toolbtn[aria-current='true'] { box-shadow: inset 0 0 0 1px var(--rule), 0 2px 0 0 var(--amber); }
   .ct-body { grid-template-columns: 1fr; }
 }
+
+/* ---- Mobile polish (feature review Tier 4 #12) --------------------------- */
+@media (max-width: 860px) {
+  /* The tool rail is a chip strip: snap to chips so a swipe lands cleanly
+     instead of leaving a half-cut button at the edge. */
+  .cockpit-rail { scroll-snap-type: x proximity; }
+  .cockpit-toolbtn { scroll-snap-align: start; }
+
+  /* Charts are secondary on a phone: shorter, so inputs and the key outputs
+     stay reachable without scrolling past a tall canvas. */
+  .ct-chart { height: 240px !important; }
+
+  /* Key-output tiles read better two-up than stretched full width. */
+  .ct-stats { grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr)); }
+
+  /* A wide table that scrolls needs to say so. */
+  .ct-wrap { position: relative; }
+  .ct-table { min-width: max-content; }
+}
+
+/* Touch has no hover, so the typical-value annotation's source tooltip is
+   unreachable. Mark it as tappable (title still shows on long-press) and keep
+   it from wrapping the row. */
+@media (pointer: coarse) {
+  .ct-ref { text-decoration: underline dotted; text-underline-offset: 2px; }
+}

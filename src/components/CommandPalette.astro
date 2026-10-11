@@ -87,6 +87,11 @@ const index = entries.filter((e) => { const k = `${e.href}|${e.label}`; if (seen
   #cmdk-foot kbd {
     border: 1px solid var(--rule); border-radius: 3px; padding: 0 0.25rem; margin-right: 0.2rem; color: var(--ink-2);
   }
+  @media (max-width: 760px) {
+    #cmdk-panel { margin-top: 4vh; width: 94vw; }
+    #cmdk-results { max-height: 62vh; }
+    #cmdk-foot { display: none; }   /* keyboard hints are noise on touch */
+  }
   @media (prefers-reduced-motion: no-preference) {
     #cmdk-panel { animation: cmdk-in 120ms ease-out; }
     @keyframes cmdk-in { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
