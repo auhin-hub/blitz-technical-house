@@ -1,0 +1,6519 @@
+{
+  "meta": {
+    "title": "Blitz Car Program Work Map",
+    "generated": "2026-10-11",
+    "competition": [
+      "FS UK (FS Rules 2026)",
+      "FS Japan (Formula SAE Rules 2026 + FSAEJ local)"
+    ],
+    "architecture": "CV: steel spaceframe, single-cylinder, chain + LSD, aero"
+  },
+  "buckets": [
+    {
+      "key": "TM",
+      "name": "Technical Management",
+      "scope": "Tech captain + vice",
+      "color": "#e10600",
+      "kind": "technical",
+      "order": 0
+    },
+    {
+      "key": "VD",
+      "name": "Vehicle Dynamics",
+      "scope": "Tyres, suspension, steering",
+      "color": "#ff6b2c",
+      "kind": "technical",
+      "order": 1
+    },
+    {
+      "key": "CH",
+      "name": "Chassis",
+      "scope": "Frame, IA, structures",
+      "color": "#f2b705",
+      "kind": "technical",
+      "order": 2
+    },
+    {
+      "key": "ERG",
+      "name": "Ergonomics",
+      "scope": "Cockpit, seat, controls",
+      "color": "#c8d400",
+      "kind": "technical",
+      "order": 3
+    },
+    {
+      "key": "PT",
+      "name": "Powertrain",
+      "scope": "Engine, intake, exhaust, fuel, drive",
+      "color": "#3ddc84",
+      "kind": "technical",
+      "order": 4
+    },
+    {
+      "key": "AC",
+      "name": "Aero & Cooling",
+      "scope": "Wings, bodywork, radiator",
+      "color": "#19c3c9",
+      "kind": "technical",
+      "order": 5
+    },
+    {
+      "key": "BR",
+      "name": "Braking",
+      "scope": "Brake system & pedal ratio",
+      "color": "#3d8bff",
+      "kind": "technical",
+      "order": 6
+    },
+    {
+      "key": "ECS",
+      "name": "Electronics (ECS)",
+      "scope": "Harness, ECU, shutdown, LV",
+      "color": "#8b6cff",
+      "kind": "technical",
+      "order": 7
+    },
+    {
+      "key": "TEL",
+      "name": "Telemetry & Driver",
+      "scope": "Data, drivers, test running",
+      "color": "#d65cff",
+      "kind": "technical",
+      "order": 8
+    },
+    {
+      "key": "DOC",
+      "name": "Documentation",
+      "scope": "Reports, submissions, records",
+      "color": "#ff5ca8",
+      "kind": "operational",
+      "order": 9
+    },
+    {
+      "key": "LOG",
+      "name": "Logistics & Mfg",
+      "scope": "Vendors, workshop, shipping",
+      "color": "#a3a3a3",
+      "kind": "operational",
+      "order": 10
+    },
+    {
+      "key": "FIN",
+      "name": "Finance & Cost",
+      "scope": "Budget, spend, cost event",
+      "color": "#e0a96d",
+      "kind": "operational",
+      "order": 11
+    },
+    {
+      "key": "BUS",
+      "name": "Business & Brand",
+      "scope": "Sponsors, pitch, livery",
+      "color": "#7fd1b9",
+      "kind": "operational",
+      "order": 12
+    }
+  ],
+  "phases": [
+    {
+      "key": "P0",
+      "idx": 0,
+      "name": "Rules & Strategy",
+      "subtitle": "Know the game",
+      "is_gate": false,
+      "order": 0
+    },
+    {
+      "key": "P1",
+      "idx": 1,
+      "name": "Concept & Targets",
+      "subtitle": "Decide the car",
+      "is_gate": false,
+      "order": 1
+    },
+    {
+      "key": "P2",
+      "idx": 2,
+      "name": "System Design",
+      "subtitle": "Layout & interfaces",
+      "is_gate": false,
+      "order": 2
+    },
+    {
+      "key": "P3",
+      "idx": 3,
+      "name": "Detail Design",
+      "subtitle": "Parts, analysis, drawings",
+      "is_gate": false,
+      "order": 3
+    },
+    {
+      "key": "P4",
+      "idx": 4,
+      "name": "Freeze & Release",
+      "subtitle": "Gate: drawings out",
+      "is_gate": true,
+      "order": 4
+    },
+    {
+      "key": "P5",
+      "idx": 5,
+      "name": "Manufacture & Procure",
+      "subtitle": "Make & buy",
+      "is_gate": false,
+      "order": 5
+    },
+    {
+      "key": "P6",
+      "idx": 6,
+      "name": "Assembly & Commission",
+      "subtitle": "Car comes together",
+      "is_gate": false,
+      "order": 6
+    },
+    {
+      "key": "P7",
+      "idx": 7,
+      "name": "Test & Validate",
+      "subtitle": "Kilometres & tuning",
+      "is_gate": false,
+      "order": 7
+    },
+    {
+      "key": "P8",
+      "idx": 8,
+      "name": "Competition",
+      "subtitle": "Scrutineering, statics, dynamics",
+      "is_gate": false,
+      "order": 8
+    },
+    {
+      "key": "P9",
+      "idx": 9,
+      "name": "Review & Handover",
+      "subtitle": "Feeds next season",
+      "is_gate": false,
+      "order": 9
+    }
+  ],
+  "loops": [
+    {
+      "key": "L1",
+      "name": "Season loop",
+      "color": "#e10600",
+      "description": "Post-season review and test data become the starting point of next year's concept. Nothing starts from zero; every target is a delta from the last car.",
+      "member_codes": [
+        "TM12",
+        "TM2",
+        "TM3",
+        "DOC6",
+        "TEL5"
+      ]
+    },
+    {
+      "key": "L2",
+      "name": "Concept loop",
+      "color": "#ff6b2c",
+      "description": "Tyre choice, lap sim, mass, engine curve and aero targets are iterated together until the concept converges. Run until a change in one input no longer moves the decision.",
+      "member_codes": [
+        "VD1",
+        "VD2",
+        "VD3",
+        "TM3",
+        "TM4",
+        "PT1",
+        "PT2",
+        "AC1",
+        "FIN1"
+      ]
+    },
+    {
+      "key": "L3",
+      "name": "Hardpoint loop",
+      "color": "#f2b705",
+      "description": "Kinematic hardpoints, chassis pickup nodes, wheel-envelope packaging (upright, brake, hub) and the CAD skeleton trade back and forth. Ends when hardpoints are frozen in TM8.",
+      "member_codes": [
+        "VD4",
+        "VD5",
+        "CH2",
+        "TM5",
+        "VD7",
+        "BR2",
+        "ERG2"
+      ]
+    },
+    {
+      "key": "L4",
+      "name": "Mass & CG loop",
+      "color": "#c8d400",
+      "description": "Every detailed design reports mass and CG to the budget owner; overruns force redesign or reallocation. Runs continuously through detail design.",
+      "member_codes": [
+        "TM4",
+        "VD7",
+        "VD8",
+        "VD9",
+        "CH3",
+        "PT9",
+        "AC3",
+        "AC4",
+        "ECS3",
+        "ERG3"
+      ]
+    },
+    {
+      "key": "L5",
+      "name": "Load → FEA → redesign",
+      "color": "#3ddc84",
+      "description": "Load cases from VD drive component FEA; parts that fail the safety factor or stiffness target go back to geometry. Also catches compliance that ruins kinematics.",
+      "member_codes": [
+        "VD6",
+        "VD7",
+        "VD8",
+        "VD9",
+        "VD12",
+        "CH3",
+        "AC4",
+        "BR3",
+        "PT8"
+      ]
+    },
+    {
+      "key": "L6",
+      "name": "Aero–cooling–packaging",
+      "color": "#19c3c9",
+      "description": "Sidepod and radiator position change aero balance and drag; wing position changes cooling flow; both fight for the same space as driver, engine and harness.",
+      "member_codes": [
+        "AC1",
+        "AC2",
+        "AC3",
+        "AC6",
+        "TM5",
+        "PT10"
+      ]
+    },
+    {
+      "key": "L7",
+      "name": "Engine tuning loop",
+      "color": "#3d8bff",
+      "description": "1D simulation sets intake and exhaust geometry, the dyno/track measures it, ECU calibration closes the gap, findings feed back to runner and silencer design.",
+      "member_codes": [
+        "PT2",
+        "PT3",
+        "PT4",
+        "PT11",
+        "ECS8",
+        "PT14"
+      ]
+    },
+    {
+      "key": "L8",
+      "name": "Test → setup loop",
+      "color": "#8b6cff",
+      "description": "Run, log, analyse, change one thing, run again. Driver feedback and data agree before a setup is accepted.",
+      "member_codes": [
+        "TM10",
+        "TEL5",
+        "VD15",
+        "BR7",
+        "AC8",
+        "ECS8",
+        "ERG7"
+      ]
+    },
+    {
+      "key": "L9",
+      "name": "Budget loop",
+      "color": "#e0a96d",
+      "description": "Concept ambitions are checked against money and manufacturing capability; long-lead purchases lock decisions early.",
+      "member_codes": [
+        "FIN1",
+        "TM3",
+        "LOG1",
+        "LOG2",
+        "FIN2",
+        "BUS1"
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "code": "TM1",
+      "bucket_key": "TM",
+      "phase_key": "P0",
+      "phase_idx": 0,
+      "title": "Rulebook study & rule-owner matrix",
+      "owner_role": "Tech captain",
+      "accountable": "",
+      "contributor_keys": [
+        "DOC",
+        "VD",
+        "CH",
+        "PT",
+        "ECS",
+        "BR",
+        "ERG",
+        "AC"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "Every design decision is bounded by two rulebooks: FS Rules (FS UK) and Formula SAE Rules + JSAE local rules (FS Japan). One wrong reading here costs a frame or a scrutineering fail later.",
+      "done": "Every rule has an owner; compliance checklist exists for each lane; open questions logged with organiser answers.",
+      "tools": "Shared spreadsheet, PDF annotations, rules Q&A portals",
+      "rules": "FS: A, T, CV, IN, S, D sections. FSAE: GR, AD, V, F, T, IC, IN, S, D sections + FSAEJ local rules.",
+      "tasks": [
+        "Download both current rulebooks, handbooks and all published FAQs/rule clarifications",
+        "Assign every rule section to an owner subteam (rule-owner matrix: section → lane → person)",
+        "Build a CV-only compliance checklist per subsystem and keep it as a living sheet",
+        "Highlight differences between FS and FSAE rules and design to the stricter one where cheap",
+        "Log ambiguous rules and submit rules questions to organisers before design freeze",
+        "Brief all subteams in a rules workshop; quiz new members"
+      ],
+      "pitfalls": [
+        "Designing to last year's rules",
+        "Assuming FS and FSAE wording is identical",
+        "Local-rule changes published mid-season and nobody re-checks"
+      ],
+      "external_inputs": [
+        {
+          "label": "FS Rules 2026 + FS UK handbook; Formula SAE Rules 2026 + FSAEJ participation & local rules",
+          "source": "Rulebooks"
+        }
+      ],
+      "order": 0
+    },
+    {
+      "code": "TM2",
+      "bucket_key": "TM",
+      "phase_key": "P0",
+      "phase_idx": 0,
+      "title": "Previous car review & lessons-learned intake",
+      "owner_role": "Tech captain",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "CH",
+        "PT",
+        "ECS",
+        "TEL",
+        "DOC"
+      ],
+      "loop_keys": [
+        "L1"
+      ],
+      "is_critical": false,
+      "why": "The fastest gains come from fixing what broke or was slow last year. This turns the old car and its data into concrete targets.",
+      "done": "Signed Keep / Fix / Change list; each item has an owner lane.",
+      "tools": "Failure log, event score sheets, data analysis tool",
+      "rules": "Check eligibility rules for carried-over parts and second-year vehicles at each event.",
+      "tasks": [
+        "Teardown inspection of last car: wear, cracks, loose fasteners, bent parts",
+        "Collect judges' feedback from design, cost and business events",
+        "List every DNF/failure with root cause (5-why)",
+        "Rank issues by points lost and effort to fix",
+        "Decide carry-over vs redesign per subsystem",
+        "Publish a one-page 'Keep / Fix / Change' sheet to all subteams"
+      ],
+      "pitfalls": [
+        "Reviews that are opinions without data",
+        "Redesigning parts that worked and ignoring ones that failed"
+      ],
+      "external_inputs": [],
+      "order": 1
+    },
+    {
+      "code": "TM3",
+      "bucket_key": "TM",
+      "phase_key": "P1",
+      "phase_idx": 1,
+      "title": "Vehicle concept & top-level targets",
+      "owner_role": "Tech captain",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "PT",
+        "AC",
+        "CH",
+        "FIN"
+      ],
+      "loop_keys": [
+        "L2",
+        "L9",
+        "L1"
+      ],
+      "is_critical": true,
+      "why": "Sets the numbers everyone designs to: mass, CG height, wheelbase, track, power, aero yes/no, tyre size. Without frozen targets each subteam optimises its own part and the car does not fit.",
+      "done": "VRD v1.0 signed and published; all leads acknowledge.",
+      "tools": "Lap sim results, trade-study matrix, VRD template",
+      "rules": "Wheelbase, track, displacement and aero dimensional limits from both rulebooks.",
+      "tasks": [
+        "Run concept trade study (aero vs no aero, 10-inch vs 13-inch, wet vs dry sump etc.)",
+        "Fix target vehicle mass with driver, CG height, weight distribution",
+        "Fix wheelbase and front/rear track envelope",
+        "Fix power, torque band and gearing philosophy with Powertrain",
+        "Write the Vehicle Requirements Document (VRD): targets + reasons + owner",
+        "Sign off VRD with all leads; any later change needs a change request"
+      ],
+      "pitfalls": [
+        "Targets copied from top teams without your own sim",
+        "No change control after VRD"
+      ],
+      "external_inputs": [],
+      "order": 2
+    },
+    {
+      "code": "TM4",
+      "bucket_key": "TM",
+      "phase_key": "P1",
+      "phase_idx": 1,
+      "title": "Mass, CG & inertia budget",
+      "owner_role": "Tech vice captain",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "CH",
+        "PT",
+        "AC",
+        "ECS",
+        "ERG",
+        "BR"
+      ],
+      "loop_keys": [
+        "L2",
+        "L4"
+      ],
+      "is_critical": true,
+      "why": "Mass and CG are shared resources. A live budget stops the car growing 20 kg heavier one bracket at a time.",
+      "done": "Budget converged within target at design freeze; weighed car within 3% of predicted.",
+      "tools": "Spreadsheet linked to CAD mass properties, corner scales",
+      "rules": "No mass limit in rules; ballast rules apply if used.",
+      "tasks": [
+        "Split total mass target into subsystem allocations",
+        "Create budget sheet: part, mass, x/y/z CG, status (estimate/CAD/weighed)",
+        "Collect CAD masses weekly; flag overruns in red",
+        "Recompute car CG, front/rear split, yaw/roll inertia",
+        "Feed updated mass & CG to VD lap sim and load cases",
+        "After build: replace estimates with weighed values"
+      ],
+      "pitfalls": [
+        "Forgetting fasteners, fluids, harness and driver",
+        "CG never checked against tilt-test needs"
+      ],
+      "external_inputs": [],
+      "order": 3
+    },
+    {
+      "code": "TM5",
+      "bucket_key": "TM",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Master CAD skeleton & packaging layout",
+      "owner_role": "CAD manager (TM)",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "CH",
+        "ERG",
+        "PT",
+        "AC",
+        "ECS",
+        "BR"
+      ],
+      "loop_keys": [
+        "L3",
+        "L6"
+      ],
+      "is_critical": true,
+      "why": "A single top-down skeleton (hardpoints, driver template, engine envelope, wheel envelope) lets every subteam design in the right place at the same time.",
+      "done": "Full car assembled with zero interferences at freeze.",
+      "tools": "SolidWorks/CATIA/Fusion with PDM or shared drive with version control",
+      "rules": "Ground clearance, envelope, cockpit template and keep-out zones.",
+      "tasks": [
+        "Build the skeleton model with reference planes, hardpoints, wheel envelopes",
+        "Place driver template, engine, fuel tank, radiator, battery, ECU envelopes",
+        "Set CAD rules: naming, units, origin, file structure, check-in/out",
+        "Run weekly interference checks of full assembly",
+        "Maintain the full-car assembly as single source of truth",
+        "Publish packaging screenshots after each change"
+      ],
+      "pitfalls": [
+        "Everyone designs bottom-up and nothing fits",
+        "No naming discipline, duplicate files"
+      ],
+      "external_inputs": [],
+      "order": 4
+    },
+    {
+      "code": "TM6",
+      "bucket_key": "TM",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Interface Control Document (ICD)",
+      "owner_role": "Tech vice captain",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "CH",
+        "PT",
+        "BR",
+        "ECS",
+        "AC",
+        "ERG"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Lists every point where two subteams touch: bolt sizes, loads, connectors, fluid fittings. This is the formal 'who gives what to whom' record.",
+      "done": "All interfaces 'frozen' before TM8.",
+      "tools": "Spreadsheet or the team workspace parameter store",
+      "rules": "Critical fastener rules (grade, positive locking) apply to most interfaces.",
+      "tasks": [
+        "List every physical, electrical and fluid interface between subsystems",
+        "For each: owner, receiver, geometry, fastener, load, tolerance, due date",
+        "Track status (open / agreed / frozen)",
+        "Review open interfaces in every weekly tech meeting",
+        "Lock interfaces before design freeze"
+      ],
+      "pitfalls": [
+        "Interfaces agreed verbally and forgotten",
+        "Fastener spec decided at assembly"
+      ],
+      "external_inputs": [],
+      "order": 5
+    },
+    {
+      "code": "TM7",
+      "bucket_key": "TM",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Design reviews (PDR / CDR)",
+      "owner_role": "Tech captain",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "CH",
+        "PT",
+        "AC",
+        "BR",
+        "ECS",
+        "ERG",
+        "DOC"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Structured reviews catch errors while they are cheap to fix and rehearse the design event at the same time.",
+      "done": "All CDR actions closed.",
+      "tools": "Review template, slides, action-item log",
+      "rules": "Design event criteria (FS S5 / FSAE S design) as the review checklist.",
+      "tasks": [
+        "Preliminary Design Review: concepts, calcs, rule compliance",
+        "Critical Design Review: final CAD, FEA, drawings, manufacturing plan",
+        "Invite alumni / faculty / industry reviewers",
+        "Record action items with owners and due dates",
+        "Re-review failed items before freeze"
+      ],
+      "pitfalls": [
+        "Reviews as presentations with no criticism",
+        "Actions never closed"
+      ],
+      "external_inputs": [],
+      "order": 6
+    },
+    {
+      "code": "TM8",
+      "bucket_key": "TM",
+      "phase_key": "P4",
+      "phase_idx": 4,
+      "title": "Design freeze & drawing release",
+      "owner_role": "Tech captain",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "CH",
+        "PT",
+        "AC",
+        "BR",
+        "ECS",
+        "ERG",
+        "LOG"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "The gate that turns models into parts. After this, changes need a change request so manufacturing can start without chasing a moving target.",
+      "done": "Release package handed to LOG; change process active.",
+      "tools": "Release checklist, PDM status",
+      "rules": "Submission deadlines for structural documents usually fall near this gate.",
+      "tasks": [
+        "Check every part has a released drawing or purchase spec",
+        "Freeze hardpoints and frame geometry first (longest lead)",
+        "Issue release packages per subteam to Logistics",
+        "Start change-request process (who approves, cost/time impact)",
+        "Announce freeze to whole team"
+      ],
+      "pitfalls": [
+        "Freezing with unchecked drawings",
+        "Releasing frame before hardpoints are final"
+      ],
+      "external_inputs": [],
+      "order": 7
+    },
+    {
+      "code": "TM9",
+      "bucket_key": "TM",
+      "phase_key": "P7",
+      "phase_idx": 7,
+      "title": "Mock scrutineering",
+      "owner_role": "Tech captain",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "ERG",
+        "PT",
+        "BR",
+        "ECS",
+        "DOC",
+        "TEL"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "Inspecting your own car with the official inspection sheet finds the failures before the event does.",
+      "done": "Two clean mock scrutineerings in a row.",
+      "tools": "Official inspection sheets, rule checklist, stopwatch, sound meter",
+      "rules": "FS IN sections (IN7 tilt, IN10 noise, IN11 brake test, egress); FSAE IN sections.",
+      "tasks": [
+        "Print the official inspection sheet for each event (FS UK and FS Japan)",
+        "Inspect every item with a non-designer as inspector",
+        "Run tilt-table check for fluid leaks if possible",
+        "Time driver egress for all drivers",
+        "Practice noise test procedure and brake test",
+        "Fix-list with owners; repeat mock scrutineering after fixes"
+      ],
+      "pitfalls": [
+        "Designers inspecting their own parts",
+        "Leaving it to the week before shipping"
+      ],
+      "external_inputs": [],
+      "order": 8
+    },
+    {
+      "code": "TM10",
+      "bucket_key": "TM",
+      "phase_key": "P7",
+      "phase_idx": 7,
+      "title": "Test plan & test-day management",
+      "owner_role": "Tech vice captain",
+      "accountable": "",
+      "contributor_keys": [
+        "TEL",
+        "VD",
+        "PT",
+        "BR",
+        "AC",
+        "ECS",
+        "LOG"
+      ],
+      "loop_keys": [
+        "L8"
+      ],
+      "is_critical": true,
+      "why": "Track time is the scarcest resource. A plan with objectives per run turns kilometres into knowledge.",
+      "done": "Reliability distance achieved; event procedures rehearsed.",
+      "tools": "Run sheets, setup sheets, failure log",
+      "rules": "Driving rules (FS D / FSAE D) for practice procedures.",
+      "tasks": [
+        "Write test plan: objectives, runs, setup sheet per run",
+        "Shakedown: leaks, brakes, steering, shutdown, then low-speed laps",
+        "Reliability mileage target (aim for endurance distance several times over)",
+        "Event-specific practice: accel, skidpad, autocross, endurance with driver change",
+        "Run a test-day safety briefing; marshal and fire-extinguisher roles",
+        "Debrief after every session; log failures and actions"
+      ],
+      "pitfalls": [
+        "Testing without objectives",
+        "Car finished the week before shipping, so no testing"
+      ],
+      "external_inputs": [],
+      "order": 9
+    },
+    {
+      "code": "TM11",
+      "bucket_key": "TM",
+      "phase_key": "P8",
+      "phase_idx": 8,
+      "title": "Competition technical leadership",
+      "owner_role": "Tech captain",
+      "accountable": "",
+      "contributor_keys": [
+        "DOC",
+        "TEL",
+        "LOG",
+        "VD",
+        "PT",
+        "ECS",
+        "BR"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "At the event, one person owns the car's schedule: scrutineering order, fixes, refuelling, dynamic event slots.",
+      "done": "All tech inspection stickers; car finishes endurance.",
+      "tools": "Event timetable, radio/phone, fix log",
+      "rules": "Event handbook procedures for each competition.",
+      "tasks": [
+        "Plan scrutineering order and who presents each area",
+        "Run fix crew for scrutineering findings",
+        "Manage refuelling, tyre and setup changes between events",
+        "Keep a timeline of event slots and queues",
+        "Make the call on risk (e.g. setup for endurance finish over speed)"
+      ],
+      "pitfalls": [
+        "Too many people touching the car",
+        "No plan for failed inspection items"
+      ],
+      "external_inputs": [],
+      "order": 10
+    },
+    {
+      "code": "TM12",
+      "bucket_key": "TM",
+      "phase_key": "P9",
+      "phase_idx": 9,
+      "title": "Post-season technical review",
+      "owner_role": "Tech captain",
+      "accountable": "",
+      "contributor_keys": [
+        "DOC",
+        "TEL",
+        "VD",
+        "CH",
+        "PT",
+        "AC",
+        "BR",
+        "ECS",
+        "ERG"
+      ],
+      "loop_keys": [
+        "L1"
+      ],
+      "is_critical": false,
+      "why": "Closes the season loop. It turns failures, judges' feedback, scores and data into a written starting point for next season, before the seniors who know the answers leave.",
+      "done": "Review published and archived.",
+      "tools": "Review template, archive structure",
+      "rules": "Next year's rule changes noted here.",
+      "tasks": [
+        "Each subteam writes a 2-page review: target vs achieved, failures, ideas",
+        "Score sheet analysis: where points were lost",
+        "Archive CAD, calcs, data and drawings",
+        "Update the rule-owner matrix with new findings",
+        "Hand over to TM2 of next season"
+      ],
+      "pitfalls": [
+        "Seniors leave before writing it down",
+        "Blame-focused review that nobody wants to repeat"
+      ],
+      "external_inputs": [
+        {
+          "label": "Score sheets from every static and dynamic event",
+          "source": "Judges"
+        }
+      ],
+      "order": 11
+    },
+    {
+      "code": "VD1",
+      "bucket_key": "VD",
+      "phase_key": "P1",
+      "phase_idx": 1,
+      "title": "Tyre data analysis & tyre/rim selection",
+      "owner_role": "VD tyre engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "FIN",
+        "TM"
+      ],
+      "loop_keys": [
+        "L2"
+      ],
+      "is_critical": true,
+      "why": "Tyres set the grip ceiling of the car and the size of the whole wheel envelope (10-inch vs 13-inch). Everything inside the wheel depends on this choice.",
+      "done": ".tir file + rim/tyre data sheet released.",
+      "tools": "MATLAB tyre toolset (TTC analysis + MF fitting), MFeval",
+      "rules": "Wheel size and tyre rules (FS T / FSAE V), dry and wet tyres.",
+      "tasks": [
+        "Run the team MATLAB tyre toolset: compare candidate tyres (Fy, Fx, Mz, load sensitivity)",
+        "Check temperature and pressure sensitivity at expected loads",
+        "Fit Pacejka Magic Formula and export .tir for lap sim",
+        "Choose 10-inch or 13-inch rim; select rim width and offset",
+        "Get rim drawing: bolt pattern, centre bore, offset, inner barrel profile",
+        "Publish tyre/rim data sheet to VD, BR, AC, TM"
+      ],
+      "pitfalls": [
+        "Choosing tyres on peak mu alone and ignoring load sensitivity",
+        "Rim inner barrel profile unknown until parts arrive"
+      ],
+      "external_inputs": [
+        {
+          "label": "FSAE TTC tyre test data (purchased round data)",
+          "source": "TTC"
+        }
+      ],
+      "order": 12
+    },
+    {
+      "code": "VD2",
+      "bucket_key": "VD",
+      "phase_key": "P1",
+      "phase_idx": 1,
+      "title": "Lap-time simulation & sensitivity",
+      "owner_role": "VD lap-sim engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "PT",
+        "AC",
+        "TM"
+      ],
+      "loop_keys": [
+        "L2"
+      ],
+      "is_critical": true,
+      "why": "Converts design options into competition points. It answers questions like 'is 5 kg worth more than 3 hp?' before any money is spent.",
+      "done": "Sensitivity report accepted in concept review.",
+      "tools": "MATLAB/OptimumLap/OpenLAP or in-house sim",
+      "rules": "Dynamic event scoring formulas (FS D / FSAE D).",
+      "tasks": [
+        "Build or update a point-mass / quasi-steady-state lap sim",
+        "Model each dynamic event and convert times to points",
+        "Sensitivity sweep: mass, CG, power, gear ratio, CLA, CDA, track, wheelbase",
+        "Produce g-g diagram and peak load estimates for load cases",
+        "Report trade-offs to TM3 in points, not seconds"
+      ],
+      "pitfalls": [
+        "Trusting absolute lap times instead of deltas",
+        "No validation against last year's measured laps"
+      ],
+      "external_inputs": [
+        {
+          "label": "Event track layouts (accel, skidpad, autocross, endurance)",
+          "source": "Tracks"
+        }
+      ],
+      "order": 13
+    },
+    {
+      "code": "VD3",
+      "bucket_key": "VD",
+      "phase_key": "P1",
+      "phase_idx": 1,
+      "title": "Suspension concept & targets",
+      "owner_role": "VD lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "CH"
+      ],
+      "loop_keys": [
+        "L2"
+      ],
+      "is_critical": true,
+      "why": "Turns the vehicle targets into suspension numbers: ride frequency, roll gradient, roll centre heights, anti-dive/squat, camber gain, steering behaviour.",
+      "done": "VD target sheet approved by TM.",
+      "tools": "Hand calcs, MATLAB, spreadsheet models",
+      "rules": "Suspension travel and ground clearance rules (FS T / FSAE V).",
+      "tasks": [
+        "Choose architecture: double wishbone, push/pull rod, rocker layout, ARB yes/no",
+        "Set ride frequencies and roll gradient",
+        "Set roll centre height targets and migration limits",
+        "Set camber gain, scrub radius, kingpin, caster, mechanical trail targets",
+        "Set anti-dive / anti-squat targets",
+        "Document targets in a VD target sheet"
+      ],
+      "pitfalls": [
+        "Picking geometry first and targets later",
+        "Roll centre targets that migrate wildly in roll"
+      ],
+      "external_inputs": [],
+      "order": 14
+    },
+    {
+      "code": "VD4",
+      "bucket_key": "VD",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Suspension kinematics & hardpoints",
+      "owner_role": "VD kinematics engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "TM",
+        "BR",
+        "ERG"
+      ],
+      "loop_keys": [
+        "L3"
+      ],
+      "is_critical": true,
+      "why": "Hardpoints define where every wishbone, pushrod and tie rod mounts. Chassis cannot draw the frame and Upright cannot draw the upright until they exist.",
+      "done": "Hardpoint table rev A frozen at TM8.",
+      "tools": "OptimumKinematics / Lotus Shark / SusProg3D / MATLAB",
+      "rules": "Suspension must have usable travel (rules specify minimum travel with driver).",
+      "tasks": [
+        "Place outboard points inside wheel envelope with clearance to rim and caliper",
+        "Place inboard points on/near frame nodes",
+        "Iterate to meet roll centre, camber gain, bump steer, anti targets",
+        "Check full bump/droop/steer travel for interference",
+        "Export hardpoint table (x,y,z) with revision number",
+        "Share to CH, TM (CAD skeleton) and VD component designers"
+      ],
+      "pitfalls": [
+        "Inboard points nowhere near frame nodes",
+        "Not checking steer + bump combined"
+      ],
+      "external_inputs": [],
+      "order": 15
+    },
+    {
+      "code": "VD5",
+      "bucket_key": "VD",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Steering geometry & rack selection",
+      "owner_role": "VD steering engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "ERG",
+        "CH"
+      ],
+      "loop_keys": [
+        "L3"
+      ],
+      "is_critical": false,
+      "why": "Sets Ackermann, steering ratio, rack position and tie-rod points. Affects driver effort, turning radius for the hairpins, and bump steer.",
+      "done": "Rack position and tie-rod points added to hardpoint table.",
+      "tools": "OptimumK, MATLAB, rack datasheets",
+      "rules": "Steering system rules: positive stops, free play limits, quick-release wheel (FS T / FSAE T).",
+      "tasks": [
+        "Choose Ackermann percentage from tyre slip-angle data",
+        "Choose steering ratio (lock-to-lock) for hairpins vs effort",
+        "Select rack (bought or custom) and place it",
+        "Minimise bump steer by tie-rod point placement",
+        "Check steering free-play and stops for rule compliance"
+      ],
+      "pitfalls": [
+        "Rack fouls the driver's legs or the frame",
+        "Too slow ratio for hairpins"
+      ],
+      "external_inputs": [
+        {
+          "label": "Tightest hairpin radius from event layouts",
+          "source": "Track"
+        }
+      ],
+      "order": 16
+    },
+    {
+      "code": "VD6",
+      "bucket_key": "VD",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Load case derivation",
+      "owner_role": "VD dynamics engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "BR",
+        "PT",
+        "AC"
+      ],
+      "loop_keys": [
+        "L5"
+      ],
+      "is_critical": true,
+      "why": "Every structural part needs forces to design against. VD owns these numbers so all parts are designed to the same events.",
+      "done": "Load-case sheet rev A issued and used by all FEA.",
+      "tools": "MATLAB / spreadsheet free-body solver, OptimumK loads",
+      "rules": "Not directly specified; judges ask for justification of load cases.",
+      "tasks": [
+        "Define load cases: max braking, max cornering, combined, max traction, 3g bump, pothole",
+        "Compute tyre contact patch forces per corner per case",
+        "Resolve into member forces (wishbones, pushrods, tie rods)",
+        "Compute upright, hub and bearing loads",
+        "Apply safety factors per part class",
+        "Publish load-case sheet to every component designer"
+      ],
+      "pitfalls": [
+        "Each designer inventing their own loads",
+        "Forgetting brake torque reaction and drive torque on hubs"
+      ],
+      "external_inputs": [],
+      "order": 17
+    },
+    {
+      "code": "VD7",
+      "bucket_key": "VD",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Upright design",
+      "owner_role": "VD component designer",
+      "accountable": "",
+      "contributor_keys": [
+        "BR",
+        "TM",
+        "LOG"
+      ],
+      "loop_keys": [
+        "L3",
+        "L4",
+        "L5"
+      ],
+      "is_critical": false,
+      "why": "The upright joins wishbones, tie rod, bearings, hub and brake caliper. It is the most interface-heavy part on the car.",
+      "done": "FEA passes with safety factor; drawing released.",
+      "tools": "CAD, ANSYS/Abaqus/SolidWorks Simulation, topology optimisation",
+      "rules": "Critical fastener rules for upright pickups.",
+      "tasks": [
+        "Choose material (7075-T6, 6061-T6, steel) and process",
+        "Model around bearing seat, pickup points, caliper mounts",
+        "Check clearance to rim at full steer and travel",
+        "FEA for all load cases; check stiffness (camber compliance)",
+        "Topology optimisation if machining allows",
+        "Detailed drawing with GD&T on bearing bore and pickup holes"
+      ],
+      "pitfalls": [
+        "Bearing bore tolerance too loose",
+        "Upright fits CAD rim but not real rim"
+      ],
+      "external_inputs": [],
+      "order": 18
+    },
+    {
+      "code": "VD8",
+      "bucket_key": "VD",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Wheel hub & bearing design",
+      "owner_role": "VD component designer",
+      "accountable": "",
+      "contributor_keys": [
+        "BR",
+        "PT",
+        "TM",
+        "LOG"
+      ],
+      "loop_keys": [
+        "L4",
+        "L5"
+      ],
+      "is_critical": false,
+      "why": "The hub carries wheel loads into the bearings, holds the brake rotor and, at the rear, takes drive torque from the driveshaft. It needs information from four subteams.",
+      "done": "Hub drawing released with bearing calc report.",
+      "tools": "Bearing manufacturer calculators, CAD, FEA",
+      "rules": "Wheel retention / lug nut rules; positive locking of fasteners (FS T / FSAE V & T).",
+      "tasks": [
+        "Choose bearing type (angular contact pair / deep groove / thin-section) and size from loads and life",
+        "Calculate bearing life for the season duty cycle",
+        "Design hub: wheel studs or centre lock, rotor flange, spline (rear)",
+        "Design bearing preload and retention (nut, spacer, circlip)",
+        "FEA hub for combined loads incl. brake torque and drive torque",
+        "Drawing with tolerances for bearing fits and spline"
+      ],
+      "pitfalls": [
+        "Bearing preload not controlled",
+        "Spline designed before driveshaft supplier confirmed"
+      ],
+      "external_inputs": [],
+      "order": 19
+    },
+    {
+      "code": "VD9",
+      "bucket_key": "VD",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Wishbones, pushrods, tie rods & inserts",
+      "owner_role": "VD component designer",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "LOG"
+      ],
+      "loop_keys": [
+        "L4",
+        "L5"
+      ],
+      "is_critical": false,
+      "why": "The link members carry the load cases into the frame. Buckling, rod-end selection and weld quality decide if they survive.",
+      "done": "All members pass buckling/stress; jig designed.",
+      "tools": "CAD, buckling calcs, FEA",
+      "rules": "Rod end and critical fastener rules; no single-shear on critical joints where rules prohibit.",
+      "tasks": [
+        "Select tube size (steel 4130 or CFRP + bonded inserts) by buckling and stress",
+        "Select rod ends / spherical bearings with load rating",
+        "Design inserts and adjustable ends (shims, threads for camber/toe)",
+        "Design welding jig",
+        "Calculate buckling safety factor of pushrods and tie rods",
+        "Drawings with cut lengths and weld spec"
+      ],
+      "pitfalls": [
+        "Rod ends in bending",
+        "No adjustment range left for alignment"
+      ],
+      "external_inputs": [],
+      "order": 20
+    },
+    {
+      "code": "VD10",
+      "bucket_key": "VD",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Rockers, dampers, springs & ARB",
+      "owner_role": "VD lead",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "LOG"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Sets ride and roll stiffness and damping. Motion ratio and damper choice decide how tunable the car is at the track.",
+      "done": "Spring/damper/ARB spec + rocker drawings released.",
+      "tools": "MATLAB, OptimumK, damper dyno data",
+      "rules": "Suspension travel rules.",
+      "tasks": [
+        "Calculate motion ratios and wheel rates",
+        "Select springs and dampers (adjustable FS-specific dampers)",
+        "Design rocker geometry (progression), bearings, pivot",
+        "Size and design anti-roll bars (blade or torsion bar)",
+        "Create setup sheet ranges for testing"
+      ],
+      "pitfalls": [
+        "Motion ratio too low, damper never works",
+        "Damper ordered late (long lead)"
+      ],
+      "external_inputs": [],
+      "order": 21
+    },
+    {
+      "code": "VD11",
+      "bucket_key": "VD",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Steering system detail design",
+      "owner_role": "VD steering engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "ERG",
+        "ECS",
+        "CH"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Rack mounts, column, U-joints, quick release and steering wheel. The driver's main control input must be stiff, safe and rule-compliant.",
+      "done": "Steering assembly drawings released.",
+      "tools": "CAD, U-joint angle calcs",
+      "rules": "Steering wheel quick release, free play, positive stops (FS T / FSAE T).",
+      "tasks": [
+        "Design column with U-joint angles within limits",
+        "Select quick release (rules require it)",
+        "Design rack mounts and column supports",
+        "Steering wheel design with button and shift paddle integration",
+        "Check steering free-play and stops"
+      ],
+      "pitfalls": [
+        "U-joint angles too large → notchy, uneven steering",
+        "No clearance check with driver's knees at full lock"
+      ],
+      "external_inputs": [],
+      "order": 22
+    },
+    {
+      "code": "VD12",
+      "bucket_key": "VD",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Suspension compliance & FEA review",
+      "owner_role": "VD lead",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "TM"
+      ],
+      "loop_keys": [
+        "L5"
+      ],
+      "is_critical": false,
+      "why": "A good kinematic design is wasted if uprights, brackets and rod ends flex. This step checks the whole corner as one load path and gives judges stiffness numbers, not only stresses.",
+      "done": "Compliance within target, documented.",
+      "tools": "ANSYS/Abaqus, MATLAB",
+      "rules": "—",
+      "tasks": [
+        "Build a corner compliance model (FEA assembly or spring-network model)",
+        "Apply lateral and longitudinal contact-patch loads from VD6",
+        "Compute camber and toe compliance (deg per kN)",
+        "Find the weakest link (bracket, upright arm, rod end, frame node)",
+        "Redesign weakest link and repeat until targets are met",
+        "Summarise results in design-event slides"
+      ],
+      "pitfalls": [
+        "Checking only strength, never stiffness",
+        "Ignoring frame-node flex in the corner model"
+      ],
+      "external_inputs": [],
+      "order": 23
+    },
+    {
+      "code": "VD13",
+      "bucket_key": "VD",
+      "phase_key": "P5",
+      "phase_idx": 5,
+      "title": "Suspension manufacture",
+      "owner_role": "VD lead",
+      "accountable": "",
+      "contributor_keys": [
+        "LOG",
+        "CH"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "Wishbones, uprights, hubs and rockers are made or outsourced. Jigs and tolerances decide whether the kinematics match CAD.",
+      "done": "All suspension parts inspected and labelled.",
+      "tools": "Jigs, CNC, lathe, welding, measurement tools",
+      "rules": "—",
+      "tasks": [
+        "Make wishbone jigs; tack, check, weld",
+        "Machine or outsource uprights, hubs, rockers",
+        "Press bearings; check preload",
+        "Inspect critical dimensions; record measurements",
+        "Label parts with part number and side (FL/FR/RL/RR)"
+      ],
+      "pitfalls": [
+        "Welding distortion not measured",
+        "Left/right parts mixed up without labels"
+      ],
+      "external_inputs": [],
+      "order": 24
+    },
+    {
+      "code": "VD14",
+      "bucket_key": "VD",
+      "phase_key": "P6",
+      "phase_idx": 6,
+      "title": "Corner assembly, alignment & corner weights",
+      "owner_role": "VD lead",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "TEL",
+        "TM"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "Puts the car on the ground at the designed setup: ride height, camber, toe, corner weights.",
+      "done": "Baseline setup sheet recorded; car on its wheels.",
+      "tools": "Corner scales, camber gauge, toe plates/strings, torque wrench",
+      "rules": "Positive locking on suspension fasteners.",
+      "tasks": [
+        "Assemble corners with torque spec and positive locking",
+        "Set ride height, camber, toe, caster",
+        "Corner weight with driver ballast; adjust spring perches",
+        "Measure suspension travel and steering stops",
+        "Record baseline setup sheet"
+      ],
+      "pitfalls": [
+        "No baseline recorded, so later changes cannot be compared",
+        "Corner weighting without the driver or fuel"
+      ],
+      "external_inputs": [],
+      "order": 25
+    },
+    {
+      "code": "VD15",
+      "bucket_key": "VD",
+      "phase_key": "P7",
+      "phase_idx": 7,
+      "title": "Setup tuning & K&C validation",
+      "owner_role": "VD lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TEL",
+        "TM"
+      ],
+      "loop_keys": [
+        "L8"
+      ],
+      "is_critical": false,
+      "why": "Confirms the real car behaves like the designed one, then finds the best setup for each event using data and driver feedback together.",
+      "done": "Setup book ready with data-backed choices.",
+      "tools": "Data analysis, setup sheets",
+      "rules": "—",
+      "tasks": [
+        "Static K&C check: measure camber and toe change through bump and roll",
+        "Validate ride frequency and roll gradient from logged data",
+        "Compare measured understeer gradient with prediction",
+        "Tune ARB, dampers, toe, camber and tyre pressures per event",
+        "Build an event setup book (accel, skidpad, autocross, endurance)",
+        "Record every change with run number and result"
+      ],
+      "pitfalls": [
+        "Changing several things at once",
+        "Ignoring driver feedback that disagrees with data"
+      ],
+      "external_inputs": [],
+      "order": 26
+    },
+    {
+      "code": "VD16",
+      "bucket_key": "VD",
+      "phase_key": "P8",
+      "phase_idx": 8,
+      "title": "Design event – VD defence",
+      "owner_role": "VD lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "DOC"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Judges test the reasoning chain from tyre data to targets, geometry and validation. VD usually takes the most questions, and a clear story gains many points.",
+      "done": "Design event score improved vs last season.",
+      "tools": "Slides, printed plots, parts",
+      "rules": "Design event (FS S5 / FSAE S).",
+      "tasks": [
+        "Build a 'why' chain for every key number (from tyre data to setup)",
+        "Prepare plots: tyre curves, lap sim sensitivity, kinematics curves, test data",
+        "Bring physical parts (upright, hub, rocker)",
+        "Prepare honest 'what we would change' answers",
+        "Run mock design judging with alumni or faculty"
+      ],
+      "pitfalls": [
+        "Showing results without reasons",
+        "Claiming validation that was never done"
+      ],
+      "external_inputs": [],
+      "order": 27
+    },
+    {
+      "code": "CH1",
+      "bucket_key": "CH",
+      "phase_key": "P0",
+      "phase_idx": 0,
+      "title": "Chassis rules envelope study",
+      "owner_role": "Chassis lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "ERG"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "The frame is the most rule-dense part of the car: hoops, bracing, side impact, front bulkhead, minimum tube specs. These rules shape the frame before any engineering.",
+      "done": "Rule-envelope sketch in skeleton; checklist complete.",
+      "tools": "Rulebooks, CAD sketch",
+      "rules": "FS T sections on primary structure; FSAE F (Chassis and Structural).",
+      "tasks": [
+        "Extract all primary/secondary structure rules from FS and FSAE",
+        "List minimum tube sizes, alternative tubing and equivalency options",
+        "Note main/front hoop geometry, bracing and head-clearance rules",
+        "Note side impact, front bulkhead and anti-intrusion requirements",
+        "Make a 3D rule-envelope sketch for the CAD skeleton"
+      ],
+      "pitfalls": [
+        "Using tube sizes from an old rulebook",
+        "Missing helmet clearance lines from the start"
+      ],
+      "external_inputs": [],
+      "order": 28
+    },
+    {
+      "code": "CH2",
+      "bucket_key": "CH",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Frame concept & node layout",
+      "owner_role": "Chassis lead",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "ERG",
+        "PT",
+        "TM"
+      ],
+      "loop_keys": [
+        "L3"
+      ],
+      "is_critical": true,
+      "why": "Places frame nodes where suspension, engine and driver loads enter. Good node placement makes a stiff, light frame; bad placement needs heavy tabs.",
+      "done": "Frame wireframe rev A agreed with VD and ERG.",
+      "tools": "CAD 3D sketch / weldment",
+      "rules": "Hoop geometry, bracing, helmet clearance, cockpit openings.",
+      "tasks": [
+        "Draw wireframe with hoops, bulkhead, side impact members",
+        "Put nodes at suspension pickups, engine mounts, harness mounts",
+        "Triangulate load paths, especially suspension bays",
+        "Check driver template and 95th percentile clearance",
+        "Iterate with VD until pickups land on nodes"
+      ],
+      "pitfalls": [
+        "Suspension pickups mid-tube, causing bending",
+        "Cockpit opening too small for the template"
+      ],
+      "external_inputs": [],
+      "order": 29
+    },
+    {
+      "code": "CH3",
+      "bucket_key": "CH",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Tube sizing & torsional stiffness FEA",
+      "owner_role": "Chassis analyst",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "TM"
+      ],
+      "loop_keys": [
+        "L4",
+        "L5"
+      ],
+      "is_critical": true,
+      "why": "Frame stiffness must be high compared with suspension roll stiffness so the springs do the work. Mass must stay in budget.",
+      "done": "Stiffness target met at mass target.",
+      "tools": "ANSYS / Abaqus / SolidWorks beam FEA",
+      "rules": "Minimum tube specs; equivalency calculations.",
+      "tasks": [
+        "Beam-element FEA for torsional stiffness (Nm/deg)",
+        "Load-case FEA for cornering, braking, bump",
+        "Optimise tube sizes within rule minimums",
+        "Check stiffness ratio frame vs suspension roll stiffness",
+        "Report mass and CG to TM4"
+      ],
+      "pitfalls": [
+        "Optimising with tubes the rules do not allow",
+        "Comparing stiffness with no suspension roll stiffness target"
+      ],
+      "external_inputs": [],
+      "order": 30
+    },
+    {
+      "code": "CH4",
+      "bucket_key": "CH",
+      "phase_key": "P4",
+      "phase_idx": 4,
+      "title": "Structural equivalency submission (SES / structural docs)",
+      "owner_role": "Chassis lead",
+      "accountable": "",
+      "contributor_keys": [
+        "DOC",
+        "TM"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "Organisers must approve the structure before you build it. A rejected submission blocks the whole car.",
+      "done": "Approved by both competitions.",
+      "tools": "Official templates, CAD drawings",
+      "rules": "FS A5 documentation deadlines; FSAE structural documentation requirements.",
+      "tasks": [
+        "Fill the structural spreadsheet/template for each competition",
+        "Provide drawings and photos required",
+        "Document any alternative materials or tube sizes",
+        "Submit before the deadline; answer reviewer questions",
+        "Keep approved version for scrutineering"
+      ],
+      "pitfalls": [
+        "Template version mismatch",
+        "Built frame differs from submitted one"
+      ],
+      "external_inputs": [
+        {
+          "label": "Official structural equivalency spreadsheet/template for each event",
+          "source": "Templates"
+        }
+      ],
+      "order": 31
+    },
+    {
+      "code": "CH5",
+      "bucket_key": "CH",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Impact attenuator & anti-intrusion plate",
+      "owner_role": "Chassis engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "AC",
+        "DOC"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Protects the driver's feet in a frontal crash. Use the standard attenuator or prove a custom one by test data.",
+      "done": "IA approved; mounting drawing released.",
+      "tools": "CAD, test data if custom",
+      "rules": "Impact attenuator & anti-intrusion rules (FS T / FSAE F), IAD submission.",
+      "tasks": [
+        "Decide standard IA vs custom attenuator",
+        "Design anti-intrusion plate and bolted/welded mounting to the front bulkhead",
+        "Check IA fits inside the nose with clearance",
+        "Prepare the IA data report for each competition",
+        "Order standard IA early if chosen (long lead)"
+      ],
+      "pitfalls": [
+        "Bolt pattern not matching the bulkhead",
+        "Nose designed without IA envelope"
+      ],
+      "external_inputs": [
+        {
+          "label": "Standard IA spec or custom IA test requirements",
+          "source": "Rules"
+        }
+      ],
+      "order": 32
+    },
+    {
+      "code": "CH6",
+      "bucket_key": "CH",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Mounting brackets & tabs (all subsystems)",
+      "owner_role": "Chassis engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "PT",
+        "ECS",
+        "AC",
+        "BR",
+        "ERG"
+      ],
+      "loop_keys": [
+        "L5"
+      ],
+      "is_critical": false,
+      "why": "Every subsystem bolts to the frame. Chassis owns the tabs so welding happens once, before paint.",
+      "done": "All tabs on the frame drawing; nothing to weld after paint.",
+      "tools": "CAD, FEA, ICD sheet",
+      "rules": "Harness attachment, critical fastener and bracket rules.",
+      "tasks": [
+        "Collect all mount requests through the ICD",
+        "Design tabs with correct thickness and double shear where required",
+        "FEA the suspension and harness brackets",
+        "Add tabs to the frame weldment drawing",
+        "Freeze tab list before welding"
+      ],
+      "pitfalls": [
+        "Tabs requested after welding and painting",
+        "Single-shear tabs where double shear is needed"
+      ],
+      "external_inputs": [],
+      "order": 33
+    },
+    {
+      "code": "CH7",
+      "bucket_key": "CH",
+      "phase_key": "P4",
+      "phase_idx": 4,
+      "title": "Frame jig & tube drawings",
+      "owner_role": "Chassis lead",
+      "accountable": "",
+      "contributor_keys": [
+        "LOG"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "Frame accuracy decides whether the hardpoints in the welded frame match the hardpoints VD designed. The jig and drawings are where that accuracy is built in.",
+      "done": "Jig and tube drawings released to workshop.",
+      "tools": "CAD, notching templates, cut list sheet",
+      "rules": "—",
+      "tasks": [
+        "Design frame jig (laser-cut plates, fixture table or tube jig)",
+        "Create cut list with tube lengths, grades and notch angles",
+        "Generate printable coping/notching templates",
+        "Plan the weld sequence to limit distortion",
+        "Add datum features for measuring hardpoints later"
+      ],
+      "pitfalls": [
+        "No datum features for measuring later",
+        "Cut list not updated after last CAD change"
+      ],
+      "external_inputs": [],
+      "order": 34
+    },
+    {
+      "code": "CH8",
+      "bucket_key": "CH",
+      "phase_key": "P5",
+      "phase_idx": 5,
+      "title": "Frame fabrication & welding",
+      "owner_role": "Chassis lead",
+      "accountable": "",
+      "contributor_keys": [
+        "LOG"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "Turns the design into the backbone of the car. Weld quality is inspected at scrutineering.",
+      "done": "Frame fully welded with measurement record.",
+      "tools": "Jig, TIG welder, notcher",
+      "rules": "Material certificates may be requested at inspection.",
+      "tasks": [
+        "Cut and notch tubes",
+        "Tack frame in jig; measure diagonals and node positions",
+        "Weld in planned sequence (TIG)",
+        "Weld all tabs",
+        "Record measurements and any deviations"
+      ],
+      "pitfalls": [
+        "Welding without measuring between stages",
+        "Wrong wall thickness tube used"
+      ],
+      "external_inputs": [],
+      "order": 35
+    },
+    {
+      "code": "CH9",
+      "bucket_key": "CH",
+      "phase_key": "P6",
+      "phase_idx": 6,
+      "title": "Frame inspection & torsion test",
+      "owner_role": "Chassis analyst",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "TM"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "Proves the real frame matches CAD (hardpoints) and FEA (stiffness) before the rest of the car is built on it. Also gives the design event real validation data.",
+      "done": "Deviation and stiffness report signed off.",
+      "tools": "Torsion rig, dial gauges, measuring arm or tape and plumb",
+      "rules": "—",
+      "tasks": [
+        "Measure hardpoint locations vs CAD",
+        "Torsion test with dial gauges",
+        "Compare with FEA; explain differences",
+        "Inspect welds; fix defects",
+        "Release frame for paint/assembly"
+      ],
+      "pitfalls": [
+        "Skipping the torsion test and having no validation for judges",
+        "Finding hardpoint errors after suspension is assembled"
+      ],
+      "external_inputs": [],
+      "order": 36
+    },
+    {
+      "code": "CH10",
+      "bucket_key": "CH",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Firewall, floor & closeout panels",
+      "owner_role": "Chassis engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "PT",
+        "ERG",
+        "AC"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "The firewall separates the driver from fuel and engine; the floor closeout stops the driver touching the ground. Both are rule items inspected at scrutineering.",
+      "done": "Panels drawn; pass-throughs sealed.",
+      "tools": "CAD, sheet-metal/composite tools",
+      "rules": "Firewall and floor closeout rules (FS T / FSAE T).",
+      "tasks": [
+        "Design firewall covering the area required by rules",
+        "Design sealed grommets for harness, cables and hoses passing through",
+        "Design floor closeout panels",
+        "Choose materials that meet the rules",
+        "Plan quick-release fasteners for removable panels",
+        "Send mounting tab needs to CH6"
+      ],
+      "pitfalls": [
+        "Gaps around harness pass-throughs",
+        "Firewall too low near the driver's head"
+      ],
+      "external_inputs": [],
+      "order": 37
+    },
+    {
+      "code": "CH11",
+      "bucket_key": "CH",
+      "phase_key": "P5",
+      "phase_idx": 5,
+      "title": "Paint / powder coat & finishing",
+      "owner_role": "Chassis lead",
+      "accountable": "",
+      "contributor_keys": [
+        "LOG",
+        "BUS"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Coating protects the steel from corrosion and makes cracks easier to see. It is done only after every tab is welded and the frame passes inspection.",
+      "done": "Frame coated and returned.",
+      "tools": "Outsourced coater",
+      "rules": "—",
+      "tasks": [
+        "Confirm no more tabs are needed (CH6 frozen)",
+        "Mask threads, bearing seats and mating faces",
+        "Powder coat or paint, using livery colours",
+        "Chase threads; clean mating faces",
+        "Record coating mass for TM4"
+      ],
+      "pitfalls": [
+        "Coating inside bearing bores or threads",
+        "Coating before all tabs are welded"
+      ],
+      "external_inputs": [],
+      "order": 38
+    },
+    {
+      "code": "ERG1",
+      "bucket_key": "ERG",
+      "phase_key": "P0",
+      "phase_idx": 0,
+      "title": "Driver anthropometry & template study",
+      "owner_role": "Ergonomics lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TEL",
+        "CH"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Rules require the car to fit a 95th percentile template, and your real drivers must fit, see and egress quickly.",
+      "done": "Driver data sheet + template model.",
+      "tools": "CAD, measuring tape, buck",
+      "rules": "95th percentile template and cockpit rules.",
+      "tasks": [
+        "Model the rules template in CAD",
+        "Measure all candidate drivers (height, sitting height, leg and arm length)",
+        "Find smallest and largest driver to set adjustment range",
+        "Set cockpit targets: sight lines, elbow, knee and helmet clearance",
+        "Share driver data with Chassis and VD"
+      ],
+      "pitfalls": [
+        "Designing for one driver",
+        "Ignoring helmet and gloves in clearances"
+      ],
+      "external_inputs": [],
+      "order": 39
+    },
+    {
+      "code": "ERG2",
+      "bucket_key": "ERG",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Cockpit packaging & driver position",
+      "owner_role": "Ergonomics lead",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "VD",
+        "TM"
+      ],
+      "loop_keys": [
+        "L3"
+      ],
+      "is_critical": false,
+      "why": "Driver position sets the car's CG height, the frame shape, steering wheel and pedal positions. It is one of the first things to fix in the skeleton.",
+      "done": "Driver position frozen and in skeleton.",
+      "tools": "CAD, buck",
+      "rules": "Cockpit opening, internal cross-section, visibility rules.",
+      "tasks": [
+        "Choose seat angle and hip point",
+        "Place steering wheel, pedals, shifter",
+        "Build a wooden or tube cockpit buck",
+        "Test with real drivers; adjust",
+        "Publish driver template in CAD skeleton"
+      ],
+      "pitfalls": [
+        "Driver too upright, raising CG",
+        "Steering wheel blocks egress"
+      ],
+      "external_inputs": [],
+      "order": 40
+    },
+    {
+      "code": "ERG3",
+      "bucket_key": "ERG",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Seat & headrest",
+      "owner_role": "Ergonomics engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "AC"
+      ],
+      "loop_keys": [
+        "L4"
+      ],
+      "is_critical": false,
+      "why": "A seat that holds the driver firmly gives steadier inputs; the headrest must meet head-restraint rules. Inserts let several drivers share the car.",
+      "done": "Seat drawings and moulds ready.",
+      "tools": "Foam, composites, CAD",
+      "rules": "Head restraint and seat rules.",
+      "tasks": [
+        "Make foam-bag seat moulds of each driver",
+        "Design composite seat or moulded insert system",
+        "Design headrest with rule-compliant energy-absorbing foam",
+        "Design seat mounting to frame nodes",
+        "Plan quick insert swap for driver change"
+      ],
+      "pitfalls": [
+        "Seat blocks egress",
+        "Headrest foam not the type the rules require"
+      ],
+      "external_inputs": [],
+      "order": 41
+    },
+    {
+      "code": "ERG4",
+      "bucket_key": "ERG",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Harness & mounting",
+      "owner_role": "Ergonomics engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "CH"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Harness geometry and mounting are strictly defined in the rules and inspected closely. Mounts also need frame tabs welded before paint.",
+      "done": "Mount positions in CH6 tab list.",
+      "tools": "CAD",
+      "rules": "Driver restraint system rules (angles, mounts, certification date).",
+      "tasks": [
+        "Select a certified harness within its valid date",
+        "Design shoulder, lap and anti-submarine belt mounts",
+        "Check belt angles with the template in CAD",
+        "Send mount positions and loads to CH6",
+        "Plan harness adjustment for different drivers"
+      ],
+      "pitfalls": [
+        "Expired harness labels",
+        "Shoulder belt angle outside rules for tall drivers"
+      ],
+      "external_inputs": [],
+      "order": 42
+    },
+    {
+      "code": "ERG5",
+      "bucket_key": "ERG",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Pedal box & driver controls",
+      "owner_role": "Ergonomics engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "BR",
+        "PT",
+        "ECS"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Brake pedal ratio sets brake feel; throttle feel and travel affect drivability. Shared with Braking.",
+      "done": "Pedal box drawings released.",
+      "tools": "CAD, FEA",
+      "rules": "Brake pedal load requirement, throttle return springs, over-travel switch.",
+      "tasks": [
+        "Design pedal tray with adjustment range",
+        "Design brake pedal with balance bar mounts",
+        "Design throttle pedal with return springs (two springs)",
+        "FEA brake pedal for rule-specified pedal force",
+        "Add stops and over-travel switch mount"
+      ],
+      "pitfalls": [
+        "Pedal too weak for the rule pedal force",
+        "Pedal box adjustment that slips under load"
+      ],
+      "external_inputs": [],
+      "order": 43
+    },
+    {
+      "code": "ERG6",
+      "bucket_key": "ERG",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Shifter, switches & cockpit controls",
+      "owner_role": "Ergonomics engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "ECS",
+        "PT"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Gear shift, shutdown buttons and master switches must be reachable and correctly marked. Poor placement fails inspection or slows the driver.",
+      "done": "Controls positions agreed with ECS.",
+      "tools": "CAD",
+      "rules": "Shutdown buttons, master switch location and marking.",
+      "tasks": [
+        "Choose shift system (mechanical lever, pneumatic, electric)",
+        "Place the cockpit shutdown button within reach with belts tight",
+        "Place master switches where marshals can reach them",
+        "Label switches as the rules require",
+        "Design mounts and request tabs from CH6"
+      ],
+      "pitfalls": [
+        "Kill switch out of driver reach",
+        "Shifter fouling the frame"
+      ],
+      "external_inputs": [],
+      "order": 44
+    },
+    {
+      "code": "ERG7",
+      "bucket_key": "ERG",
+      "phase_key": "P7",
+      "phase_idx": 7,
+      "title": "Seat fitting & egress drills",
+      "owner_role": "Ergonomics lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TEL"
+      ],
+      "loop_keys": [
+        "L8"
+      ],
+      "is_critical": false,
+      "why": "Every driver must get out of the car within the rule time with full gear. Practice also finds snags in seat, wheel and harness.",
+      "done": "All drivers below required time with margin.",
+      "tools": "Stopwatch",
+      "rules": "Driver egress test.",
+      "tasks": [
+        "Fit each driver with their seat insert",
+        "Practice egress with full gear (helmet, gloves, suit)",
+        "Time each driver; record results",
+        "Fix snags (wheel release, belt buckle, insert edges)",
+        "Repeat until all drivers pass with margin"
+      ],
+      "pitfalls": [
+        "Not practising with gloves and helmet",
+        "Only testing the smallest driver"
+      ],
+      "external_inputs": [],
+      "order": 45
+    },
+    {
+      "code": "PT1",
+      "bucket_key": "PT",
+      "phase_key": "P1",
+      "phase_idx": 1,
+      "title": "Engine selection & baseline",
+      "owner_role": "Powertrain lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "FIN",
+        "LOG",
+        "VD"
+      ],
+      "loop_keys": [
+        "L2"
+      ],
+      "is_critical": true,
+      "why": "The single-cylinder engine sets power, mass, packaging, heat load and reliability for the whole season. It is also the longest-lead purchase, so it must be decided early.",
+      "done": "Engine purchased; engine data sheet (bore, stroke, valve timing, ratios, mass) published.",
+      "tools": "Comparison matrix, supplier quotes",
+      "rules": "FS CV1 / FSAE IC: four-stroke, displacement limit, single air restrictor between throttle and engine.",
+      "tasks": [
+        "List single-cylinder candidates within the displacement limit (450–690 cc motocross/enduro/street engines)",
+        "Compare peak power, torque band, dry mass, gearbox ratios, starter, cooling, wet/dry sump",
+        "Check aftermarket ECU / injector / throttle body support",
+        "Check spares price, rebuild interval, availability of a service manual",
+        "Decide carry-over engine vs new; plan spare engine or rebuild kit",
+        "Order engine and long-lead spares; record serial numbers"
+      ],
+      "pitfalls": [
+        "Choosing peak power over reliability and torque band",
+        "No rebuild plan, so engine runs tired at competition"
+      ],
+      "external_inputs": [
+        {
+          "label": "Displacement, four-stroke, restrictor and fuel rules",
+          "source": "Rules"
+        }
+      ],
+      "order": 46
+    },
+    {
+      "code": "PT2",
+      "bucket_key": "PT",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Engine 1D simulation & torque targets",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "AC"
+      ],
+      "loop_keys": [
+        "L2",
+        "L7"
+      ],
+      "is_critical": false,
+      "why": "With a restrictor fitted, intake and exhaust lengths decide where torque lives. The simulation gives VD a realistic torque curve and Aero & Cooling the heat to reject.",
+      "done": "Target torque curve + intake/exhaust geometry released.",
+      "tools": "GT-Power, Ricardo WAVE, Lotus Engine Simulation",
+      "rules": "Restrictor: 20 mm for gasoline, 19 mm for E85 in recent FS/FSAE rules — confirm in current rulebook.",
+      "tasks": [
+        "Build 1D model of engine + restrictor + plenum + runner + exhaust",
+        "Sweep runner length, plenum volume and exhaust primary length",
+        "Choose torque band vs gearing with lap sim (VD2)",
+        "Output torque curve, volumetric efficiency, fuel flow",
+        "Estimate heat rejection to coolant and oil for cooling sizing",
+        "Publish the target torque curve and geometry"
+      ],
+      "pitfalls": [
+        "Uncalibrated model treated as truth",
+        "Optimising peak power the car cannot use"
+      ],
+      "external_inputs": [
+        {
+          "label": "Restrictor diameter and position",
+          "source": "Rules"
+        }
+      ],
+      "order": 47
+    },
+    {
+      "code": "PT3",
+      "bucket_key": "PT",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Intake: restrictor, plenum, runner, throttle",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "AC",
+        "ECS",
+        "ERG"
+      ],
+      "loop_keys": [
+        "L7"
+      ],
+      "is_critical": false,
+      "why": "The restrictor chokes airflow; the venturi, plenum and runner design decide how much power and throttle response survive.",
+      "done": "Intake drawings released; leak-test plan written.",
+      "tools": "CFD (ANSYS Fluent / Star-CCM+ / SimScale), CAD",
+      "rules": "Restrictor location (throttle → restrictor → engine order), intake system location rules (FS CV1 / FSAE IC).",
+      "tasks": [
+        "CFD the converging-diverging restrictor for minimum loss",
+        "Design plenum and runner; check volume vs sim",
+        "Select throttle body; design throttle cable route",
+        "Choose manufacture (SLS/SLA print, CFRP, aluminium) and check heat resistance",
+        "Add bosses for MAP, IAT, injector",
+        "Plan leak test (pressure/vacuum)"
+      ],
+      "pitfalls": [
+        "Leak between restrictor and engine = instant fail",
+        "Printed plenum softening with heat"
+      ],
+      "external_inputs": [],
+      "order": 48
+    },
+    {
+      "code": "PT4",
+      "bucket_key": "PT",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Exhaust & silencer",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "AC",
+        "CH",
+        "ECS"
+      ],
+      "loop_keys": [
+        "L7"
+      ],
+      "is_critical": false,
+      "why": "Exhaust tuning adds torque; the silencer must pass the noise test at the event with margin.",
+      "done": "Exhaust drawings released with heat shield plan.",
+      "tools": "1D sim, CAD, sound level meter",
+      "rules": "FS CV3 exhaust & noise control; FSAE IC exhaust/noise. Noise test at inspection (FS IN10).",
+      "tasks": [
+        "Design header with correct primary length and collector",
+        "Select or design silencer (packing, volume)",
+        "Plan O2 sensor boss for ECS",
+        "Design heat shielding near harness, fuel and composites",
+        "Check outlet height/position rules",
+        "Plan noise test rehearsal"
+      ],
+      "pitfalls": [
+        "Passing noise when new, failing after packing burns out",
+        "Exhaust cooking harness or bodywork"
+      ],
+      "external_inputs": [
+        {
+          "label": "Noise test procedure and limits, outlet position",
+          "source": "Rules"
+        }
+      ],
+      "order": 49
+    },
+    {
+      "code": "PT5",
+      "bucket_key": "PT",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Fuel system: tank, pump, lines, filler",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "ECS",
+        "ERG"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "The fuel system must feed the engine in hard cornering without starving, and must not leak during the tilt test.",
+      "done": "Fuel system drawings and fittings list released.",
+      "tools": "CAD, flow calcs",
+      "rules": "Fuel system location, filler neck, sight tube, venting rules; tilt test (FS IN7).",
+      "tasks": [
+        "Size tank volume for endurance + margin",
+        "Design tank with baffles or a surge pot for lateral g",
+        "Select pump, regulator, filter",
+        "Route lines with rule-compliant fittings and protection",
+        "Design filler neck, sight tube and vent",
+        "Plan pressure and tilt leak tests"
+      ],
+      "pitfalls": [
+        "Starvation at low fuel in long corners",
+        "Lines routed near exhaust"
+      ],
+      "external_inputs": [
+        {
+          "label": "Fuel tank, filler, venting, line and tilt rules",
+          "source": "Rules"
+        }
+      ],
+      "order": 50
+    },
+    {
+      "code": "PT6",
+      "bucket_key": "PT",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Gearing, chain & sprockets",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "CH"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Final drive ratio decides acceleration and how much of the torque curve is used on the track.",
+      "done": "Gear set and guard drawings released.",
+      "tools": "Lap sim, spreadsheet",
+      "rules": "Chain/scatter shield rules (FS T / FSAE T).",
+      "tasks": [
+        "Choose final drive ratio per event (accel vs endurance)",
+        "Select chain size and sprockets; check chain loads",
+        "Design chain guard to rules",
+        "Design chain tension adjustment (eccentric diff carriers)",
+        "Specify spare sprockets for event changes"
+      ],
+      "pitfalls": [
+        "No tension adjustment designed in",
+        "Guard too thin for rules"
+      ],
+      "external_inputs": [],
+      "order": 51
+    },
+    {
+      "code": "PT7",
+      "bucket_key": "PT",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Limited-slip differential & carriers",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "VD"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "The LSD controls traction on corner exit; its carriers take chain pull and must allow chain adjustment.",
+      "done": "LSD spec and carrier drawings released.",
+      "tools": "CAD, FEA",
+      "rules": "—",
+      "tasks": [
+        "Select LSD (torque-sensing or plate type) and preload",
+        "Design diff carriers with eccentric adjustment",
+        "FEA carriers with chain pull + drive torque",
+        "Design sprocket mount to diff",
+        "Request mounting tabs from Chassis"
+      ],
+      "pitfalls": [
+        "Carriers flex and the chain jumps",
+        "No way to adjust chain tension"
+      ],
+      "external_inputs": [],
+      "order": 52
+    },
+    {
+      "code": "PT8",
+      "bucket_key": "PT",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Driveshafts & tripod joints",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "VD"
+      ],
+      "loop_keys": [
+        "L5"
+      ],
+      "is_critical": false,
+      "why": "Transfers torque to the rear hubs through full suspension travel; its spline is a direct interface with the hub.",
+      "done": "Driveshaft drawings released; spline spec agreed with VD8.",
+      "tools": "CAD, kinematics output",
+      "rules": "—",
+      "tasks": [
+        "Select tripod joints and housings",
+        "Check plunge and angle over full travel + steer",
+        "Size shaft for torsional stress and fatigue",
+        "Define hub-side spline spec and send to VD8",
+        "Design boots and retention"
+      ],
+      "pitfalls": [
+        "Plunge runs out at full droop",
+        "Spline designed twice by two teams"
+      ],
+      "external_inputs": [],
+      "order": 53
+    },
+    {
+      "code": "PT9",
+      "bucket_key": "PT",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Engine mounts & packaging",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "TM"
+      ],
+      "loop_keys": [
+        "L4"
+      ],
+      "is_critical": false,
+      "why": "Engine mounts hold the engine against drive and shift loads and decide how low it sits. Engine height is one of the largest single CG items.",
+      "done": "Mount drawings released; engine CG reported.",
+      "tools": "CAD, FEA",
+      "rules": "—",
+      "tasks": [
+        "Position the engine as low as oil pan and exhaust allow",
+        "Design mounts (plate or tube) to frame nodes",
+        "FEA for drive torque, gear-shift and bump loads",
+        "Plan rubber isolation if vibration is a problem",
+        "Report engine and drivetrain mass and CG to TM4"
+      ],
+      "pitfalls": [
+        "Vibration cracks at welds",
+        "Mounts that block engine removal"
+      ],
+      "external_inputs": [],
+      "order": 54
+    },
+    {
+      "code": "PT10",
+      "bucket_key": "PT",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Lubrication & oil system",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "AC",
+        "CH"
+      ],
+      "loop_keys": [
+        "L6"
+      ],
+      "is_critical": false,
+      "why": "Sustained lateral g can starve a wet sump and destroy the engine. Catch cans and breathers are rule items.",
+      "done": "Oil system drawings released.",
+      "tools": "CAD",
+      "rules": "Catch can and breather rules.",
+      "tasks": [
+        "Decide wet sump with baffles vs dry sump",
+        "Check oil pickup under sustained lateral g",
+        "Design catch cans and breather routing",
+        "Decide oil cooler need with Aero & Cooling",
+        "Design oil fill and drain access"
+      ],
+      "pitfalls": [
+        "Oil starvation in skidpad",
+        "Breather vent dripping on exhaust"
+      ],
+      "external_inputs": [],
+      "order": 55
+    },
+    {
+      "code": "PT12",
+      "bucket_key": "PT",
+      "phase_key": "P5",
+      "phase_idx": 5,
+      "title": "Powertrain manufacture & procurement",
+      "owner_role": "Powertrain lead",
+      "accountable": "",
+      "contributor_keys": [
+        "LOG",
+        "FIN"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Makes and buys every powertrain part on time and inspects it before assembly, so first fire is not delayed by a missing fitting.",
+      "done": "Complete powertrain kit inspected and labelled.",
+      "tools": "Workshop, suppliers",
+      "rules": "—",
+      "tasks": [
+        "Order injector, throttle body, fuel pump, fittings",
+        "Make intake, exhaust, mounts, diff carriers",
+        "Inspect or rebuild the engine; record clearances",
+        "Inspect every part against its drawing",
+        "Label and store parts by assembly order"
+      ],
+      "pitfalls": [
+        "Late imported parts stop first fire",
+        "Engine rebuilt without recording clearances"
+      ],
+      "external_inputs": [],
+      "order": 56
+    },
+    {
+      "code": "PT11",
+      "bucket_key": "PT",
+      "phase_key": "P6",
+      "phase_idx": 6,
+      "title": "Engine dyno & base calibration",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "ECS"
+      ],
+      "loop_keys": [
+        "L7"
+      ],
+      "is_critical": false,
+      "why": "Measures real torque, closes the loop with the simulation and produces a safe base map before the car runs on track.",
+      "done": "Base map validated; measured torque curve published.",
+      "tools": "Engine/chassis dyno, wideband lambda, ECU software",
+      "rules": "—",
+      "tasks": [
+        "Run engine on dyno (or chassis dyno / in-car with logging)",
+        "Map fuel (lambda) and ignition per rpm/load",
+        "Measure torque curve vs PT2 prediction",
+        "Test cooling and oil temperatures under load",
+        "Feed results back to PT2 and VD2"
+      ],
+      "pitfalls": [
+        "No dyno access, so the map is built on track only",
+        "Running lean during dyno pulls"
+      ],
+      "external_inputs": [],
+      "order": 57
+    },
+    {
+      "code": "PT13",
+      "bucket_key": "PT",
+      "phase_key": "P6",
+      "phase_idx": 6,
+      "title": "Powertrain install & first fire",
+      "owner_role": "Powertrain lead",
+      "accountable": "",
+      "contributor_keys": [
+        "ECS",
+        "CH",
+        "AC"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "The engine running inside the car is the first big assembly milestone. It also proves fuel, cooling, electrics and shutdown work together.",
+      "done": "Engine runs in car; no leaks.",
+      "tools": "Workshop, fire extinguisher",
+      "rules": "Shutdown must kill the engine (ECS7).",
+      "tasks": [
+        "Install engine, mounts, diff, chain, driveshafts",
+        "Fill and bleed coolant; fill oil",
+        "Install fuel system; pressure-test lines",
+        "First fire with fire extinguisher ready",
+        "Check leaks, temperatures, shutdown function"
+      ],
+      "pitfalls": [
+        "Fuel leaks found with a hot engine",
+        "No fire extinguisher ready at first fire"
+      ],
+      "external_inputs": [],
+      "order": 58
+    },
+    {
+      "code": "PT14",
+      "bucket_key": "PT",
+      "phase_key": "P7",
+      "phase_idx": 7,
+      "title": "Noise test & tilt rehearsal",
+      "owner_role": "Powertrain engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "ECS"
+      ],
+      "loop_keys": [
+        "L7"
+      ],
+      "is_critical": false,
+      "why": "Noise and tilt are pass/fail tests at inspection. Rehearsing them makes the event a formality and leaves time to fix a silencer.",
+      "done": "Measured noise below limit with margin.",
+      "tools": "Sound level meter, tilt table if available",
+      "rules": "Noise test (FS IN10), tilt test (FS IN7); FSAE IN equivalents.",
+      "tasks": [
+        "Measure noise at idle and at the rule test rpm",
+        "Repack or modify the silencer if close to the limit",
+        "Fill fuel to rule level; tilt check for leaks",
+        "Check catch cans and breathers during tilt",
+        "Record results for the scrutineering file"
+      ],
+      "pitfalls": [
+        "Testing noise only with a cold engine",
+        "Silencer packing burning out over the season"
+      ],
+      "external_inputs": [
+        {
+          "label": "Noise test rpm and limits; tilt procedure",
+          "source": "Rules"
+        }
+      ],
+      "order": 59
+    },
+    {
+      "code": "AC1",
+      "bucket_key": "AC",
+      "phase_key": "P1",
+      "phase_idx": 1,
+      "title": "Aero concept & targets",
+      "owner_role": "Aero lead",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "TM"
+      ],
+      "loop_keys": [
+        "L2",
+        "L6"
+      ],
+      "is_critical": false,
+      "why": "Decides how much downforce and drag the car carries and where the centre of pressure sits. Feeds lap sim and load cases.",
+      "done": "Aero targets in VRD.",
+      "tools": "Lap sim, hand calcs, past CFD",
+      "rules": "Aerodynamic device rules (FS T / FSAE T): position, height, width limits.",
+      "tasks": [
+        "Decide package: front wing, rear wing, undertray/diffuser, sidepods",
+        "Set CLA, CDA and aero balance (% front) targets",
+        "Estimate aero mass",
+        "Feed coefficients to lap sim",
+        "Estimate peak downforce for load cases"
+      ],
+      "pitfalls": [
+        "Aero balance not matched to mechanical balance",
+        "Aero mass ignored in the lap sim"
+      ],
+      "external_inputs": [
+        {
+          "label": "Aero device dimension and position limits",
+          "source": "Rules"
+        }
+      ],
+      "order": 60
+    },
+    {
+      "code": "AC2",
+      "bucket_key": "AC",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Cooling system sizing",
+      "owner_role": "Cooling engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "PT",
+        "TM"
+      ],
+      "loop_keys": [
+        "L6"
+      ],
+      "is_critical": false,
+      "why": "An overheating engine ends endurance. Radiator size and position fight aero and packaging.",
+      "done": "Radiator spec and envelope released.",
+      "tools": "Heat exchanger calcs, CFD",
+      "rules": "Coolant and overflow rules (water-only coolant where specified).",
+      "tasks": [
+        "Calculate heat to reject at worst case",
+        "Size radiator core and fan",
+        "Choose position (sidepod, behind driver)",
+        "Estimate airflow through duct",
+        "Plan coolant routing and overflow"
+      ],
+      "pitfalls": [
+        "Sizing for cool UK weather and overheating in Japan's summer heat",
+        "Fan not considered for slow autocross sections"
+      ],
+      "external_inputs": [
+        {
+          "label": "Ambient temperatures at FS Japan and FS UK",
+          "source": "Climate"
+        }
+      ],
+      "order": 61
+    },
+    {
+      "code": "AC3",
+      "bucket_key": "AC",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Aero CFD & package design",
+      "owner_role": "Aero lead",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "CH",
+        "PT"
+      ],
+      "loop_keys": [
+        "L4",
+        "L6"
+      ],
+      "is_critical": false,
+      "why": "Turns the aero targets into wing profiles and surfaces, with downforce, drag and balance checked across ride height and yaw.",
+      "done": "Aero package frozen.",
+      "tools": "Star-CCM+, Fluent, OpenFOAM, SimScale",
+      "rules": "Aero device dimensions.",
+      "tasks": [
+        "Select wing profiles and element counts",
+        "Full-car CFD at straight and cornering conditions",
+        "Check sensitivity to ride height and yaw",
+        "Iterate for balance",
+        "Report final CLA, CDA, balance, mass"
+      ],
+      "pitfalls": [
+        "CFD never validated on track",
+        "Package sensitive to ride height changes"
+      ],
+      "external_inputs": [],
+      "order": 62
+    },
+    {
+      "code": "AC4",
+      "bucket_key": "AC",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Wing mounts & aero structures",
+      "owner_role": "Aero engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "VD"
+      ],
+      "loop_keys": [
+        "L4",
+        "L5"
+      ],
+      "is_critical": false,
+      "why": "Wings must stay attached, stay stable and not deflect beyond the rules under load. Mounts also add mass high up, so they matter for CG.",
+      "done": "Mount drawings released.",
+      "tools": "CAD, FEA",
+      "rules": "Aero device stability and deflection rules.",
+      "tasks": [
+        "Design wing mounts, pylons and endplates",
+        "FEA under peak aero load plus inertia and bump loads",
+        "Check deflection against rule limits",
+        "Design adjustment for wing angle",
+        "Request mounting tabs from CH6"
+      ],
+      "pitfalls": [
+        "Wing flutter at speed",
+        "Mounts too weak for a cone strike"
+      ],
+      "external_inputs": [],
+      "order": 63
+    },
+    {
+      "code": "AC5",
+      "bucket_key": "AC",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Bodywork, nose cone & sidepods",
+      "owner_role": "Aero engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "CH",
+        "BUS",
+        "ECS"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Bodywork covers the frame, wraps the impact attenuator, carries sponsor branding and guides air into the radiator and around the driver.",
+      "done": "Bodywork surfaces and panel drawings released.",
+      "tools": "CAD surfacing (SolidWorks/CATIA/Rhino)",
+      "rules": "Bodywork, sharp edge and opening rules; visibility of switches and numbers.",
+      "tasks": [
+        "Surface nose, sidepods and engine cover from the CAD skeleton",
+        "Split into removable panels with quick fasteners for service",
+        "Leave cut-outs/access for master switches, filler neck, jacking",
+        "Plan mould split lines and draft angles",
+        "Check all edges against minimum radius rules",
+        "Export flat logo areas to Business & Brand"
+      ],
+      "pitfalls": [
+        "Sharp edges fail inspection",
+        "Panels that need 20 minutes to remove at the event"
+      ],
+      "external_inputs": [],
+      "order": 64
+    },
+    {
+      "code": "AC6",
+      "bucket_key": "AC",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Cooling installation design",
+      "owner_role": "Cooling engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "PT",
+        "ECS",
+        "CH"
+      ],
+      "loop_keys": [
+        "L6"
+      ],
+      "is_critical": false,
+      "why": "Ducts, hoses, fan and overflow decide whether the sized radiator actually gets air and coolant.",
+      "done": "Cooling installation drawings and hose list released.",
+      "tools": "CAD, CFD on duct",
+      "rules": "Coolant type and overflow/catch rules.",
+      "tasks": [
+        "Design inlet and outlet ducts with sealed sides so air cannot bypass the core",
+        "Route hoses with minimum bends; select clamps and fittings",
+        "Place expansion/overflow bottle to rules",
+        "Mount fan with shroud; agree fan control with ECS",
+        "Add coolant temperature sensor bosses",
+        "Design radiator mounts with vibration isolation"
+      ],
+      "pitfalls": [
+        "Air leaking around the core",
+        "Hoses chafing on frame"
+      ],
+      "external_inputs": [],
+      "order": 65
+    },
+    {
+      "code": "AC7",
+      "bucket_key": "AC",
+      "phase_key": "P5",
+      "phase_idx": 5,
+      "title": "Composite manufacture & cooling procurement",
+      "owner_role": "Aero lead",
+      "accountable": "",
+      "contributor_keys": [
+        "LOG",
+        "FIN"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Makes moulds, wings and bodywork, and buys the radiator, fan and hoses. Composite parts take weeks, so they must start right after release.",
+      "done": "Aero and cooling parts ready for fit-up.",
+      "tools": "Composites shop, vacuum bagging, oven if available",
+      "rules": "—",
+      "tasks": [
+        "Machine or build plugs and moulds (MDF/foam/tooling board)",
+        "Layup wings, endplates, bodywork; cure; trim",
+        "Bond inserts for mounts",
+        "Procure radiator, fan, hoses, clamps",
+        "Weigh parts and report to TM4",
+        "Inspect surface finish and fit on frame"
+      ],
+      "pitfalls": [
+        "Moulds started late, so bodywork arrives after testing",
+        "Poor mould finish needing hours of sanding"
+      ],
+      "external_inputs": [],
+      "order": 66
+    },
+    {
+      "code": "AC8",
+      "bucket_key": "AC",
+      "phase_key": "P7",
+      "phase_idx": 7,
+      "title": "Aero & cooling validation",
+      "owner_role": "Aero lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TEL",
+        "VD"
+      ],
+      "loop_keys": [
+        "L8"
+      ],
+      "is_critical": false,
+      "why": "Confirms the real downforce, drag and cooling performance so the setup and future designs rest on data.",
+      "done": "Validation report: predicted vs measured.",
+      "tools": "Data logger, tufts, flow-vis paint",
+      "rules": "—",
+      "tasks": [
+        "Coastdown test for drag",
+        "Suspension-displacement or load-based downforce estimate at speed",
+        "Wool tufts / flow-vis paint on wings and sidepods",
+        "Log coolant and oil temperatures across endurance runs",
+        "Compare with predictions; adjust wing angles"
+      ],
+      "pitfalls": [
+        "No baseline run without aero to compare",
+        "Temperatures logged only on cool days"
+      ],
+      "external_inputs": [],
+      "order": 67
+    },
+    {
+      "code": "BR1",
+      "bucket_key": "BR",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Braking targets & brake force distribution",
+      "owner_role": "Braking lead",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "TM"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Sets the deceleration target and the ideal front/rear split from load transfer. Every brake component is sized from these numbers.",
+      "done": "Braking target sheet approved.",
+      "tools": "MATLAB/spreadsheet",
+      "rules": "Brake test requires locking all four wheels (FS IN11 / FSAE IN).",
+      "tasks": [
+        "Compute dynamic axle loads at target deceleration",
+        "Plot ideal brake force distribution curve",
+        "Choose design bias with margin to avoid rear lock first",
+        "Define target pedal force and pedal travel",
+        "Publish braking target sheet"
+      ],
+      "pitfalls": [
+        "Bias computed with static CG only",
+        "Ignoring downforce at braking speed"
+      ],
+      "external_inputs": [],
+      "order": 68
+    },
+    {
+      "code": "BR2",
+      "bucket_key": "BR",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Brake component sizing",
+      "owner_role": "Braking lead",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "ERG"
+      ],
+      "loop_keys": [
+        "L3"
+      ],
+      "is_critical": false,
+      "why": "Picks calipers, rotors, master cylinders, pedal ratio and balance bar. Caliper and rotor size decide the space VD has inside the wheel.",
+      "done": "Component spec sheet released.",
+      "tools": "Spreadsheet, supplier data, thermal calc",
+      "rules": "Two independent hydraulic circuits; brake system rules (FS T / FSAE T).",
+      "tasks": [
+        "Choose caliper (piston area) per axle",
+        "Size rotor diameter and thickness; estimate temperature over endurance",
+        "Choose master cylinder bores front/rear and pedal ratio",
+        "Check line pressure and pedal travel",
+        "Specify balance bar and adjustment range",
+        "Send caliper and rotor envelope to VD4/VD7"
+      ],
+      "pitfalls": [
+        "Caliper that fouls the 10-inch rim barrel",
+        "Pedal ratio too low, needing huge pedal force"
+      ],
+      "external_inputs": [
+        {
+          "label": "Dual-circuit and brake system rules",
+          "source": "Rules"
+        }
+      ],
+      "order": 69
+    },
+    {
+      "code": "BR3",
+      "bucket_key": "BR",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Rotor & mounting design",
+      "owner_role": "Braking engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "VD"
+      ],
+      "loop_keys": [
+        "L5"
+      ],
+      "is_critical": false,
+      "why": "Rotor must handle heat and mount to the hub. The mounting pattern is a direct input to the hub design.",
+      "done": "Rotor drawing and mounting spec released.",
+      "tools": "CAD, FEA, thermal calc",
+      "rules": "—",
+      "tasks": [
+        "Design rotor (laser cut steel, floating or fixed)",
+        "Design drilling/slotting for mass and pad cleaning",
+        "Define mounting PCD, bolt size, bobbins if floating",
+        "Thermal and stress check",
+        "Send mounting spec to hub designer"
+      ],
+      "pitfalls": [
+        "Rotor warping from no thermal expansion allowance",
+        "Mounting PCD changed after hub drawing release"
+      ],
+      "external_inputs": [],
+      "order": 70
+    },
+    {
+      "code": "BR4",
+      "bucket_key": "BR",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Caliper mounting & brake lines",
+      "owner_role": "Braking engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "CH"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Caliper mounting on the upright and line routing affect pedal stiffness, bleeding and safety. Bleed screws must end up at the top.",
+      "done": "Mounting and line routing drawings released.",
+      "tools": "CAD",
+      "rules": "Line protection and mounting rules.",
+      "tasks": [
+        "Define caliper mounting points on upright",
+        "Design spacers and shims for alignment",
+        "Route hard and flexible lines with protection",
+        "Position bleed nipples at the top",
+        "Specify fittings"
+      ],
+      "pitfalls": [
+        "Bleed screws at the bottom",
+        "Flexible lines rubbing on wheels at full steer"
+      ],
+      "external_inputs": [],
+      "order": 71
+    },
+    {
+      "code": "BR5",
+      "bucket_key": "BR",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Brake light & over-travel switch",
+      "owner_role": "Braking engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "ECS",
+        "ERG"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "The brake light and brake over-travel switch are rule-required safety items. They link the pedal box with the shutdown circuit, so Braking and ECS must agree on them.",
+      "done": "Switch positions in pedal drawings.",
+      "tools": "CAD",
+      "rules": "Brake light and brake over-travel switch rules.",
+      "tasks": [
+        "Select brake pressure switch for the brake light",
+        "Design over-travel switch position on the pedal box",
+        "Agree wiring and logic with ECS",
+        "Test switch trigger point on the bench",
+        "Document for scrutineering"
+      ],
+      "pitfalls": [
+        "Switch triggers during normal hard braking",
+        "Brake light too dim in daylight"
+      ],
+      "external_inputs": [],
+      "order": 72
+    },
+    {
+      "code": "BR6",
+      "bucket_key": "BR",
+      "phase_key": "P6",
+      "phase_idx": 6,
+      "title": "Brake installation, bleeding & bedding",
+      "owner_role": "Braking lead",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "LOG"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "A firm, consistent pedal comes from clean assembly, correct bleeding and bedded pads; inspectors push hard on the pedal.",
+      "done": "Firm pedal, no leaks, run-out within limit.",
+      "tools": "Bleed kit, dial gauge, torque wrench, pressure gauges",
+      "rules": "Brake system inspection items (dual circuit, reservoirs, line protection).",
+      "tasks": [
+        "Install master cylinders, balance bar, reservoirs",
+        "Fit calipers with spacers; check rotor centring and run-out",
+        "Install lines; torque fittings; leak-check under pressure",
+        "Bleed each circuit (furthest corner first)",
+        "Bed in pads and rotors with a defined procedure",
+        "Set initial balance bar position from BR1"
+      ],
+      "pitfalls": [
+        "Air trapped because bleed screws face down",
+        "Wrong fluid or contaminated pads"
+      ],
+      "external_inputs": [],
+      "order": 73
+    },
+    {
+      "code": "BR7",
+      "bucket_key": "BR",
+      "phase_key": "P7",
+      "phase_idx": 7,
+      "title": "Brake test rehearsal & bias tuning",
+      "owner_role": "Braking lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TEL",
+        "VD"
+      ],
+      "loop_keys": [
+        "L8"
+      ],
+      "is_critical": false,
+      "why": "The brake test is pass/fail and requires all four wheels to lock. Bias also changes lap time and driver confidence.",
+      "done": "Repeatable 4-wheel lock; bias documented.",
+      "tools": "Line pressure sensors, wheel speed data",
+      "rules": "Brake test (FS IN11 / FSAE IN).",
+      "tasks": [
+        "Practice the brake test sequence from the rulebook",
+        "Adjust balance bar until all four lock reliably",
+        "Log front/rear pressure; compare with BR1 prediction",
+        "Check pad and rotor temperatures after endurance runs",
+        "Write brake test procedure card for drivers"
+      ],
+      "pitfalls": [
+        "Rears will not lock because bias is too far forward",
+        "Bias set cold and never re-checked hot"
+      ],
+      "external_inputs": [],
+      "order": 74
+    },
+    {
+      "code": "ECS1",
+      "bucket_key": "ECS",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Electrical architecture & shutdown circuit",
+      "owner_role": "ECS lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "ERG",
+        "BR",
+        "PT"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Defines every electrical device, power supply and the rule-required shutdown circuit. All other electrical work follows this.",
+      "done": "Architecture and shutdown schematic approved.",
+      "tools": "KiCad / draw.io / Visio",
+      "rules": "CV electrical, master switch, shutdown buttons and brake light rules — check FS CV and FSAE IC/T electrical sections.",
+      "tasks": [
+        "Make a block diagram of all electrical devices",
+        "Design shutdown circuit: master switch, shutdown buttons, inertia switch, BOTS",
+        "Define power budget and fuse/relay layout",
+        "Pick connector family and wire gauges",
+        "Write the electrical system description for inspection"
+      ],
+      "pitfalls": [
+        "Shutdown circuit not killing fuel pump and ignition",
+        "No fuse for each circuit"
+      ],
+      "external_inputs": [],
+      "order": 75
+    },
+    {
+      "code": "ECS2",
+      "bucket_key": "ECS",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "ECU selection & sensor plan",
+      "owner_role": "ECS engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "PT",
+        "TEL"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "The ECU runs the engine and often logs data; its inputs decide which sensors Powertrain must package.",
+      "done": "ECU and sensor list frozen.",
+      "tools": "ECU documentation",
+      "rules": "—",
+      "tasks": [
+        "Choose a standalone ECU or modified OEM ECU",
+        "List sensors: crank, cam, MAP, IAT, TPS, lambda, coolant, oil, fuel pressure",
+        "Decide CAN bus layout to dash and logger",
+        "Send sensor positions to PT3, PT4, PT5",
+        "Check ECU support for shift cut and launch control"
+      ],
+      "pitfalls": [
+        "ECU without enough inputs",
+        "No support or tuning knowledge locally"
+      ],
+      "external_inputs": [],
+      "order": 76
+    },
+    {
+      "code": "ECS3",
+      "bucket_key": "ECS",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Wiring harness design",
+      "owner_role": "ECS engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "CH",
+        "PT"
+      ],
+      "loop_keys": [
+        "L4"
+      ],
+      "is_critical": false,
+      "why": "The harness connects every sensor, actuator and switch. Most race-weekend failures are wiring, so routing, protection and labelling matter as much as the schematic.",
+      "done": "Harness drawing released.",
+      "tools": "CAD, harness design software",
+      "rules": "Wiring protection rules.",
+      "tasks": [
+        "Draw wiring diagram pin-to-pin",
+        "Route harness in CAD; measure lengths",
+        "Choose sleeving and strain relief",
+        "Plan service loops and labels",
+        "Report harness mass"
+      ],
+      "pitfalls": [
+        "Harness routed near the exhaust",
+        "Connectors that cannot be unplugged without tools"
+      ],
+      "external_inputs": [],
+      "order": 77
+    },
+    {
+      "code": "ECS4",
+      "bucket_key": "ECS",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Battery, LV power, fuses & relays",
+      "owner_role": "ECS engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "PT",
+        "AC"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Low-voltage power must start the engine and run pump, fan, ECU and logger reliably through a long endurance run with a hot restart.",
+      "done": "Power distribution design released.",
+      "tools": "Spreadsheet",
+      "rules": "Battery mounting and protection rules.",
+      "tasks": [
+        "Size battery for cranking and run time",
+        "Design power distribution (fuse box or PDM)",
+        "Check charging from the engine stator/alternator",
+        "Design battery mount and protection to rules",
+        "Plan hot-restart test for endurance driver change"
+      ],
+      "pitfalls": [
+        "Battery flat after a few starts",
+        "Battery not secured to rules"
+      ],
+      "external_inputs": [],
+      "order": 78
+    },
+    {
+      "code": "ECS5",
+      "bucket_key": "ECS",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Dashboard, steering-wheel electronics & shift",
+      "owner_role": "ECS engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "ERG",
+        "TEL",
+        "PT"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "The driver interface: shift lights, gear display, warnings and buttons. A failed wheel connector can end a run.",
+      "done": "Wheel and dash electronics working on the bench.",
+      "tools": "KiCad, dash configuration software, bench power supply",
+      "rules": "Steering wheel must remove with quick release; wiring must not hinder it.",
+      "tasks": [
+        "Choose dash or build a CAN display; define warning pages (oil P, water T, low fuel, low battery)",
+        "Design steering-wheel PCB, buttons, paddle switches",
+        "Choose quick-release connector that survives repeated removal",
+        "Design shift actuator control (ignition cut / blip if supported)",
+        "Define shift-light rpm per gear from PT2 torque curve",
+        "Bench-test the wheel before installation"
+      ],
+      "pitfalls": [
+        "Wheel connector failing after 50 removals",
+        "Warnings nobody can read while driving"
+      ],
+      "external_inputs": [],
+      "order": 79
+    },
+    {
+      "code": "ECS6",
+      "bucket_key": "ECS",
+      "phase_key": "P5",
+      "phase_idx": 5,
+      "title": "Harness manufacture",
+      "owner_role": "ECS lead",
+      "accountable": "",
+      "contributor_keys": [
+        "LOG"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Building the harness on a board, away from the car, makes it faster to install and far more reliable.",
+      "done": "Harness passes 100% continuity check; as-built drawing updated.",
+      "tools": "Harness board, ratchet crimpers, multimeter",
+      "rules": "—",
+      "tasks": [
+        "Build a 1:1 harness board from CAD lengths",
+        "Crimp with correct tools; pull-test sample crimps",
+        "Label every wire and connector both ends",
+        "Heat-shrink and sleeve branches; add strain relief",
+        "Continuity and insulation check every circuit",
+        "Document as-built changes"
+      ],
+      "pitfalls": [
+        "Cheap crimpers causing intermittent faults",
+        "No labels, so faults take hours to trace"
+      ],
+      "external_inputs": [],
+      "order": 80
+    },
+    {
+      "code": "ECS7",
+      "bucket_key": "ECS",
+      "phase_key": "P6",
+      "phase_idx": 6,
+      "title": "Electrical install & shutdown functional test",
+      "owner_role": "ECS lead",
+      "accountable": "",
+      "contributor_keys": [
+        "PT",
+        "TM",
+        "BR"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "Gets the car electrically alive and proves every rule-required safety function before the engine runs.",
+      "done": "Signed electrical sign-off sheet.",
+      "tools": "Multimeter, test checklist",
+      "rules": "Shutdown circuit, master switch, brake light inspection items.",
+      "tasks": [
+        "Install harness; clip every 150-200 mm; protect at edges",
+        "Power up in stages: dash, ECU, sensors, pump, ignition",
+        "Test every shutdown button, master switch, inertia switch and BOTS kills the engine",
+        "Test brake light brightness and visibility",
+        "Check all sensor readings make sense",
+        "Record the test on a sign-off sheet"
+      ],
+      "pitfalls": [
+        "Shutdown kills ignition but fuel pump keeps running",
+        "Harness pinched by bodywork"
+      ],
+      "external_inputs": [],
+      "order": 81
+    },
+    {
+      "code": "ECS8",
+      "bucket_key": "ECS",
+      "phase_key": "P6",
+      "phase_idx": 6,
+      "title": "ECU base map & calibration",
+      "owner_role": "ECS engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "PT",
+        "TEL"
+      ],
+      "loop_keys": [
+        "L7",
+        "L8"
+      ],
+      "is_critical": false,
+      "why": "A safe base map lets the engine start and run; track calibration then improves drivability and fuel use.",
+      "done": "Calibrated map + backup copies saved.",
+      "tools": "ECU tuning software, wideband lambda",
+      "rules": "—",
+      "tasks": [
+        "Configure ECU: trigger, injector data, sensor calibrations",
+        "Build start-up and idle map",
+        "Create safe rev limit and cold-start settings",
+        "Tune fuel and ignition on dyno, then on track",
+        "Tune throttle response for drivability",
+        "Set up logging channels for engine health"
+      ],
+      "pitfalls": [
+        "Running lean at full load",
+        "No backup of the working map"
+      ],
+      "external_inputs": [],
+      "order": 82
+    },
+    {
+      "code": "TEL1",
+      "bucket_key": "TEL",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Data acquisition plan & channel list",
+      "owner_role": "Telemetry lead",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "PT",
+        "ECS",
+        "AC",
+        "BR"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Decides what the car will measure. Sensors must be designed in now; adding them after build means drilling and splicing.",
+      "done": "Channel list frozen and in ICD.",
+      "tools": "Spreadsheet",
+      "rules": "—",
+      "tasks": [
+        "Collect what each subteam wants to prove with data",
+        "Write channel list: sensor, range, sample rate, location, owner",
+        "Choose logger (ECU internal, dash logger, standalone)",
+        "Prioritise: must-have (engine safety, speed, g, steering, brakes) vs nice-to-have",
+        "Send sensor mounting needs to designers via ICD"
+      ],
+      "pitfalls": [
+        "Sensors chosen after the parts are made",
+        "Logging at too low a sample rate"
+      ],
+      "external_inputs": [],
+      "order": 83
+    },
+    {
+      "code": "TEL2",
+      "bucket_key": "TEL",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Logger & telemetry setup",
+      "owner_role": "Telemetry engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "ECS"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Logger hardware and software must be set up and tested before the car runs, so the first shakedown already gives usable data.",
+      "done": "Bench logging verified on all channels.",
+      "tools": "Logger software, calibration rigs",
+      "rules": "—",
+      "tasks": [
+        "Configure logger channels, scaling and sample rates",
+        "Calibrate sensors (steering, damper pots, pressure)",
+        "Set up live telemetry radio if used",
+        "Bench-test full logging chain",
+        "Create a data file naming and backup routine"
+      ],
+      "pitfalls": [
+        "Unscaled channels, so nobody knows what the numbers mean",
+        "Data lost because nobody backed it up"
+      ],
+      "external_inputs": [],
+      "order": 84
+    },
+    {
+      "code": "TEL3",
+      "bucket_key": "TEL",
+      "phase_key": "P1",
+      "phase_idx": 1,
+      "title": "Driver selection & training programme",
+      "owner_role": "Driver training lead",
+      "accountable": "",
+      "contributor_keys": [
+        "ERG",
+        "TM"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Driver skill is one of the cheapest sources of points. Training must start long before the car exists.",
+      "done": "Driver pool selected; training log started.",
+      "tools": "Karting track, sim rig, lap timers",
+      "rules": "Driver requirements in both rulebooks.",
+      "tasks": [
+        "Select a driver pool (at least 4 for event and endurance changes)",
+        "Karting and simulator sessions with lap timing",
+        "Teach FS event formats and rules (flags, cones, driver change)",
+        "Collect body measurements for ergonomics",
+        "Rank drivers per event type"
+      ],
+      "pitfalls": [
+        "Only one experienced driver",
+        "Drivers chosen by seniority, not by lap times"
+      ],
+      "external_inputs": [
+        {
+          "label": "Candidate drivers' experience",
+          "source": "Drivers"
+        }
+      ],
+      "order": 85
+    },
+    {
+      "code": "TEL4",
+      "bucket_key": "TEL",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Data analysis toolchain",
+      "owner_role": "Telemetry engineer",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "PT"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Raw logs are useless without math channels and standard reports that every subteam can read quickly after a run.",
+      "done": "Report templates working on sample data.",
+      "tools": "MoTeC i2, MATLAB, Python",
+      "rules": "—",
+      "tasks": [
+        "Create math channels: roll gradient, understeer gradient, slip, lap time",
+        "Build a standard report per run (engine health, brakes, VD)",
+        "Write a short guide for each subteam",
+        "Set up comparison overlays between drivers",
+        "Train at least two people to use the tools"
+      ],
+      "pitfalls": [
+        "Only one person can read the data",
+        "Reports so long nobody reads them"
+      ],
+      "external_inputs": [],
+      "order": 86
+    },
+    {
+      "code": "TEL5",
+      "bucket_key": "TEL",
+      "phase_key": "P7",
+      "phase_idx": 7,
+      "title": "Test data & driver coaching loop",
+      "owner_role": "Telemetry lead",
+      "accountable": "",
+      "contributor_keys": [
+        "VD",
+        "PT",
+        "BR",
+        "AC",
+        "TM"
+      ],
+      "loop_keys": [
+        "L1",
+        "L8"
+      ],
+      "is_critical": false,
+      "why": "Turns every test run into setup decisions and better drivers. Without this loop, testing only adds kilometres.",
+      "done": "Data archive with debrief notes per session.",
+      "tools": "Data analysis tools",
+      "rules": "—",
+      "tasks": [
+        "Download and back up data after each run",
+        "Produce the standard report within minutes",
+        "Debrief drivers with data overlays",
+        "Feed findings to VD15, BR7, AC8, ECS8",
+        "Archive data with setup sheet and weather"
+      ],
+      "pitfalls": [
+        "Data collected but never reviewed",
+        "Setup changes not linked to data files"
+      ],
+      "external_inputs": [],
+      "order": 87
+    },
+    {
+      "code": "TEL6",
+      "bucket_key": "TEL",
+      "phase_key": "P8",
+      "phase_idx": 8,
+      "title": "Driver line-up & dynamic events",
+      "owner_role": "Driver training lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "VD"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Each dynamic event rewards different skills. The line-up, run plan and endurance driver change can win or lose many points.",
+      "done": "Line-up and run plan approved by TM11.",
+      "tools": "Run sheets",
+      "rules": "FS D / FSAE D driving rules.",
+      "tasks": [
+        "Assign drivers to acceleration, skidpad, autocross and endurance",
+        "Plan run order and setup changes between runs",
+        "Rehearse endurance driver change within the time limit",
+        "Brief drivers on track walk, flags and penalties",
+        "Plan fuel and tyre use for endurance"
+      ],
+      "pitfalls": [
+        "Cone penalties throw away points",
+        "Driver change slower than practised"
+      ],
+      "external_inputs": [
+        {
+          "label": "Event-specific driving rules and run counts",
+          "source": "Handbook"
+        }
+      ],
+      "order": 88
+    },
+    {
+      "code": "DOC1",
+      "bucket_key": "DOC",
+      "phase_key": "P0",
+      "phase_idx": 0,
+      "title": "Document register & deadline tracker",
+      "owner_role": "Documentation lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "FIN",
+        "BUS"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Missed deadlines cost points or entry. One tracker covers every submission for both competitions.",
+      "done": "Tracker live with owners.",
+      "tools": "Shared tracker",
+      "rules": "FS A5 documentation & deadlines; FSAEJ participation rules.",
+      "tasks": [
+        "List every submission for each event (e.g. FS UK DCS, structural documents, design report, cost report, business plan items)",
+        "Record template, format, page limit, deadline and owner",
+        "Set internal deadlines one to two weeks earlier",
+        "Send weekly reminders to owners",
+        "Archive every submitted version"
+      ],
+      "pitfalls": [
+        "Deadlines in different time zones",
+        "Template version changed after the work started"
+      ],
+      "external_inputs": [
+        {
+          "label": "FS UK and FSAEJ deadlines and templates",
+          "source": "Handbooks"
+        }
+      ],
+      "order": 89
+    },
+    {
+      "code": "DOC2",
+      "bucket_key": "DOC",
+      "phase_key": "P4",
+      "phase_idx": 4,
+      "title": "Engineering design report & spec sheet",
+      "owner_role": "Documentation lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "VD",
+        "CH",
+        "PT",
+        "AC",
+        "BR",
+        "ECS",
+        "ERG"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "The design report is how judges first see the car. It must show the reasoning chain, not only results.",
+      "done": "Submitted before deadline.",
+      "tools": "Word/LaTeX",
+      "rules": "Design report rules (FS S5 / FSAE S).",
+      "tasks": [
+        "Collect sections from each lead using one template",
+        "Edit into one consistent story from targets to validation",
+        "Fill the design spec sheet with checked numbers",
+        "Check page limit and format",
+        "Proof-read, then submit before the deadline"
+      ],
+      "pitfalls": [
+        "Writing everything the night before",
+        "Numbers in the report that differ from the car"
+      ],
+      "external_inputs": [],
+      "order": 90
+    },
+    {
+      "code": "DOC3",
+      "bucket_key": "DOC",
+      "phase_key": "P4",
+      "phase_idx": 4,
+      "title": "Structural & IA submission compile",
+      "owner_role": "Documentation lead",
+      "accountable": "",
+      "contributor_keys": [
+        "CH"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Supports Chassis so the structural and impact-attenuator submissions meet every format rule and deadline for both competitions.",
+      "done": "Submissions approved.",
+      "tools": "Tracker",
+      "rules": "Structural and IA documentation rules.",
+      "tasks": [
+        "Check templates are the current version",
+        "Check every required field and attachment",
+        "Submit and archive the confirmation",
+        "Track reviewer comments and resubmission deadlines",
+        "Keep approved copies for the scrutineering file"
+      ],
+      "pitfalls": [
+        "Wrong template version",
+        "Missing reviewer feedback in an unread inbox"
+      ],
+      "external_inputs": [],
+      "order": 91
+    },
+    {
+      "code": "DOC4",
+      "bucket_key": "DOC",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Drawing control & BOM",
+      "owner_role": "Documentation lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "FIN",
+        "LOG"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Everyone must build from the same revision, and the cost report must come from the same BOM. Drawing control is the link between CAD, workshop and cost.",
+      "done": "BOM and drawing list complete.",
+      "tools": "PDM, spreadsheet",
+      "rules": "Cost report BOM structure.",
+      "tasks": [
+        "Set a part-numbering scheme by subsystem",
+        "Create a drawing template with revision block",
+        "Export the BOM from CAD with make/buy flags",
+        "Keep a revision log and recall old prints from the workshop",
+        "Link BOM lines to cost report entries"
+      ],
+      "pitfalls": [
+        "Two versions of the same drawing in the workshop",
+        "BOM missing fasteners and fluids"
+      ],
+      "external_inputs": [],
+      "order": 92
+    },
+    {
+      "code": "DOC5",
+      "bucket_key": "DOC",
+      "phase_key": "P7",
+      "phase_idx": 7,
+      "title": "Scrutineering file",
+      "owner_role": "Documentation lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "CH",
+        "ECS",
+        "PT",
+        "ERG"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Inspectors ask for evidence: approvals, certificates and data sheets. Having them in one folder saves hours at scrutineering.",
+      "done": "File ready before shipping.",
+      "tools": "Binder + digital copy",
+      "rules": "Inspection procedures of each event.",
+      "tasks": [
+        "Collect structural approvals, data sheets and material certificates",
+        "Add harness, helmet and fire-extinguisher certificates",
+        "Print the inspection sheet with evidence for each item",
+        "Add noise, tilt, egress and shutdown test records",
+        "Keep a digital copy on two devices"
+      ],
+      "pitfalls": [
+        "Certificates left at home",
+        "Evidence for a part that was changed after approval"
+      ],
+      "external_inputs": [],
+      "order": 93
+    },
+    {
+      "code": "DOC6",
+      "bucket_key": "DOC",
+      "phase_key": "P9",
+      "phase_idx": 9,
+      "title": "Knowledge base & handover",
+      "owner_role": "Documentation lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM"
+      ],
+      "loop_keys": [
+        "L1"
+      ],
+      "is_critical": false,
+      "why": "The team loses its senior members every year. Written knowledge, organised files and handover sessions are what the next team inherits.",
+      "done": "Archive complete; handover done.",
+      "tools": "Team workspace",
+      "rules": "—",
+      "tasks": [
+        "Archive CAD, calculations, data and reports in the team workspace",
+        "Write or update subteam handbooks",
+        "Record design decisions and why they were made",
+        "Run handover sessions from seniors to juniors",
+        "Update the rule-owner matrix for next season"
+      ],
+      "pitfalls": [
+        "Files only on personal laptops",
+        "Handbooks with no reasons, only results"
+      ],
+      "external_inputs": [],
+      "order": 94
+    },
+    {
+      "code": "LOG1",
+      "bucket_key": "LOG",
+      "phase_key": "P1",
+      "phase_idx": 1,
+      "title": "Manufacturing capability & vendor map",
+      "owner_role": "Logistics lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "FIN",
+        "CH",
+        "VD",
+        "AC"
+      ],
+      "loop_keys": [
+        "L9"
+      ],
+      "is_critical": false,
+      "why": "Designers must know what can be made, by whom, how fast and how accurately. A design that cannot be made locally is a wrong design.",
+      "done": "Capability sheet published to all designers.",
+      "tools": "Vendor database",
+      "rules": "Cost event asks how parts are made; keep process records.",
+      "tasks": [
+        "List in-house machines with capability (CNC axes, lathe, TIG, composites)",
+        "List vendors per process with lead time, tolerance, cost and contact",
+        "Identify parts that must be imported and their customs lead time",
+        "Publish a 'can we make it?' sheet for designers",
+        "Agree workshop safety rules and machine trainers"
+      ],
+      "pitfalls": [
+        "Designs assuming a 5-axis CNC nobody can access",
+        "Vendor lead times guessed, not asked"
+      ],
+      "external_inputs": [
+        {
+          "label": "Local machine shops, laser cutters, coaters, suppliers, import agents",
+          "source": "Vendors"
+        }
+      ],
+      "order": 95
+    },
+    {
+      "code": "LOG2",
+      "bucket_key": "LOG",
+      "phase_key": "P2",
+      "phase_idx": 2,
+      "title": "Long-lead procurement",
+      "owner_role": "Logistics lead",
+      "accountable": "",
+      "contributor_keys": [
+        "FIN",
+        "PT",
+        "VD",
+        "ECS",
+        "BR"
+      ],
+      "loop_keys": [
+        "L9"
+      ],
+      "is_critical": true,
+      "why": "Engine, tyres, dampers, ECU, bearings, brake calipers and harness need months to arrive in Bangladesh. Ordering early protects the build.",
+      "done": "All long-lead items received before assembly start.",
+      "tools": "Procurement tracker",
+      "rules": "—",
+      "tasks": [
+        "Create long-lead list with order-by dates",
+        "Get quotes, compare shipping and customs",
+        "Place orders as soon as each spec is frozen",
+        "Track shipments and customs clearance",
+        "Inspect items on arrival; report damage at once"
+      ],
+      "pitfalls": [
+        "Waiting for full design freeze before ordering engine and dampers",
+        "Customs delays not planned for"
+      ],
+      "external_inputs": [],
+      "order": 96
+    },
+    {
+      "code": "LOG3",
+      "bucket_key": "LOG",
+      "phase_key": "P5",
+      "phase_idx": 5,
+      "title": "Manufacturing & procurement execution",
+      "owner_role": "Logistics lead",
+      "accountable": "",
+      "contributor_keys": [
+        "FIN",
+        "CH",
+        "VD",
+        "PT",
+        "AC",
+        "BR",
+        "ECS"
+      ],
+      "loop_keys": [],
+      "is_critical": true,
+      "why": "Coordinates hundreds of make and buy jobs so each subteam gets parts in assembly order, inspected and labelled.",
+      "done": "All parts received and inspected.",
+      "tools": "Kanban board / workspace tracker",
+      "rules": "—",
+      "tasks": [
+        "Build a manufacturing schedule ordered by assembly sequence (frame first)",
+        "Assign each part to in-house or vendor",
+        "Buy raw material and standard parts (fasteners, rod ends)",
+        "Track part status: queued, machining, inspection, done",
+        "Receive, inspect and store parts with labels",
+        "Escalate delays to TM weekly"
+      ],
+      "pitfalls": [
+        "No inspection, so wrong parts are found during assembly",
+        "Frame parts queued behind cosmetic parts"
+      ],
+      "external_inputs": [],
+      "order": 97
+    },
+    {
+      "code": "LOG4",
+      "bucket_key": "LOG",
+      "phase_key": "P6",
+      "phase_idx": 6,
+      "title": "Workshop, tools, spares & trackside kit",
+      "owner_role": "Logistics lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "TEL"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Assembly and testing stop if a torque wrench, spare rod end or fuel can is missing. A planned kit keeps track days productive.",
+      "done": "Trackside kit complete.",
+      "tools": "Checklist",
+      "rules": "Fire extinguisher and pit equipment rules at events.",
+      "tasks": [
+        "Make a tool list and buy missing tools",
+        "Make a spares list (rod ends, bolts, chain, sprockets, pads, fuses)",
+        "Prepare a trackside kit (fuel, jacks, stands, extinguishers, tyre pressure gauge)",
+        "Plan transport to the test track",
+        "Check the kit before every test day"
+      ],
+      "pitfalls": [
+        "Testing stopped for a missing part",
+        "No spare for parts that failed last season"
+      ],
+      "external_inputs": [],
+      "order": 98
+    },
+    {
+      "code": "LOG5",
+      "bucket_key": "LOG",
+      "phase_key": "P8",
+      "phase_idx": 8,
+      "title": "Shipping, travel & customs",
+      "owner_role": "Logistics lead",
+      "accountable": "",
+      "contributor_keys": [
+        "FIN",
+        "TM",
+        "BUS"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Getting a car, tools and team from Bangladesh to Japan or the UK needs early freight booking and paperwork.",
+      "done": "Car and team arrive before scrutineering.",
+      "tools": "Freight forwarder, checklist",
+      "rules": "Event handbook shipping guidance.",
+      "tasks": [
+        "Book freight (air/sea) with buffer for customs",
+        "Prepare packing list, carnet/temporary import documents, dangerous goods declarations",
+        "Visas and travel for team members",
+        "Insurance for car and equipment",
+        "Plan return shipping"
+      ],
+      "pitfalls": [
+        "Battery or fuel parts held as dangerous goods",
+        "Visas applied for too late"
+      ],
+      "external_inputs": [
+        {
+          "label": "Shipping guidance and arrival windows",
+          "source": "Organisers"
+        }
+      ],
+      "order": 99
+    },
+    {
+      "code": "LOG6",
+      "bucket_key": "LOG",
+      "phase_key": "P8",
+      "phase_idx": 8,
+      "title": "Event pit setup & spares kit",
+      "owner_role": "Logistics lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "A well-organised pit fixes problems faster and keeps the team calm during scrutineering and dynamic events.",
+      "done": "Pit ready.",
+      "tools": "Checklist",
+      "rules": "Pit rules.",
+      "tasks": [
+        "Plan pit layout (car, tools, spares, rest area)",
+        "Label boxes by subsystem",
+        "Set up power, lighting and charging",
+        "Place fire extinguishers and spill kit as required",
+        "Make a quick-reference board with event timetable"
+      ],
+      "pitfalls": [
+        "Hunting for tools during a fix",
+        "Pit fire-safety items missing at inspection"
+      ],
+      "external_inputs": [
+        {
+          "label": "Pit rules and space",
+          "source": "Handbook"
+        }
+      ],
+      "order": 100
+    },
+    {
+      "code": "FIN1",
+      "bucket_key": "FIN",
+      "phase_key": "P0",
+      "phase_idx": 0,
+      "title": "Season budget & funding plan",
+      "owner_role": "Finance lead",
+      "accountable": "",
+      "contributor_keys": [
+        "TM",
+        "BUS",
+        "LOG"
+      ],
+      "loop_keys": [
+        "L2",
+        "L9"
+      ],
+      "is_critical": false,
+      "why": "Sets how much car the team can afford and when money arrives. Late money means late parts.",
+      "done": "Budget approved by faculty advisor and captains.",
+      "tools": "Spreadsheet",
+      "rules": "Registration fees per event.",
+      "tasks": [
+        "Build budget by subsystem plus travel, registration and freight",
+        "Map cash-flow timing against long-lead order dates",
+        "Set approval rules for spending",
+        "Agree contingency (10-15%)",
+        "Review budget monthly with captains"
+      ],
+      "pitfalls": [
+        "No money left for spares and testing",
+        "Freight and travel underestimated"
+      ],
+      "external_inputs": [
+        {
+          "label": "Department/university funding",
+          "source": "University"
+        }
+      ],
+      "order": 101
+    },
+    {
+      "code": "FIN2",
+      "bucket_key": "FIN",
+      "phase_key": "P5",
+      "phase_idx": 5,
+      "title": "Spend tracking & purchase approvals",
+      "owner_role": "Finance lead",
+      "accountable": "",
+      "contributor_keys": [
+        "LOG"
+      ],
+      "loop_keys": [
+        "L9"
+      ],
+      "is_critical": false,
+      "why": "Keeps spending inside the budget and keeps every receipt for audits and the cost report.",
+      "done": "Monthly report.",
+      "tools": "Spreadsheet",
+      "rules": "—",
+      "tasks": [
+        "Approve purchases against the budget line",
+        "Track actual vs budget by subsystem",
+        "Store receipts digitally with part numbers",
+        "Report monthly to captains and faculty advisor",
+        "Flag overruns early"
+      ],
+      "pitfalls": [
+        "Lost receipts",
+        "Overruns found after the money is spent"
+      ],
+      "external_inputs": [],
+      "order": 102
+    },
+    {
+      "code": "FIN3",
+      "bucket_key": "FIN",
+      "phase_key": "P4",
+      "phase_idx": 4,
+      "title": "Cost report (BOM, costing, explanations)",
+      "owner_role": "Finance lead",
+      "accountable": "",
+      "contributor_keys": [
+        "DOC",
+        "LOG",
+        "TM"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "The cost and manufacturing event judges how well the team knows the cost and manufacturing process of its own car. The report must match the real car.",
+      "done": "Submitted.",
+      "tools": "Template",
+      "rules": "FS S3 / FSAE S cost event.",
+      "tasks": [
+        "Cost every BOM line using the rules' method and tables",
+        "Write process explanations for main parts",
+        "Prepare make-vs-buy and cost-reduction discussion",
+        "Check the report against the real car",
+        "Submit before the deadline"
+      ],
+      "pitfalls": [
+        "Parts missing from the report",
+        "Report not matching the car on the day"
+      ],
+      "external_inputs": [
+        {
+          "label": "Cost report format",
+          "source": "Rules"
+        }
+      ],
+      "order": 103
+    },
+    {
+      "code": "FIN4",
+      "bucket_key": "FIN",
+      "phase_key": "P8",
+      "phase_idx": 8,
+      "title": "Cost & manufacturing event",
+      "owner_role": "Finance lead",
+      "accountable": "",
+      "contributor_keys": [
+        "LOG",
+        "TM"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Judges test whether the team understands its costs and manufacturing choices. Physical parts and process knowledge decide the score.",
+      "done": "Event done.",
+      "tools": "—",
+      "rules": "Cost event.",
+      "tasks": [
+        "Prepare answers on cost drivers and manufacturing choices",
+        "Bring example parts and process photos",
+        "Prepare any event-specific cost exercise",
+        "Rehearse with a mock judge",
+        "Record judges' feedback for TM12"
+      ],
+      "pitfalls": [
+        "Cannot explain how a part was made",
+        "Report and car differ"
+      ],
+      "external_inputs": [],
+      "order": 104
+    },
+    {
+      "code": "BUS1",
+      "bucket_key": "BUS",
+      "phase_key": "P0",
+      "phase_idx": 0,
+      "title": "Sponsorship acquisition",
+      "owner_role": "Business lead",
+      "accountable": "",
+      "contributor_keys": [
+        "FIN"
+      ],
+      "loop_keys": [
+        "L9"
+      ],
+      "is_critical": false,
+      "why": "Sponsors provide money, parts, machining and services. Without them the budget and the build schedule collapse.",
+      "done": "Sponsors signed.",
+      "tools": "Deck",
+      "rules": "—",
+      "tasks": [
+        "Build a sponsor target list (cash, parts, machining, logistics)",
+        "Make a sponsorship deck with packages and benefits",
+        "Meet sponsors; follow up in writing",
+        "Sign agreements with clear deliverables",
+        "Report sponsor needs (logo size, events) to Branding"
+      ],
+      "pitfalls": [
+        "Starting sponsor search after the money is needed",
+        "Promising logo space that does not exist"
+      ],
+      "external_inputs": [],
+      "order": 105
+    },
+    {
+      "code": "BUS2",
+      "bucket_key": "BUS",
+      "phase_key": "P3",
+      "phase_idx": 3,
+      "title": "Business plan development",
+      "owner_role": "Business lead",
+      "accountable": "",
+      "contributor_keys": [
+        "FIN"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "The business plan event judges a business idea built around the car. It is scored on its own, so it needs its own preparation track.",
+      "done": "Plan ready.",
+      "tools": "Deck",
+      "rules": "Business event.",
+      "tasks": [
+        "Choose a business idea linked to the car",
+        "Research market, customers and competitors",
+        "Build the financial plan",
+        "Write the executive summary or required submission",
+        "Draft the pitch deck"
+      ],
+      "pitfalls": [
+        "Weak financial plan",
+        "Idea not linked to the car"
+      ],
+      "external_inputs": [
+        {
+          "label": "Business plan event format and scoring",
+          "source": "Rules"
+        }
+      ],
+      "order": 106
+    },
+    {
+      "code": "BUS3",
+      "bucket_key": "BUS",
+      "phase_key": "P4",
+      "phase_idx": 4,
+      "title": "Livery & sponsor visibility",
+      "owner_role": "Branding lead",
+      "accountable": "",
+      "contributor_keys": [
+        "AC"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "Livery shows sponsors and team identity on the car. It depends on bodywork shapes and must leave room for rule-required numbers and markings.",
+      "done": "Livery done.",
+      "tools": "Illustrator",
+      "rules": "Number and logo rules.",
+      "tasks": [
+        "Collect sponsor logo requirements",
+        "Design livery on bodywork surfaces from AC5",
+        "Reserve space for car number and required markings",
+        "Prepare print files for vinyl wrap",
+        "Check fit on the real bodywork"
+      ],
+      "pitfalls": [
+        "Livery designed before bodywork shapes are final",
+        "Missing space for the car number"
+      ],
+      "external_inputs": [],
+      "order": 107
+    },
+    {
+      "code": "BUS4",
+      "bucket_key": "BUS",
+      "phase_key": "P8",
+      "phase_idx": 8,
+      "title": "Business plan presentation",
+      "owner_role": "Business lead",
+      "accountable": "",
+      "contributor_keys": [
+        "FIN"
+      ],
+      "loop_keys": [],
+      "is_critical": false,
+      "why": "The business plan presentation is a scored static event. A rehearsed pitch with clear numbers gains points without touching the car.",
+      "done": "Presented.",
+      "tools": "Deck",
+      "rules": "Business event.",
+      "tasks": [
+        "Rehearse within the time limit",
+        "Prepare answers to likely judge questions",
+        "Assign speakers and roles",
+        "Check presentation equipment on site",
+        "Record feedback for TM12"
+      ],
+      "pitfalls": [
+        "Running over time",
+        "Numbers nobody can explain"
+      ],
+      "external_inputs": [],
+      "order": 108
+    }
+  ],
+  "dependencies": [
+    {
+      "from_code": "TM12",
+      "to_code": "TM1",
+      "label": "Last season's scrutineering findings and rule questions raised",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM12",
+      "to_code": "TM2",
+      "label": "Post-season review report, failure list, design judges' feedback",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TEL5",
+      "to_code": "TM2",
+      "label": "Logged test & competition data from last car",
+      "is_feedback": true
+    },
+    {
+      "from_code": "DOC6",
+      "to_code": "TM2",
+      "label": "Knowledge base, drawings and reports from last season",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD2",
+      "to_code": "TM3",
+      "label": "Lap-time sensitivity: points per kg, per hp, per CLA, per mm CG",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD1",
+      "to_code": "TM3",
+      "label": "Tyre & rim selection with .tir model",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT1",
+      "to_code": "TM3",
+      "label": "Engine choice and expected power/torque/mass",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC1",
+      "to_code": "TM3",
+      "label": "Aero package targets (CLA, CDA, balance)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN1",
+      "to_code": "TM3",
+      "label": "Season budget ceiling",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM2",
+      "to_code": "TM3",
+      "label": "Keep / Fix / Change list",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG1",
+      "to_code": "TM3",
+      "label": "What can be made in-house vs outsourced",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM3",
+      "to_code": "TM4",
+      "label": "Target total mass, CG height, weight distribution",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD7",
+      "to_code": "TM4",
+      "label": "Upright mass & CG",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD8",
+      "to_code": "TM4",
+      "label": "Hub & bearing mass",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD9",
+      "to_code": "TM4",
+      "label": "Wishbone & rod mass",
+      "is_feedback": true
+    },
+    {
+      "from_code": "CH3",
+      "to_code": "TM4",
+      "label": "Frame mass & CG",
+      "is_feedback": true
+    },
+    {
+      "from_code": "PT9",
+      "to_code": "TM4",
+      "label": "Engine + drivetrain mass & CG",
+      "is_feedback": true
+    },
+    {
+      "from_code": "AC3",
+      "to_code": "TM4",
+      "label": "Aero package mass & CG",
+      "is_feedback": true
+    },
+    {
+      "from_code": "ECS3",
+      "to_code": "TM4",
+      "label": "Harness & electronics mass",
+      "is_feedback": true
+    },
+    {
+      "from_code": "ERG3",
+      "to_code": "TM4",
+      "label": "Seat & driver position",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM3",
+      "to_code": "TM5",
+      "label": "Wheelbase, track, ride height targets",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD4",
+      "to_code": "TM5",
+      "label": "Suspension hardpoints",
+      "is_feedback": true
+    },
+    {
+      "from_code": "ERG2",
+      "to_code": "TM5",
+      "label": "Driver template & cockpit layout",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT9",
+      "to_code": "TM5",
+      "label": "Engine & drivetrain envelope",
+      "is_feedback": true
+    },
+    {
+      "from_code": "AC2",
+      "to_code": "TM5",
+      "label": "Radiator & duct envelope",
+      "is_feedback": true
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "TM5",
+      "label": "Frame node layout",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "TM6",
+      "label": "Packaging layout and envelopes",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD6",
+      "to_code": "TM6",
+      "label": "Interface loads",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS1",
+      "to_code": "TM6",
+      "label": "Electrical architecture & connector list",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD12",
+      "to_code": "TM7",
+      "label": "Suspension FEA & compliance results",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH3",
+      "to_code": "TM7",
+      "label": "Frame FEA & torsional stiffness",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT3",
+      "to_code": "TM7",
+      "label": "Intake design & sim",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC3",
+      "to_code": "TM7",
+      "label": "Aero package results",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR2",
+      "to_code": "TM7",
+      "label": "Brake sizing calculations",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS3",
+      "to_code": "TM7",
+      "label": "Harness design",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG5",
+      "to_code": "TM7",
+      "label": "Pedal box design",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD11",
+      "to_code": "TM7",
+      "label": "Steering detail design",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM7",
+      "to_code": "TM8",
+      "label": "CDR closed with no open critical actions",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM4",
+      "to_code": "TM8",
+      "label": "Mass budget within target",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM6",
+      "to_code": "TM8",
+      "label": "All interfaces frozen",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC4",
+      "to_code": "TM8",
+      "label": "Drawing set with revisions & BOM",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH4",
+      "to_code": "TM8",
+      "label": "Structural submission ready",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH10",
+      "to_code": "TM8",
+      "label": "Firewall and closeout panels designed",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH9",
+      "to_code": "TM9",
+      "label": "Frame inspected, checked against rules",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS7",
+      "to_code": "TM9",
+      "label": "Shutdown and electrical checks passed",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR6",
+      "to_code": "TM9",
+      "label": "Brake system bled and functional",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT13",
+      "to_code": "TM9",
+      "label": "Powertrain installed and running",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG7",
+      "to_code": "TM9",
+      "label": "Driver egress drills done",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC5",
+      "to_code": "TM9",
+      "label": "Scrutineering file draft",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC3",
+      "to_code": "TM9",
+      "label": "Approved structural and IA submissions",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL1",
+      "to_code": "TM10",
+      "label": "Channel list and data plan",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD14",
+      "to_code": "TM10",
+      "label": "Car aligned & corner-weighted",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT13",
+      "to_code": "TM10",
+      "label": "Engine started and running",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL3",
+      "to_code": "TM10",
+      "label": "Trained drivers",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG4",
+      "to_code": "TM10",
+      "label": "Spares, tools & trackside kit",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM9",
+      "to_code": "TM11",
+      "label": "Mock scrutineering clean",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC5",
+      "to_code": "TM11",
+      "label": "Scrutineering file & documents",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG6",
+      "to_code": "TM11",
+      "label": "Pit setup & spares kit",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL6",
+      "to_code": "TM11",
+      "label": "Driver line-up per event",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM11",
+      "to_code": "TM12",
+      "label": "Competition results, failures and fixes log",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL5",
+      "to_code": "TM12",
+      "label": "All logged test and event data",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD16",
+      "to_code": "TM12",
+      "label": "Design-event questions the team could not answer",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN4",
+      "to_code": "TM12",
+      "label": "Cost-event feedback and penalties",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BUS4",
+      "to_code": "TM12",
+      "label": "Business-plan judges' feedback",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC8",
+      "to_code": "TM12",
+      "label": "Aero/cooling measured vs predicted",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR7",
+      "to_code": "TM12",
+      "label": "Brake bias and temperature findings",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG5",
+      "to_code": "TM12",
+      "label": "Shipping and travel lessons",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN1",
+      "to_code": "VD1",
+      "label": "Budget for tyres and data",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM2",
+      "to_code": "VD1",
+      "label": "Last season tyre wear and temperature notes",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TEL5",
+      "to_code": "VD1",
+      "label": "Measured tyre temperatures and pressures",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD1",
+      "to_code": "VD2",
+      "label": ".tir tyre model",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT2",
+      "to_code": "VD2",
+      "label": "Torque curve and gearing estimate",
+      "is_feedback": true
+    },
+    {
+      "from_code": "AC1",
+      "to_code": "VD2",
+      "label": "CLA, CDA, aero balance targets",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM4",
+      "to_code": "VD2",
+      "label": "Mass, CG and distribution",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM3",
+      "to_code": "VD3",
+      "label": "Wheelbase, track, mass, CG targets",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD1",
+      "to_code": "VD3",
+      "label": "Tyre camber/slip sensitivity",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD2",
+      "to_code": "VD3",
+      "label": "Lateral/longitudinal g levels",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD3",
+      "to_code": "VD4",
+      "label": "Kinematic targets",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD1",
+      "to_code": "VD4",
+      "label": "Rim & tyre envelope (inner barrel)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "VD4",
+      "label": "Frame node constraints",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "VD4",
+      "label": "Packaging envelope (driver, engine, radiator)",
+      "is_feedback": true
+    },
+    {
+      "from_code": "BR2",
+      "to_code": "VD4",
+      "label": "Caliper & rotor envelope inside wheel",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD7",
+      "to_code": "VD4",
+      "label": "Upright envelope (preliminary)",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD4",
+      "to_code": "VD5",
+      "label": "Hardpoints (outboard tie-rod point, upright)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD3",
+      "to_code": "VD5",
+      "label": "Steering targets (Ackermann %, ratio)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG2",
+      "to_code": "VD5",
+      "label": "Steering wheel position and driver arm reach",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD2",
+      "to_code": "VD6",
+      "label": "Peak lateral, braking, traction g",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM4",
+      "to_code": "VD6",
+      "label": "Mass, CG, distribution",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD4",
+      "to_code": "VD6",
+      "label": "Hardpoints (to resolve forces into members)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC1",
+      "to_code": "VD6",
+      "label": "Peak downforce and its distribution",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT6",
+      "to_code": "VD6",
+      "label": "Peak drive torque at wheels",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD4",
+      "to_code": "VD7",
+      "label": "Outboard hardpoints",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD6",
+      "to_code": "VD7",
+      "label": "Upright load cases",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD8",
+      "to_code": "VD7",
+      "label": "Bearing outer diameter and seat",
+      "is_feedback": true
+    },
+    {
+      "from_code": "BR4",
+      "to_code": "VD7",
+      "label": "Caliper mounting pattern and position",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD1",
+      "to_code": "VD7",
+      "label": "Rim inner barrel clearance",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG1",
+      "to_code": "VD7",
+      "label": "Machining capability (CNC 3/4/5-axis, material stock)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM4",
+      "to_code": "VD7",
+      "label": "Mass target",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD1",
+      "to_code": "VD8",
+      "label": "Rim bolt pattern, centre bore, offset (tyre engineer)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD7",
+      "to_code": "VD8",
+      "label": "Upright bearing seat and spacing",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD6",
+      "to_code": "VD8",
+      "label": "Hub & bearing load cases (cornering, braking, bump)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR3",
+      "to_code": "VD8",
+      "label": "Rotor mounting PCD, bolt size, floating mount",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT8",
+      "to_code": "VD8",
+      "label": "Driveshaft spline/tripod interface (rear hubs)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG1",
+      "to_code": "VD8",
+      "label": "Machining & heat-treat capability",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM4",
+      "to_code": "VD8",
+      "label": "Rotating mass target",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD4",
+      "to_code": "VD9",
+      "label": "Hardpoints",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD6",
+      "to_code": "VD9",
+      "label": "Member forces per load case",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH6",
+      "to_code": "VD9",
+      "label": "Inboard bracket design",
+      "is_feedback": true
+    },
+    {
+      "from_code": "LOG1",
+      "to_code": "VD9",
+      "label": "Tube stock and welding capability",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD3",
+      "to_code": "VD10",
+      "label": "Ride frequency and roll gradient targets",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD4",
+      "to_code": "VD10",
+      "label": "Pushrod/pullrod hardpoints, rocker pivot",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM4",
+      "to_code": "VD10",
+      "label": "Sprung and unsprung masses",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH6",
+      "to_code": "VD10",
+      "label": "Rocker and damper mounting brackets",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD5",
+      "to_code": "VD11",
+      "label": "Rack choice and position",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG2",
+      "to_code": "VD11",
+      "label": "Steering wheel position and angle",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS5",
+      "to_code": "VD11",
+      "label": "Steering-wheel buttons and display wiring",
+      "is_feedback": true
+    },
+    {
+      "from_code": "CH6",
+      "to_code": "VD11",
+      "label": "Rack mount brackets",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD7",
+      "to_code": "VD12",
+      "label": "Upright FEA",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD8",
+      "to_code": "VD12",
+      "label": "Hub FEA",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD9",
+      "to_code": "VD12",
+      "label": "Member stress/buckling",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH6",
+      "to_code": "VD12",
+      "label": "Bracket FEA",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD6",
+      "to_code": "VD12",
+      "label": "Load cases",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM8",
+      "to_code": "VD13",
+      "label": "Released drawings",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG3",
+      "to_code": "VD13",
+      "label": "Machining/outsourcing schedule and material",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD9",
+      "to_code": "VD13",
+      "label": "Welding jig design",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD13",
+      "to_code": "VD14",
+      "label": "Suspension parts",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH9",
+      "to_code": "VD14",
+      "label": "Inspected frame",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH11",
+      "to_code": "VD14",
+      "label": "Frame coated and returned",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR6",
+      "to_code": "VD14",
+      "label": "Brake components installed",
+      "is_feedback": true
+    },
+    {
+      "from_code": "PT13",
+      "to_code": "VD14",
+      "label": "Drivetrain installed",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM4",
+      "to_code": "VD14",
+      "label": "Target weight distribution",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL5",
+      "to_code": "VD15",
+      "label": "Logged data and driver feedback",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM10",
+      "to_code": "VD15",
+      "label": "Test plan and run objectives",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD14",
+      "to_code": "VD15",
+      "label": "Baseline setup",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC2",
+      "to_code": "VD16",
+      "label": "Engineering design report",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD15",
+      "to_code": "VD16",
+      "label": "Validation results",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD2",
+      "to_code": "VD16",
+      "label": "Lap-sim trade studies",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM1",
+      "to_code": "CH1",
+      "label": "Rule-owner matrix and checklist",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM2",
+      "to_code": "CH1",
+      "label": "Last frame's issues",
+      "is_feedback": true
+    },
+    {
+      "from_code": "CH1",
+      "to_code": "CH2",
+      "label": "Rule envelope",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD4",
+      "to_code": "CH2",
+      "label": "Suspension inboard hardpoints",
+      "is_feedback": true
+    },
+    {
+      "from_code": "ERG2",
+      "to_code": "CH2",
+      "label": "Driver template and cockpit openings",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT9",
+      "to_code": "CH2",
+      "label": "Engine mounts and envelope",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "CH2",
+      "label": "Packaging skeleton",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "CH3",
+      "label": "Frame wireframe",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD6",
+      "to_code": "CH3",
+      "label": "Suspension and engine loads",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD10",
+      "to_code": "CH3",
+      "label": "Roll stiffness target (for stiffness ratio)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM4",
+      "to_code": "CH3",
+      "label": "Frame mass allocation",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH3",
+      "to_code": "CH4",
+      "label": "Final tube sizes and geometry",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH5",
+      "to_code": "CH4",
+      "label": "Impact attenuator data",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "CH5",
+      "label": "Front bulkhead geometry",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC5",
+      "to_code": "CH5",
+      "label": "Nose cone shape (packaging)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD4",
+      "to_code": "CH6",
+      "label": "Suspension pickup positions",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD6",
+      "to_code": "CH6",
+      "label": "Bracket loads",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT9",
+      "to_code": "CH6",
+      "label": "Engine mount positions",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG4",
+      "to_code": "CH6",
+      "label": "Harness mount positions",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS3",
+      "to_code": "CH6",
+      "label": "Harness clip and box mount positions",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC4",
+      "to_code": "CH6",
+      "label": "Wing and bodywork mounts",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR4",
+      "to_code": "CH6",
+      "label": "Brake line and master cylinder mounts",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD11",
+      "to_code": "CH6",
+      "label": "Rack mounts",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH3",
+      "to_code": "CH7",
+      "label": "Final tube sizes",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH6",
+      "to_code": "CH7",
+      "label": "Tab list",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM8",
+      "to_code": "CH7",
+      "label": "Freeze approval",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH7",
+      "to_code": "CH8",
+      "label": "Jig, cut list, templates",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG3",
+      "to_code": "CH8",
+      "label": "Tubes and welding consumables",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH8",
+      "to_code": "CH9",
+      "label": "Welded frame",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH3",
+      "to_code": "CH9",
+      "label": "Predicted stiffness",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "CH10",
+      "label": "Frame geometry",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT5",
+      "to_code": "CH10",
+      "label": "Fuel tank position",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG2",
+      "to_code": "CH10",
+      "label": "Cockpit layout",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH9",
+      "to_code": "CH11",
+      "label": "Frame released after inspection",
+      "is_feedback": true
+    },
+    {
+      "from_code": "BUS3",
+      "to_code": "CH11",
+      "label": "Livery colours",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM1",
+      "to_code": "ERG1",
+      "label": "Template and cockpit rules",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL3",
+      "to_code": "ERG1",
+      "label": "Driver pool and body measurements",
+      "is_feedback": true
+    },
+    {
+      "from_code": "ERG1",
+      "to_code": "ERG2",
+      "label": "Driver data and template",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM3",
+      "to_code": "ERG2",
+      "label": "CG targets",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH1",
+      "to_code": "ERG2",
+      "label": "Hoop and cockpit opening rules",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG2",
+      "to_code": "ERG3",
+      "label": "Driver position",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "ERG3",
+      "label": "Seat mounting nodes",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG2",
+      "to_code": "ERG4",
+      "label": "Driver position",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "ERG4",
+      "label": "Frame nodes",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG2",
+      "to_code": "ERG5",
+      "label": "Pedal position and heel point",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR2",
+      "to_code": "ERG5",
+      "label": "Pedal ratio, master cylinder sizes, balance bar",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT3",
+      "to_code": "ERG5",
+      "label": "Throttle body cable route and pull",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS1",
+      "to_code": "ERG5",
+      "label": "Brake light and BOTS position",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG2",
+      "to_code": "ERG6",
+      "label": "Driver reach",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS1",
+      "to_code": "ERG6",
+      "label": "Shutdown button & master switch locations",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT6",
+      "to_code": "ERG6",
+      "label": "Gearbox shift mechanism",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG3",
+      "to_code": "ERG7",
+      "label": "Seat and inserts",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL3",
+      "to_code": "ERG7",
+      "label": "Driver line-up",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM2",
+      "to_code": "PT1",
+      "label": "Last engine's failures, oil/temperature issues, service history",
+      "is_feedback": true
+    },
+    {
+      "from_code": "FIN1",
+      "to_code": "PT1",
+      "label": "Engine & spares budget",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD2",
+      "to_code": "PT1",
+      "label": "Lap-sim sensitivity: points per hp vs per kg",
+      "is_feedback": true
+    },
+    {
+      "from_code": "LOG1",
+      "to_code": "PT1",
+      "label": "Local availability of engine, spares, service manuals, import time",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT1",
+      "to_code": "PT2",
+      "label": "Engine geometry: bore, stroke, valve sizes and timing",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT11",
+      "to_code": "PT2",
+      "label": "Dyno data to calibrate the model",
+      "is_feedback": true
+    },
+    {
+      "from_code": "PT2",
+      "to_code": "PT3",
+      "label": "Plenum volume, runner length, throttle size",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "PT3",
+      "label": "Packaging envelope near main hoop",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS2",
+      "to_code": "PT3",
+      "label": "Sensor list: MAP, IAT, TPS positions",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG5",
+      "to_code": "PT3",
+      "label": "Throttle cable pull and travel",
+      "is_feedback": true
+    },
+    {
+      "from_code": "AC3",
+      "to_code": "PT3",
+      "label": "Sidepod and airbox flow region",
+      "is_feedback": true
+    },
+    {
+      "from_code": "PT2",
+      "to_code": "PT4",
+      "label": "Primary length and diameter",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "PT4",
+      "label": "Packaging route past frame and rear suspension",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "PT4",
+      "label": "Frame tubes near exhaust path",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "PT5",
+      "label": "Tank envelope (usually behind the firewall)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT2",
+      "to_code": "PT5",
+      "label": "Fuel flow at peak power",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD2",
+      "to_code": "PT5",
+      "label": "Endurance fuel use estimate and lateral g",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS4",
+      "to_code": "PT5",
+      "label": "Fuel pump power and relay",
+      "is_feedback": true
+    },
+    {
+      "from_code": "PT2",
+      "to_code": "PT6",
+      "label": "Torque curve and rev limit",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD2",
+      "to_code": "PT6",
+      "label": "Lap-sim sensitivity to final drive",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD1",
+      "to_code": "PT6",
+      "label": "Tyre loaded radius",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT1",
+      "to_code": "PT6",
+      "label": "Gearbox internal ratios",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT6",
+      "to_code": "PT7",
+      "label": "Chain loads and sprocket position",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "PT7",
+      "label": "Frame nodes near diff",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD3",
+      "to_code": "PT7",
+      "label": "Desired locking behaviour (understeer/oversteer balance)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT7",
+      "to_code": "PT8",
+      "label": "Diff output spline/tripod housing",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD4",
+      "to_code": "PT8",
+      "label": "Rear suspension travel and wheel centre path",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD6",
+      "to_code": "PT8",
+      "label": "Peak drive torque per wheel",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT1",
+      "to_code": "PT9",
+      "label": "Engine mount points and mass",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "PT9",
+      "label": "Frame node layout",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "PT9",
+      "label": "Engine envelope",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT1",
+      "to_code": "PT10",
+      "label": "Engine sump type",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD2",
+      "to_code": "PT10",
+      "label": "Peak and sustained lateral g",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC2",
+      "to_code": "PT10",
+      "label": "Oil heat rejection and cooler need",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM8",
+      "to_code": "PT12",
+      "label": "Released drawings",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG3",
+      "to_code": "PT12",
+      "label": "Supplier and machining schedule",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN2",
+      "to_code": "PT12",
+      "label": "Purchase approval",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT12",
+      "to_code": "PT11",
+      "label": "Engine with intake and exhaust",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS8",
+      "to_code": "PT11",
+      "label": "ECU base map and logging",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT12",
+      "to_code": "PT13",
+      "label": "Powertrain kit",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH9",
+      "to_code": "PT13",
+      "label": "Frame released",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS7",
+      "to_code": "PT13",
+      "label": "Harness installed and checked",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC7",
+      "to_code": "PT13",
+      "label": "Radiator and hoses",
+      "is_feedback": true
+    },
+    {
+      "from_code": "PT13",
+      "to_code": "PT14",
+      "label": "Running car",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT4",
+      "to_code": "PT14",
+      "label": "Silencer design",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD2",
+      "to_code": "AC1",
+      "label": "Points gained per unit CLA and lost per unit CDA",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM3",
+      "to_code": "AC1",
+      "label": "Mass budget for aero",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM2",
+      "to_code": "AC1",
+      "label": "Last aero package performance",
+      "is_feedback": true
+    },
+    {
+      "from_code": "PT2",
+      "to_code": "AC2",
+      "label": "Heat rejection at peak and endurance load",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "AC2",
+      "label": "Radiator envelope",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC1",
+      "to_code": "AC2",
+      "label": "Sidepod concept",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC1",
+      "to_code": "AC3",
+      "label": "Targets",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD3",
+      "to_code": "AC3",
+      "label": "Ride height and pitch/roll range",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "AC3",
+      "label": "Car surfaces and packaging",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC2",
+      "to_code": "AC3",
+      "label": "Radiator duct needs",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT3",
+      "to_code": "AC3",
+      "label": "Airbox position",
+      "is_feedback": true
+    },
+    {
+      "from_code": "AC3",
+      "to_code": "AC4",
+      "label": "Aero loads and surfaces",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "AC4",
+      "label": "Frame mounting points",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "AC5",
+      "label": "Frame outer surface and node positions",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH5",
+      "to_code": "AC5",
+      "label": "Impact attenuator and anti-intrusion plate envelope",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC3",
+      "to_code": "AC5",
+      "label": "Aero surfaces and sidepod shape",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BUS3",
+      "to_code": "AC5",
+      "label": "Logo areas sponsors were promised",
+      "is_feedback": true
+    },
+    {
+      "from_code": "ECS1",
+      "to_code": "AC5",
+      "label": "Access needs for master switches and shutdown buttons",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC2",
+      "to_code": "AC6",
+      "label": "Radiator core and fan spec",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC3",
+      "to_code": "AC6",
+      "label": "Sidepod inlet/outlet flow field",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT10",
+      "to_code": "AC6",
+      "label": "Oil cooler requirement",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS4",
+      "to_code": "AC6",
+      "label": "Fan and pump power, fan control strategy",
+      "is_feedback": true
+    },
+    {
+      "from_code": "CH6",
+      "to_code": "AC6",
+      "label": "Radiator mounting tabs",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM8",
+      "to_code": "AC7",
+      "label": "Released aero and bodywork drawings",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG3",
+      "to_code": "AC7",
+      "label": "Material, mould machining and curing schedule",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN2",
+      "to_code": "AC7",
+      "label": "Purchase approval for carbon/glass, resin, radiator",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL5",
+      "to_code": "AC8",
+      "label": "Logged speed, suspension, temperature data",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM10",
+      "to_code": "AC8",
+      "label": "Test plan slots for aero runs",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC3",
+      "to_code": "AC8",
+      "label": "Predicted CLA, CDA and balance",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM4",
+      "to_code": "BR1",
+      "label": "Mass, CG height, weight distribution",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM3",
+      "to_code": "BR1",
+      "label": "Wheelbase",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD1",
+      "to_code": "BR1",
+      "label": "Tyre longitudinal grip (mu) vs load",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC1",
+      "to_code": "BR1",
+      "label": "Downforce at braking speed",
+      "is_feedback": true
+    },
+    {
+      "from_code": "BR1",
+      "to_code": "BR2",
+      "label": "Target torque per axle and bias",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD1",
+      "to_code": "BR2",
+      "label": "Rim inner diameter (10-inch vs 13-inch)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG2",
+      "to_code": "BR2",
+      "label": "Pedal box position and driver leg force",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR2",
+      "to_code": "BR3",
+      "label": "Rotor diameter, thickness, material",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD8",
+      "to_code": "BR3",
+      "label": "Hub flange space",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD6",
+      "to_code": "BR3",
+      "label": "Brake torque per corner",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR2",
+      "to_code": "BR4",
+      "label": "Caliper selection",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD7",
+      "to_code": "BR4",
+      "label": "Upright geometry",
+      "is_feedback": true
+    },
+    {
+      "from_code": "CH2",
+      "to_code": "BR4",
+      "label": "Frame route for lines",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG5",
+      "to_code": "BR5",
+      "label": "Pedal box design",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS1",
+      "to_code": "BR5",
+      "label": "Shutdown circuit design",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG3",
+      "to_code": "BR6",
+      "label": "Calipers, rotors, master cylinders, lines, fittings",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD14",
+      "to_code": "BR6",
+      "label": "Corner assemblies with uprights and hubs",
+      "is_feedback": true
+    },
+    {
+      "from_code": "ERG5",
+      "to_code": "BR6",
+      "label": "Pedal box installed",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR6",
+      "to_code": "BR7",
+      "label": "Installed and bled system",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL5",
+      "to_code": "BR7",
+      "label": "Front/rear line pressure and wheel speed data",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM10",
+      "to_code": "BR7",
+      "label": "Test plan slot",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM1",
+      "to_code": "ECS1",
+      "label": "Electrical rules checklist (CV)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "ECS1",
+      "label": "Component locations in the car",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT1",
+      "to_code": "ECS1",
+      "label": "Engine electrical needs: starter, injector, ignition, pump",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL1",
+      "to_code": "ECS1",
+      "label": "Sensor and logger channel list",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT1",
+      "to_code": "ECS2",
+      "label": "Engine type and injection/ignition needs",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL1",
+      "to_code": "ECS2",
+      "label": "Logging requirements",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN1",
+      "to_code": "ECS2",
+      "label": "Budget",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS1",
+      "to_code": "ECS3",
+      "label": "Architecture and connector choice",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS2",
+      "to_code": "ECS3",
+      "label": "Sensor list",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "ECS3",
+      "label": "Routing paths in CAD",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH6",
+      "to_code": "ECS3",
+      "label": "Clip mount positions",
+      "is_feedback": true
+    },
+    {
+      "from_code": "ECS1",
+      "to_code": "ECS4",
+      "label": "Power budget",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT5",
+      "to_code": "ECS4",
+      "label": "Fuel pump current",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC6",
+      "to_code": "ECS4",
+      "label": "Fan current",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS2",
+      "to_code": "ECS5",
+      "label": "CAN bus layout and ECU outputs",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG6",
+      "to_code": "ECS5",
+      "label": "Shift system choice (mechanical / pneumatic / electric)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD11",
+      "to_code": "ECS5",
+      "label": "Steering wheel geometry and quick release",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT1",
+      "to_code": "ECS5",
+      "label": "Gearbox shift mechanism and gear position sensor",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS3",
+      "to_code": "ECS6",
+      "label": "Pin-to-pin diagram, lengths, routing",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG3",
+      "to_code": "ECS6",
+      "label": "Wire, connectors, sleeving, crimp tools",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS4",
+      "to_code": "ECS6",
+      "label": "Fuse/relay box or PDM",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS6",
+      "to_code": "ECS7",
+      "label": "Built harness",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH9",
+      "to_code": "ECS7",
+      "label": "Frame with clip tabs",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR5",
+      "to_code": "ECS7",
+      "label": "Brake light and over-travel switch fitted",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS4",
+      "to_code": "ECS7",
+      "label": "Battery and power distribution",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS2",
+      "to_code": "ECS8",
+      "label": "ECU and sensor configuration",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT2",
+      "to_code": "ECS8",
+      "label": "Predicted VE and fuel flow",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT11",
+      "to_code": "ECS8",
+      "label": "Dyno results",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TEL5",
+      "to_code": "ECS8",
+      "label": "Track lambda and knock data",
+      "is_feedback": true
+    },
+    {
+      "from_code": "VD3",
+      "to_code": "TEL1",
+      "label": "Parameters VD must validate (ride, roll, steering)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT2",
+      "to_code": "TEL1",
+      "label": "Engine health channels needed",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR1",
+      "to_code": "TEL1",
+      "label": "Brake pressure validation needs",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC1",
+      "to_code": "TEL1",
+      "label": "Aero validation needs",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS1",
+      "to_code": "TEL1",
+      "label": "Available logger/ECU inputs",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL1",
+      "to_code": "TEL2",
+      "label": "Channel list",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS3",
+      "to_code": "TEL2",
+      "label": "Harness and CAN design",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS2",
+      "to_code": "TEL2",
+      "label": "ECU logging capability",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM1",
+      "to_code": "TEL3",
+      "label": "Driver eligibility rules (licence, age, team member)",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL1",
+      "to_code": "TEL4",
+      "label": "Channel list",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD3",
+      "to_code": "TEL4",
+      "label": "Targets to compare against",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM10",
+      "to_code": "TEL5",
+      "label": "Test plan",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL2",
+      "to_code": "TEL5",
+      "label": "Working logger",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL4",
+      "to_code": "TEL5",
+      "label": "Analysis reports",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL3",
+      "to_code": "TEL5",
+      "label": "Drivers",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL5",
+      "to_code": "TEL6",
+      "label": "Driver performance data",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD15",
+      "to_code": "TEL6",
+      "label": "Event setup book",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM1",
+      "to_code": "DOC1",
+      "label": "Rule-required documents list",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM3",
+      "to_code": "DOC2",
+      "label": "Vehicle targets",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM7",
+      "to_code": "DOC2",
+      "label": "Design review material",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD12",
+      "to_code": "DOC2",
+      "label": "Suspension validation",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH3",
+      "to_code": "DOC2",
+      "label": "Frame analysis",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT2",
+      "to_code": "DOC2",
+      "label": "Engine sim",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC3",
+      "to_code": "DOC2",
+      "label": "Aero results",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC1",
+      "to_code": "DOC2",
+      "label": "Template and page limit",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH4",
+      "to_code": "DOC3",
+      "label": "Structural spreadsheet and drawings",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH5",
+      "to_code": "DOC3",
+      "label": "Impact attenuator data",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC1",
+      "to_code": "DOC3",
+      "label": "Deadlines",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM5",
+      "to_code": "DOC4",
+      "label": "Full-car assembly structure",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM6",
+      "to_code": "DOC4",
+      "label": "Interfaces and fasteners",
+      "is_feedback": false
+    },
+    {
+      "from_code": "CH4",
+      "to_code": "DOC5",
+      "label": "Approved structural documents",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ECS7",
+      "to_code": "DOC5",
+      "label": "Electrical sign-off",
+      "is_feedback": false
+    },
+    {
+      "from_code": "PT14",
+      "to_code": "DOC5",
+      "label": "Noise and tilt results",
+      "is_feedback": false
+    },
+    {
+      "from_code": "ERG7",
+      "to_code": "DOC5",
+      "label": "Egress times",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM12",
+      "to_code": "DOC6",
+      "label": "Post-season review",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC4",
+      "to_code": "DOC6",
+      "label": "Final drawings and BOM",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TEL5",
+      "to_code": "DOC6",
+      "label": "Data archive",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM2",
+      "to_code": "LOG1",
+      "label": "Last season's manufacturing problems and late parts",
+      "is_feedback": true
+    },
+    {
+      "from_code": "PT1",
+      "to_code": "LOG2",
+      "label": "Engine choice",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD1",
+      "to_code": "LOG2",
+      "label": "Tyre and rim choice",
+      "is_feedback": false
+    },
+    {
+      "from_code": "VD10",
+      "to_code": "LOG2",
+      "label": "Damper selection",
+      "is_feedback": true
+    },
+    {
+      "from_code": "ECS2",
+      "to_code": "LOG2",
+      "label": "ECU selection",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BR2",
+      "to_code": "LOG2",
+      "label": "Caliper and master cylinder spec",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN1",
+      "to_code": "LOG2",
+      "label": "Budget approval",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM8",
+      "to_code": "LOG3",
+      "label": "Release packages and drawing list",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC4",
+      "to_code": "LOG3",
+      "label": "BOM with make/buy flags",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG2",
+      "to_code": "LOG3",
+      "label": "Long-lead deliveries",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN2",
+      "to_code": "LOG3",
+      "label": "Purchase approvals",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC4",
+      "to_code": "LOG4",
+      "label": "BOM for spares list",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM10",
+      "to_code": "LOG4",
+      "label": "Test plan needs",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM9",
+      "to_code": "LOG5",
+      "label": "Car ready to ship date",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN1",
+      "to_code": "LOG5",
+      "label": "Travel and freight budget",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG4",
+      "to_code": "LOG6",
+      "label": "Spares and tools",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM2",
+      "to_code": "FIN1",
+      "label": "Last season's actual spend",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BUS1",
+      "to_code": "FIN1",
+      "label": "Sponsor commitments",
+      "is_feedback": true
+    },
+    {
+      "from_code": "FIN1",
+      "to_code": "FIN2",
+      "label": "Budget",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG3",
+      "to_code": "FIN2",
+      "label": "Purchase requests",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC4",
+      "to_code": "FIN3",
+      "label": "BOM",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG1",
+      "to_code": "FIN3",
+      "label": "Process information",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN3",
+      "to_code": "FIN4",
+      "label": "Submitted cost report",
+      "is_feedback": false
+    },
+    {
+      "from_code": "LOG3",
+      "to_code": "FIN4",
+      "label": "Manufacturing process records",
+      "is_feedback": false
+    },
+    {
+      "from_code": "DOC4",
+      "to_code": "FIN4",
+      "label": "BOM and drawings",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN1",
+      "to_code": "BUS1",
+      "label": "Funding gap and timing",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM3",
+      "to_code": "BUS1",
+      "label": "Car concept and story to show sponsors",
+      "is_feedback": true
+    },
+    {
+      "from_code": "TM2",
+      "to_code": "BUS1",
+      "label": "Last season's results for the pitch",
+      "is_feedback": true
+    },
+    {
+      "from_code": "FIN1",
+      "to_code": "BUS2",
+      "label": "Cost data",
+      "is_feedback": false
+    },
+    {
+      "from_code": "TM3",
+      "to_code": "BUS2",
+      "label": "Car concept and unique features",
+      "is_feedback": false
+    },
+    {
+      "from_code": "AC5",
+      "to_code": "BUS3",
+      "label": "Bodywork",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BUS1",
+      "to_code": "BUS3",
+      "label": "Sponsor contracts",
+      "is_feedback": false
+    },
+    {
+      "from_code": "BUS2",
+      "to_code": "BUS4",
+      "label": "Business plan and deck",
+      "is_feedback": false
+    },
+    {
+      "from_code": "FIN1",
+      "to_code": "BUS4",
+      "label": "Financial figures",
+      "is_feedback": false
+    }
+  ]
+}

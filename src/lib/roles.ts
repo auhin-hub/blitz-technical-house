@@ -32,9 +32,16 @@ export async function myRole(): Promise<MyRole> {
 
   const mine = await supabase.from('members').select('role,email,team').eq('user_id', uid).maybeSingle();
   if (mine.data) {
+    const stated = (mine.data as any).role as Role;
+    // The bootstrap is a property of the ROSTER, not of my row: `is_lead()` grants
+    // lead rights to any signed-in member while no lead exists. Checking it only
+    // when I have no row was the bug that locked the first user out — they
+    // self-registered as a plain member, the UI then said "not a lead" and
+    // disabled the very controls the database would have allowed.
+    const noLead = stated === 'lead' ? false : await inBootstrap();
     return (cached = {
-      role: (mine.data as any).role as Role,
-      bootstrap: false,
+      role: noLead ? 'lead' : stated,
+      bootstrap: noLead,
       email: (mine.data as any).email ?? u.user?.email ?? null,
       team: (mine.data as any).team ?? null,
     });
@@ -93,7 +100,11 @@ export function gateToLead(el: HTMLInputElement | HTMLButtonElement | HTMLSelect
 
 /** One-line role note for a page header. Returns '' for a lead with a roster. */
 export function roleNote(r: MyRole): string {
-  if (r.bootstrap) return 'No member roster yet — everyone has lead rights until leads are seeded (migration 0011).';
+  if (r.bootstrap) {
+    return 'No lead appointed yet, so everyone currently has lead rights. '
+      + 'Set your leads in the Members panel below — that locks gate sign-off and '
+      + 'parameter freezing to them.';
+  }
   if (r.role === 'lead') return '';
   return 'You are signed in as a member: freezing parameters and signing off gates are lead actions.';
 }

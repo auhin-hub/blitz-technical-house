@@ -1,0 +1,1746 @@
+<title>Blitz Car Program Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700;900&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: swim-lane grid (lanes = subteams, columns = program phases) on a carbon pit-wall ground, SVG dependency traces over it, drawer for detail. Dark-first. */
+:root{
+  --bg:#0c0d0f; --surface:#14161a; --surface2:#1b1e23; --line:#2a2e35; --line2:#3a3f47;
+  --fg:#f1f1ee; --muted:#8e949c; --faint:#5c626b;
+  --red:#e10600; --red-soft:rgba(225,6,0,.16);
+  --in:#22b8f0; --out:#ff4b2b; --gate:#f1f1ee;
+  --edge:rgba(241,241,238,.13);
+  --shadow:0 18px 50px rgba(0,0,0,.55);
+  --f-display:"Titillium Web","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow","Segoe UI",Roboto,Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#eef0f2; --surface:#ffffff; --surface2:#f4f5f7; --line:#d6d9de; --line2:#c2c6cc;
+  --fg:#111317; --muted:#5a6068; --faint:#8a9098;
+  --red:#cc0500; --red-soft:rgba(204,5,0,.10); --in:#0a86c2; --out:#d6340f; --gate:#111317;
+  --edge:rgba(17,19,23,.14); --shadow:0 18px 50px rgba(20,24,30,.18); color-scheme:light;}}
+:root[data-theme="light"]{
+  --bg:#eef0f2; --surface:#ffffff; --surface2:#f4f5f7; --line:#d6d9de; --line2:#c2c6cc;
+  --fg:#111317; --muted:#5a6068; --faint:#8a9098;
+  --red:#cc0500; --red-soft:rgba(204,5,0,.10); --in:#0a86c2; --out:#d6340f; --gate:#111317;
+  --edge:rgba(17,19,23,.14); --shadow:0 18px 50px rgba(20,24,30,.18); color-scheme:light;}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+.wrap{padding-inline:clamp(16px,3vw,40px);padding-block:0 64px;max-width:1800px;margin:0 auto}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+
+/* ---------- header ---------- */
+.hero{position:relative;padding-block:34px 26px;border-bottom:1px solid var(--line);overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background:repeating-linear-gradient(45deg,transparent 0 3px,var(--surface2) 3px 4px),repeating-linear-gradient(-45deg,transparent 0 3px,var(--surface2) 3px 4px)}
+.hero>*{position:relative}
+.flag{position:absolute;right:0;top:0;width:min(340px,38vw);height:100%;opacity:.9;
+  background:conic-gradient(var(--fg) 25%,transparent 0 50%,var(--fg) 0 75%,transparent 0) 0 0/22px 22px;
+  -webkit-mask-image:linear-gradient(100deg,transparent 10%,#000 85%);mask-image:linear-gradient(100deg,transparent 10%,#000 85%)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.eyebrow b{color:var(--fg);background:var(--red);color:#fff;padding:2px 8px;font-weight:700;clip-path:polygon(0 0,100% 0,calc(100% - 7px) 100%,0 100%)}
+h1{font-family:var(--f-display);font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(34px,5.4vw,74px);line-height:.92;margin:12px 0 10px;letter-spacing:-.01em;text-wrap:balance}
+h1 em{font-style:italic;color:var(--red)}
+.lede{max-width:68ch;color:var(--muted);margin:0}
+.stats{display:flex;gap:28px;flex-wrap:wrap;margin-top:22px;font-family:var(--f-display)}
+.stat b{display:block;font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- toolbar ---------- */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding-block:10px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.grp>label{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.seg{display:inline-flex;border:1px solid var(--line2)}
+.seg button{background:none;border:0;padding:5px 10px;font-family:var(--f-display);font-weight:600;font-size:13px;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.tog{background:none;border:1px solid var(--line2);padding:5px 10px;font-family:var(--f-display);font-weight:600;font-size:13px;cursor:pointer;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.tog[aria-pressed="true"]{border-color:var(--red);color:var(--fg);background:var(--red-soft)}
+.search{background:var(--surface);border:1px solid var(--line2);color:var(--fg);padding:6px 10px;font:inherit;font-size:14px;width:220px;max-width:60vw}
+.loopchips{display:flex;gap:6px;flex-wrap:wrap}
+.lchip{border:1px solid var(--line2);background:none;padding:3px 8px 3px 6px;font-size:12px;font-family:var(--f-display);font-weight:600;cursor:pointer;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.lchip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.lchip[aria-pressed="true"]{color:var(--fg);border-color:var(--fg)}
+.hint{font-size:13px;color:var(--muted);margin:12px 0 0}
+
+/* ---------- legend ---------- */
+.legend{display:flex;flex-wrap:wrap;gap:8px 22px;margin:16px 0 12px;font-size:13px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;gap:8px;align-items:center}
+.legend svg{overflow:visible}
+
+/* ---------- map ---------- */
+.mapbox{position:relative;overflow-x:auto;border:1px solid var(--line);background:var(--surface);overscroll-behavior-x:contain}
+.map{position:relative;display:grid;grid-template-columns:186px repeat(10,206px);width:max-content}
+.map svg.edges{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:visible}
+.ph{position:relative;padding:12px 12px 10px;border-bottom:1px solid var(--line2);border-left:1px solid var(--line);background:var(--surface2)}
+.ph .no{font-family:var(--f-mono);font-size:11px;color:var(--red);font-weight:700;letter-spacing:.08em}
+.ph h3{font-family:var(--f-display);font-weight:700;font-size:15px;margin:2px 0 0;text-transform:uppercase;letter-spacing:.02em;line-height:1.15}
+.ph p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.ph.gate{background:var(--surface2)}
+.ph.gate::after{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:conic-gradient(var(--gate) 25%,transparent 0 50%,var(--gate) 0 75%,transparent 0) 0 0/6px 6px}
+.corner{position:sticky;left:0;z-index:5;background:var(--surface2);border-bottom:1px solid var(--line2);padding:12px;font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:flex-end}
+.lane{position:sticky;left:0;z-index:4;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 12px 12px 16px;cursor:pointer;text-align:left;border-top:0;border-left:0;border-right:1px solid var(--line2);display:flex;flex-direction:column;gap:2px}
+.lane::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--lc)}
+.lane b{font-family:var(--f-display);font-weight:700;font-size:15px;line-height:1.15;text-transform:uppercase}
+.lane small{font-size:12px;color:var(--muted);line-height:1.3}
+.lane em{font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--faint);margin-top:4px}
+.lane:hover b{color:var(--red)}
+.cell{border-bottom:1px solid var(--line);border-left:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:64px;position:relative;z-index:3}
+.cell.gatecol{background:repeating-linear-gradient(-45deg,transparent 0 10px,var(--red-soft) 10px 11px)}
+
+.blk{position:relative;display:block;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line2);padding:7px 9px 7px 10px;cursor:pointer;
+  clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,0 100%);transition:opacity .15s,border-color .15s,transform .15s}
+.blk:hover{border-color:var(--fg)}
+.blk .id{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;display:flex;align-items:center;gap:6px;color:var(--muted)}
+.blk .id i{width:8px;height:8px;background:var(--lc);display:inline-block;transform:skewX(-18deg)}
+.blk .nm{font-family:var(--f-display);font-weight:600;font-size:13.5px;line-height:1.2;margin-top:2px;display:block}
+.blk .ft{display:flex;gap:4px;margin-top:5px;align-items:center;min-height:8px}
+.blk .ft s{width:7px;height:7px;border-radius:50%;display:inline-block;text-decoration:none}
+.blk .cp{font-family:var(--f-mono);font-size:9.5px;font-weight:700;color:#fff;background:var(--red);padding:0 4px;margin-left:auto;letter-spacing:.06em}
+.blk.crit{border-color:color-mix(in srgb,var(--red) 55%,var(--line2))}
+.map.dim .blk{opacity:.18}
+.map.dim .blk.hl{opacity:1}
+.blk.sel{border-color:var(--fg);box-shadow:0 0 0 2px var(--fg) inset;opacity:1!important}
+.blk.up{border-color:var(--in);box-shadow:0 0 0 1px var(--in) inset}
+.blk.down{border-color:var(--out);box-shadow:0 0 0 1px var(--out) inset}
+.blk.match{box-shadow:0 0 0 2px var(--red) inset}
+.edges path{fill:none;stroke:var(--edge);stroke-width:1.2}
+.edges path.fb{stroke-dasharray:5 4}
+.edges path.on-in{stroke:var(--in);stroke-width:2;opacity:1}
+.edges path.on-out{stroke:var(--out);stroke-width:2;opacity:1}
+.edges path.on-loop{stroke-width:2.2;opacity:1}
+.edges path.on-crit{stroke:var(--red);stroke-width:2.2;opacity:1}
+.map.dim .edges path:not([class*="on-"]){opacity:.25}
+.edges.hide-rest path:not([class*="on-"]){display:none}
+
+/* ---------- drawer ---------- */
+.drawer{position:fixed;z-index:50;top:0;right:0;height:100%;width:min(520px,100%);background:var(--surface);border-left:1px solid var(--line2);box-shadow:var(--shadow);
+  transform:translateX(105%);transition:transform .25s ease;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.drawer.open{transform:none}
+.dhead{position:relative;padding:18px 20px 14px;border-bottom:1px solid var(--line);background:var(--surface2)}
+.dhead::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--lc,var(--red))}
+.dclose{position:absolute;right:12px;top:12px;width:34px;height:34px;border:1px solid var(--line2);background:var(--surface);cursor:pointer;font-size:18px;line-height:1}
+.dnav{display:flex;gap:6px;margin-bottom:8px}
+.dnav button{border:1px solid var(--line2);background:none;cursor:pointer;font-family:var(--f-mono);font-size:11px;padding:3px 8px;color:var(--muted)}
+.dmeta{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding-right:44px}
+.dmeta b{color:var(--fg)}
+.dhead h2{font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.1;margin:6px 0 10px;text-wrap:balance;padding-right:30px}
+.badges{display:flex;flex-wrap:wrap;gap:6px}
+.badge{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border:1px solid var(--line2);display:inline-flex;gap:6px;align-items:center}
+.badge.cp{background:var(--red);border-color:var(--red);color:#fff}
+.badge i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dbody{overflow-y:auto;padding:16px 20px calc(40px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:18px}
+.sec h4{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.sec h4::after{content:"";flex:1;height:1px;background:var(--line)}
+.sec p{margin:0}
+.who{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.who dt{color:var(--muted);font-size:13px}
+.who dd{margin:0;display:flex;flex-wrap:wrap;gap:5px}
+.lanechip{font-family:var(--f-display);font-weight:600;font-size:12.5px;padding:1px 7px;border:1px solid var(--line2);display:inline-flex;align-items:center;gap:6px;background:none;cursor:pointer}
+.lanechip i{width:8px;height:8px;background:var(--lc);transform:skewX(-18deg)}
+.flow{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.flow li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:8px 10px;background:var(--surface2);border-left:3px solid var(--fc)}
+.flow .src{font-family:var(--f-mono);font-size:11px;font-weight:700;border:1px solid var(--line2);padding:2px 6px;background:var(--surface);cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+.flow .src i{width:7px;height:7px;background:var(--lc);transform:skewX(-18deg)}
+.flow .src.ext{cursor:default;color:var(--muted)}
+.flow .txt{font-size:14px;line-height:1.4;min-width:0}
+.flow .txt small{display:block;font-size:12px;color:var(--muted)}
+.flow .fbtag{font-family:var(--f-mono);font-size:10px;color:var(--muted);border:1px dashed var(--line2);padding:0 4px;margin-left:4px;white-space:nowrap}
+ol.tasks{margin:0;padding:0;list-style:none;counter-reset:t;display:flex;flex-direction:column;gap:6px}
+ol.tasks li{counter-increment:t;display:grid;grid-template-columns:28px 1fr;gap:8px;font-size:14.5px;line-height:1.4}
+ol.tasks li::before{content:counter(t,decimal-leading-zero);font-family:var(--f-mono);font-size:11px;font-weight:700;color:var(--red);padding-top:3px}
+ul.pit{margin:0;padding-left:18px;font-size:14px}
+ul.pit li::marker{color:var(--red)}
+.kv{font-size:14px}
+.trace{display:flex;gap:8px;flex-wrap:wrap}
+.scrim{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.35);display:none}
+.scrim.on{display:block}
+
+/* ---------- sections below ---------- */
+section.below{margin-top:56px}
+.shead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid var(--fg);padding-bottom:8px;margin-bottom:18px}
+.shead h2{font-family:var(--f-display);font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(24px,3vw,36px);margin:0;line-height:1}
+.shead span{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.shead p{flex-basis:100%;margin:6px 0 0;color:var(--muted);max-width:75ch}
+.loops{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.loopcard{background:var(--surface);border:1px solid var(--line);padding:14px 16px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:8px}
+.loopcard:hover{border-color:var(--fg)}
+.loopcard h3{margin:0;font-family:var(--f-display);font-size:17px;display:flex;align-items:center;gap:8px}
+.loopcard h3 i{width:12px;height:12px;border-radius:50%;border:2px solid var(--lpc)}
+.loopcard h3 small{font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-left:auto}
+.loopcard p{margin:0;font-size:14px;color:var(--muted)}
+.loopcard .ids{display:flex;flex-wrap:wrap;gap:4px}
+.loopcard .ids span{font-family:var(--f-mono);font-size:10.5px;border:1px solid var(--line2);padding:0 5px}
+
+.mxwrap{overflow-x:auto;border:1px solid var(--line);background:var(--surface)}
+table.mx{border-collapse:collapse;font-variant-numeric:tabular-nums;width:max-content}
+.mx th,.mx td{border:1px solid var(--line);padding:0;text-align:center}
+.mx thead th{font-family:var(--f-display);font-weight:600;font-size:12px;padding:6px 4px;min-width:62px;vertical-align:bottom;background:var(--surface2)}
+.mx thead th i,.mx tbody th i{display:block;height:4px;background:var(--lc);margin-bottom:4px}
+.mx tbody th{font-family:var(--f-display);font-weight:600;font-size:13px;text-align:left;padding:6px 10px;white-space:nowrap;background:var(--surface2);position:sticky;left:0}
+.mx td button{width:100%;height:36px;border:0;background:transparent;cursor:pointer;font-family:var(--f-mono);font-size:13px;font-weight:700}
+.mx td button:hover{outline:2px solid var(--fg);outline-offset:-2px}
+.mx td button[aria-pressed="true"]{outline:2px solid var(--red);outline-offset:-2px}
+.mx td.diag button{color:var(--faint)}
+.mx .corner2{font-family:var(--f-mono);font-size:10px;color:var(--muted);text-align:left;padding:6px 10px;letter-spacing:.08em;text-transform:uppercase}
+.handoffs{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.handoffs .hh{font-family:var(--f-display);font-weight:700;font-size:16px}
+.ho{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:12px;padding:8px 12px;background:var(--surface);border:1px solid var(--line);font-size:14px}
+.ho .pair{font-family:var(--f-mono);font-size:12px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.ho .pair button{border:1px solid var(--line2);background:var(--surface2);cursor:pointer;font-family:var(--f-mono);font-size:11.5px;font-weight:700;padding:1px 6px}
+.ho .what{min-width:0}
+.ho .what small{display:block;color:var(--muted);font-size:12px}
+
+.reg{display:flex;flex-direction:column;gap:28px}
+.reglane h3{font-family:var(--f-display);font-weight:700;text-transform:uppercase;font-size:20px;margin:0 0 8px;display:flex;align-items:center;gap:10px}
+.reglane h3 i{width:14px;height:14px;background:var(--lc);transform:skewX(-18deg)}
+.reglane h3 small{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.08em}
+details.act{border:1px solid var(--line);background:var(--surface);margin-top:-1px}
+details.act summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:62px 1fr auto;gap:12px;padding:10px 14px;align-items:baseline}
+details.act summary::-webkit-details-marker{display:none}
+details.act summary .i{font-family:var(--f-mono);font-size:12px;font-weight:700;color:var(--muted)}
+details.act summary .n{font-family:var(--f-display);font-weight:600;font-size:15.5px;min-width:0}
+details.act summary .p{font-family:var(--f-mono);font-size:11px;color:var(--muted);text-align:right}
+details.act[open] summary{background:var(--surface2);border-bottom:1px solid var(--line)}
+details.act .in{padding:14px 16px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+details.act .in .full{grid-column:1/-1}
+.toolsrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.toolsrow button{border:1px solid var(--line2);background:none;cursor:pointer;padding:5px 10px;font-family:var(--f-display);font-weight:600;font-size:13px;color:var(--muted)}
+footer{margin-top:60px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+footer p{margin:4px 0;max-width:90ch}
+@media (max-width:700px){
+  .drawer{top:auto;bottom:0;height:82%;width:100%;transform:translateY(105%);border-left:0;border-top:1px solid var(--line2)}
+  .drawer.open{transform:none}
+  .ho{grid-template-columns:1fr}
+  details.act summary{grid-template-columns:52px 1fr}
+  details.act summary .p{display:none}
+  .flag{width:100%;height:10px;top:auto;bottom:0;-webkit-mask-image:none;mask-image:none;opacity:.8;background-size:10px 10px}
+  .bar{position:static}
+  .stats{gap:18px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="flag" aria-hidden="true"></div>
+    <div class="eyebrow"><b>MIST BLITZ</b><span>CV · Steel spaceframe · Single cylinder · Chain + LSD · Aero</span></div>
+    <h1>Car Program <em>Work Map</em></h1>
+    <p class="lede">Every technical activity needed to take a Formula Student combustion car from rulebook to a track-ready car at FS UK and FS Japan. It shows who owns each activity, what they need and from whom, and where the work loops back. Click any block for its exact tasks.</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Map controls">
+    <div class="grp"><label for="q">Find</label><input id="q" class="search" type="search" placeholder="hub, restrictor, SES…" autocomplete="off"></div>
+    <div class="grp"><label>Links</label>
+      <div class="seg" id="linkmode">
+        <button type="button" data-v="all" aria-pressed="true">All</button>
+        <button type="button" data-v="focus" aria-pressed="false">Focus</button>
+        <button type="button" data-v="off" aria-pressed="false">Off</button>
+      </div></div>
+    <div class="grp"><button type="button" class="tog" id="crit" aria-pressed="false"><span style="width:9px;height:9px;background:var(--red);display:inline-block"></span>Critical path</button>
+      <button type="button" class="tog" id="chain" aria-pressed="false" title="Highlight the full upstream and downstream chain of the selected activity">Full chain</button></div>
+    <div class="grp"><label>Loops</label><div class="loopchips" id="loopchips"></div></div>
+  </div>
+
+  <div class="legend" aria-label="Legend">
+    <span><svg width="38" height="8"><path d="M1 4H32" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M31 1L37 4L31 7" fill="currentColor"/></svg>Hard input (needed before starting)</span>
+    <span><svg width="38" height="8"><path d="M1 4H32" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 4" fill="none"/><path d="M31 1L37 4L31 7" fill="currentColor"/></svg>Iterative / feedback input</span>
+    <span><svg width="38" height="8"><path d="M1 4H36" stroke="var(--in)" stroke-width="2.4"/></svg>Needs from (upstream)</span>
+    <span><svg width="38" height="8"><path d="M1 4H36" stroke="var(--out)" stroke-width="2.4"/></svg>Gives to (downstream)</span>
+    <span><span style="font-family:var(--f-mono);font-size:10px;font-weight:700;background:var(--red);color:#fff;padding:0 4px">CP</span>On critical path</span>
+    <span><span style="display:inline-flex;gap:3px"><s style="width:7px;height:7px;border-radius:50%;background:#ff6b2c"></s><s style="width:7px;height:7px;border-radius:50%;background:#19c3c9"></s></span>Loop membership</span>
+  </div>
+
+  <div class="mapbox" id="mapbox"><div class="map" id="map"><svg class="edges" id="edges" aria-hidden="true"></svg></div></div>
+  <p class="hint">Scroll sideways to follow the program from rules to review. Click a lane name for that subteam's duty sheet. Click a block to trace what it needs and what it feeds.</p>
+
+  <section class="below" id="loops-sec">
+    <div class="shead"><h2>Iteration loops</h2><span>9 loops</span><p>Car design is not a straight line. These are the cycles where activities trade information back and forth until they converge. Click a loop to light it up on the map.</p></div>
+    <div class="loops" id="loopcards"></div>
+  </section>
+
+  <section class="below" id="matrix-sec">
+    <div class="shead"><h2>Handoff matrix</h2><span>Who gives what to whom</span><p>Rows give, columns receive. Each number counts the information handoffs between two subteams. Click a cell to list exactly what must be handed over.</p></div>
+    <div class="mxwrap"><table class="mx" id="mx"></table></div>
+    <div class="handoffs" id="handoffs"></div>
+  </section>
+
+  <section class="below" id="reg-sec">
+    <div class="shead"><h2>Technical task register</h2><span id="regcount"></span><p>The full list of activities by subteam, with owner, inputs, outputs, task checklist, tools, rules and pitfalls. Use it as the season's duty sheet.</p></div>
+    <div class="toolsrow"><button type="button" id="expandall">Expand all</button><button type="button" id="collapseall">Collapse all</button></div>
+    <div class="reg" id="reg"></div>
+  </section>
+
+  <footer>
+    <p>Rule references point to rule sections: FS Rules 2026 (used by FS UK, with the FS UK handbook) and Formula SAE Rules 2026 with the 2026 FSAEJ participation and local rules (used by FS Japan). Always confirm clause numbers and values in the current rulebook and event handbook before designing to them.</p>
+    <p>Owners are listed by role so the map survives handovers. Assign names in your season tracker.</p>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Activity details" aria-hidden="true">
+  <div class="dhead" id="dhead"></div>
+  <div class="dbody" id="dbody"></div>
+</aside>
+
+<script>
+window.D = { blocks: [] };
+D.lanes = [
+  {k:"TM",  n:"Technical Management", s:"Tech captain + vice", c:"#e10600"},
+  {k:"VD",  n:"Vehicle Dynamics", s:"Tyres, suspension, steering", c:"#ff6b2c"},
+  {k:"CH",  n:"Chassis", s:"Frame, IA, structures", c:"#f2b705"},
+  {k:"ERG", n:"Ergonomics", s:"Cockpit, seat, controls", c:"#c8d400"},
+  {k:"PT",  n:"Powertrain", s:"Engine, intake, exhaust, fuel, drive", c:"#3ddc84"},
+  {k:"AC",  n:"Aero & Cooling", s:"Wings, bodywork, radiator", c:"#19c3c9"},
+  {k:"BR",  n:"Braking", s:"Brake system & pedal ratio", c:"#3d8bff"},
+  {k:"ECS", n:"Electronics (ECS)", s:"Harness, ECU, shutdown, LV", c:"#8b6cff"},
+  {k:"TEL", n:"Telemetry & Driver", s:"Data, drivers, test running", c:"#d65cff"},
+  {k:"DOC", n:"Documentation", s:"Reports, submissions, records", c:"#ff5ca8"},
+  {k:"LOG", n:"Logistics & Mfg", s:"Vendors, workshop, shipping", c:"#a3a3a3"},
+  {k:"FIN", n:"Finance & Cost", s:"Budget, spend, cost event", c:"#e0a96d"},
+  {k:"BUS", n:"Business & Brand", s:"Sponsors, pitch, livery", c:"#7fd1b9"}
+];
+D.phases = [
+  {k:0, n:"Rules & Strategy", s:"Know the game"},
+  {k:1, n:"Concept & Targets", s:"Decide the car"},
+  {k:2, n:"System Design", s:"Layout & interfaces"},
+  {k:3, n:"Detail Design", s:"Parts, analysis, drawings"},
+  {k:4, n:"Freeze & Release", s:"Gate: drawings out"},
+  {k:5, n:"Manufacture & Procure", s:"Make & buy"},
+  {k:6, n:"Assembly & Commission", s:"Car comes together"},
+  {k:7, n:"Test & Validate", s:"Kilometres & tuning"},
+  {k:8, n:"Competition", s:"Scrutineering, statics, dynamics"},
+  {k:9, n:"Review & Handover", s:"Feeds next season"}
+];
+D.loops = [
+  {k:"L1", n:"Season loop", c:"#e10600", d:"Post-season review and test data become the starting point of next year's concept. Nothing starts from zero; every target is a delta from the last car.", b:["TM12","TM2","TM3","DOC6","TEL5"]},
+  {k:"L2", n:"Concept loop", c:"#ff6b2c", d:"Tyre choice, lap sim, mass, engine curve and aero targets are iterated together until the concept converges. Run until a change in one input no longer moves the decision.", b:["VD1","VD2","VD3","TM3","TM4","PT1","PT2","AC1","FIN1"]},
+  {k:"L3", n:"Hardpoint loop", c:"#f2b705", d:"Kinematic hardpoints, chassis pickup nodes, wheel-envelope packaging (upright, brake, hub) and the CAD skeleton trade back and forth. Ends when hardpoints are frozen in TM8.", b:["VD4","VD5","CH2","TM5","VD7","BR2","ERG2"]},
+  {k:"L4", n:"Mass & CG loop", c:"#c8d400", d:"Every detailed design reports mass and CG to the budget owner; overruns force redesign or reallocation. Runs continuously through detail design.", b:["TM4","VD7","VD8","VD9","CH3","PT9","AC3","AC4","ECS3","ERG3"]},
+  {k:"L5", n:"Load → FEA → redesign", c:"#3ddc84", d:"Load cases from VD drive component FEA; parts that fail the safety factor or stiffness target go back to geometry. Also catches compliance that ruins kinematics.", b:["VD6","VD7","VD8","VD9","VD12","CH3","AC4","BR3","PT8"]},
+  {k:"L6", n:"Aero–cooling–packaging", c:"#19c3c9", d:"Sidepod and radiator position change aero balance and drag; wing position changes cooling flow; both fight for the same space as driver, engine and harness.", b:["AC1","AC2","AC3","AC6","TM5","PT10"]},
+  {k:"L7", n:"Engine tuning loop", c:"#3d8bff", d:"1D simulation sets intake and exhaust geometry, the dyno/track measures it, ECU calibration closes the gap, findings feed back to runner and silencer design.", b:["PT2","PT3","PT4","PT11","ECS8","PT14"]},
+  {k:"L8", n:"Test → setup loop", c:"#8b6cff", d:"Run, log, analyse, change one thing, run again. Driver feedback and data agree before a setup is accepted.", b:["TM10","TEL5","VD15","BR7","AC8","ECS8","ERG7"]},
+  {k:"L9", n:"Budget loop", c:"#e0a96d", d:"Concept ambitions are checked against money and manufacturing capability; long-lead purchases lock decisions early.", b:["FIN1","TM3","LOG1","LOG2","FIN2","BUS1"]}
+];
+
+D.blocks.push(
+/* ================= TECHNICAL MANAGEMENT ================= */
+{id:"TM1",l:"TM",p:0,n:"Rulebook study & rule-owner matrix",o:"Tech captain",w:["DOC","VD","CH","PT","ECS","BR","ERG","AC"],crit:1,
+why:"Every design decision is bounded by two rulebooks: FS Rules (FS UK) and Formula SAE Rules + JSAE local rules (FS Japan). One wrong reading here costs a frame or a scrutineering fail later.",
+in:[["X:Rulebooks","FS Rules 2026 + FS UK handbook; Formula SAE Rules 2026 + FSAEJ participation & local rules"],["TM12","Last season's scrutineering findings and rule questions raised",1]],
+tasks:["Download both current rulebooks, handbooks and all published FAQs/rule clarifications","Assign every rule section to an owner subteam (rule-owner matrix: section → lane → person)","Build a CV-only compliance checklist per subsystem and keep it as a living sheet","Highlight differences between FS and FSAE rules and design to the stricter one where cheap","Log ambiguous rules and submit rules questions to organisers before design freeze","Brief all subteams in a rules workshop; quiz new members"],
+tools:"Shared spreadsheet, PDF annotations, rules Q&A portals",
+rules:"FS: A, T, CV, IN, S, D sections. FSAE: GR, AD, V, F, T, IC, IN, S, D sections + FSAEJ local rules.",
+done:"Every rule has an owner; compliance checklist exists for each lane; open questions logged with organiser answers.",
+pit:["Designing to last year's rules","Assuming FS and FSAE wording is identical","Local-rule changes published mid-season and nobody re-checks"]},
+
+{id:"TM2",l:"TM",p:0,n:"Previous car review & lessons-learned intake",o:"Tech captain",w:["VD","CH","PT","ECS","TEL","DOC"],loops:["L1"],
+why:"The fastest gains come from fixing what broke or was slow last year. This turns the old car and its data into concrete targets.",
+in:[["TM12","Post-season review report, failure list, design judges' feedback",1],["TEL5","Logged test & competition data from last car",1],["DOC6","Knowledge base, drawings and reports from last season",1]],
+tasks:["Teardown inspection of last car: wear, cracks, loose fasteners, bent parts","Collect judges' feedback from design, cost and business events","List every DNF/failure with root cause (5-why)","Rank issues by points lost and effort to fix","Decide carry-over vs redesign per subsystem","Publish a one-page 'Keep / Fix / Change' sheet to all subteams"],
+tools:"Failure log, event score sheets, data analysis tool",
+rules:"Check eligibility rules for carried-over parts and second-year vehicles at each event.",
+done:"Signed Keep / Fix / Change list; each item has an owner lane.",
+pit:["Reviews that are opinions without data","Redesigning parts that worked and ignoring ones that failed"]},
+
+{id:"TM3",l:"TM",p:1,n:"Vehicle concept & top-level targets",o:"Tech captain",w:["VD","PT","AC","CH","FIN"],crit:1,loops:["L2","L9"],
+why:"Sets the numbers everyone designs to: mass, CG height, wheelbase, track, power, aero yes/no, tyre size. Without frozen targets each subteam optimises its own part and the car does not fit.",
+in:[["VD2","Lap-time sensitivity: points per kg, per hp, per CLA, per mm CG"],["VD1","Tyre & rim selection with .tir model"],["PT1","Engine choice and expected power/torque/mass"],["AC1","Aero package targets (CLA, CDA, balance)"],["FIN1","Season budget ceiling"],["TM2","Keep / Fix / Change list"],["LOG1","What can be made in-house vs outsourced"]],
+tasks:["Run concept trade study (aero vs no aero, 10-inch vs 13-inch, wet vs dry sump etc.)","Fix target vehicle mass with driver, CG height, weight distribution","Fix wheelbase and front/rear track envelope","Fix power, torque band and gearing philosophy with Powertrain","Write the Vehicle Requirements Document (VRD): targets + reasons + owner","Sign off VRD with all leads; any later change needs a change request"],
+tools:"Lap sim results, trade-study matrix, VRD template",
+rules:"Wheelbase, track, displacement and aero dimensional limits from both rulebooks.",
+done:"VRD v1.0 signed and published; all leads acknowledge.",
+pit:["Targets copied from top teams without your own sim","No change control after VRD"]},
+
+{id:"TM4",l:"TM",p:1,n:"Mass, CG & inertia budget",o:"Tech vice captain",w:["VD","CH","PT","AC","ECS","ERG","BR"],crit:1,loops:["L2","L4"],
+why:"Mass and CG are shared resources. A live budget stops the car growing 20 kg heavier one bracket at a time.",
+in:[["TM3","Target total mass, CG height, weight distribution"],["VD7","Upright mass & CG",1],["VD8","Hub & bearing mass",1],["VD9","Wishbone & rod mass",1],["CH3","Frame mass & CG",1],["PT9","Engine + drivetrain mass & CG",1],["AC3","Aero package mass & CG",1],["ECS3","Harness & electronics mass",1],["ERG3","Seat & driver position",1]],
+tasks:["Split total mass target into subsystem allocations","Create budget sheet: part, mass, x/y/z CG, status (estimate/CAD/weighed)","Collect CAD masses weekly; flag overruns in red","Recompute car CG, front/rear split, yaw/roll inertia","Feed updated mass & CG to VD lap sim and load cases","After build: replace estimates with weighed values"],
+tools:"Spreadsheet linked to CAD mass properties, corner scales",
+rules:"No mass limit in rules; ballast rules apply if used.",
+done:"Budget converged within target at design freeze; weighed car within 3% of predicted.",
+pit:["Forgetting fasteners, fluids, harness and driver","CG never checked against tilt-test needs"]},
+
+{id:"TM5",l:"TM",p:2,n:"Master CAD skeleton & packaging layout",o:"CAD manager (TM)",w:["VD","CH","ERG","PT","AC","ECS","BR"],crit:1,loops:["L3","L6"],
+why:"A single top-down skeleton (hardpoints, driver template, engine envelope, wheel envelope) lets every subteam design in the right place at the same time.",
+in:[["TM3","Wheelbase, track, ride height targets"],["VD4","Suspension hardpoints",1],["ERG2","Driver template & cockpit layout"],["PT9","Engine & drivetrain envelope",1],["AC2","Radiator & duct envelope",1],["CH2","Frame node layout",1]],
+tasks:["Build the skeleton model with reference planes, hardpoints, wheel envelopes","Place driver template, engine, fuel tank, radiator, battery, ECU envelopes","Set CAD rules: naming, units, origin, file structure, check-in/out","Run weekly interference checks of full assembly","Maintain the full-car assembly as single source of truth","Publish packaging screenshots after each change"],
+tools:"SolidWorks/CATIA/Fusion with PDM or shared drive with version control",
+rules:"Ground clearance, envelope, cockpit template and keep-out zones.",
+done:"Full car assembled with zero interferences at freeze.",
+pit:["Everyone designs bottom-up and nothing fits","No naming discipline, duplicate files"]},
+
+{id:"TM6",l:"TM",p:2,n:"Interface Control Document (ICD)",o:"Tech vice captain",w:["VD","CH","PT","BR","ECS","AC","ERG"],
+why:"Lists every point where two subteams touch: bolt sizes, loads, connectors, fluid fittings. This is the formal 'who gives what to whom' record.",
+in:[["TM5","Packaging layout and envelopes"],["VD6","Interface loads"],["ECS1","Electrical architecture & connector list"]],
+tasks:["List every physical, electrical and fluid interface between subsystems","For each: owner, receiver, geometry, fastener, load, tolerance, due date","Track status (open / agreed / frozen)","Review open interfaces in every weekly tech meeting","Lock interfaces before design freeze"],
+tools:"Spreadsheet or the team workspace parameter store",
+rules:"Critical fastener rules (grade, positive locking) apply to most interfaces.",
+done:"All interfaces 'frozen' before TM8.",
+pit:["Interfaces agreed verbally and forgotten","Fastener spec decided at assembly"]},
+
+{id:"TM7",l:"TM",p:3,n:"Design reviews (PDR / CDR)",o:"Tech captain",w:["VD","CH","PT","AC","BR","ECS","ERG","DOC"],
+why:"Structured reviews catch errors while they are cheap to fix and rehearse the design event at the same time.",
+in:[["VD12","Suspension FEA & compliance results"],["CH3","Frame FEA & torsional stiffness"],["PT3","Intake design & sim"],["AC3","Aero package results"],["BR2","Brake sizing calculations"],["ECS3","Harness design"],["ERG5","Pedal box design"],["VD11","Steering detail design"]],
+tasks:["Preliminary Design Review: concepts, calcs, rule compliance","Critical Design Review: final CAD, FEA, drawings, manufacturing plan","Invite alumni / faculty / industry reviewers","Record action items with owners and due dates","Re-review failed items before freeze"],
+tools:"Review template, slides, action-item log",
+rules:"Design event criteria (FS S5 / FSAE S design) as the review checklist.",
+done:"All CDR actions closed.",
+pit:["Reviews as presentations with no criticism","Actions never closed"]},
+
+{id:"TM8",l:"TM",p:4,n:"Design freeze & drawing release",o:"Tech captain",w:["VD","CH","PT","AC","BR","ECS","ERG","LOG"],crit:1,
+why:"The gate that turns models into parts. After this, changes need a change request so manufacturing can start without chasing a moving target.",
+in:[["TM7","CDR closed with no open critical actions"],["TM4","Mass budget within target"],["TM6","All interfaces frozen"],["DOC4","Drawing set with revisions & BOM"],["CH4","Structural submission ready"]],
+tasks:["Check every part has a released drawing or purchase spec","Freeze hardpoints and frame geometry first (longest lead)","Issue release packages per subteam to Logistics","Start change-request process (who approves, cost/time impact)","Announce freeze to whole team"],
+tools:"Release checklist, PDM status",
+rules:"Submission deadlines for structural documents usually fall near this gate.",
+done:"Release package handed to LOG; change process active.",
+pit:["Freezing with unchecked drawings","Releasing frame before hardpoints are final"]},
+
+{id:"TM9",l:"TM",p:7,n:"Mock scrutineering",o:"Tech captain",w:["CH","ERG","PT","BR","ECS","DOC","TEL"],crit:1,
+why:"Inspecting your own car with the official inspection sheet finds the failures before the event does.",
+in:[["CH9","Frame inspected, checked against rules"],["ECS7","Shutdown and electrical checks passed"],["BR6","Brake system bled and functional"],["PT13","Powertrain installed and running"],["ERG7","Driver egress drills done"],["DOC5","Scrutineering file draft"]],
+tasks:["Print the official inspection sheet for each event (FS UK and FS Japan)","Inspect every item with a non-designer as inspector","Run tilt-table check for fluid leaks if possible","Time driver egress for all drivers","Practice noise test procedure and brake test","Fix-list with owners; repeat mock scrutineering after fixes"],
+tools:"Official inspection sheets, rule checklist, stopwatch, sound meter",
+rules:"FS IN sections (IN7 tilt, IN10 noise, IN11 brake test, egress); FSAE IN sections.",
+done:"Two clean mock scrutineerings in a row.",
+pit:["Designers inspecting their own parts","Leaving it to the week before shipping"]},
+
+{id:"TM10",l:"TM",p:7,n:"Test plan & test-day management",o:"Tech vice captain",w:["TEL","VD","PT","BR","AC","ECS","LOG"],crit:1,loops:["L8"],
+why:"Track time is the scarcest resource. A plan with objectives per run turns kilometres into knowledge.",
+in:[["TEL1","Channel list and data plan"],["VD14","Car aligned & corner-weighted"],["PT13","Engine started and running"],["TEL3","Trained drivers"],["LOG4","Spares, tools & trackside kit"]],
+tasks:["Write test plan: objectives, runs, setup sheet per run","Shakedown: leaks, brakes, steering, shutdown, then low-speed laps","Reliability mileage target (aim for endurance distance several times over)","Event-specific practice: accel, skidpad, autocross, endurance with driver change","Run a test-day safety briefing; marshal and fire-extinguisher roles","Debrief after every session; log failures and actions"],
+tools:"Run sheets, setup sheets, failure log",
+rules:"Driving rules (FS D / FSAE D) for practice procedures.",
+done:"Reliability distance achieved; event procedures rehearsed.",
+pit:["Testing without objectives","Car finished the week before shipping, so no testing"]},
+
+{id:"TM11",l:"TM",p:8,n:"Competition technical leadership",o:"Tech captain",w:["DOC","TEL","LOG","VD","PT","ECS","BR"],crit:1,
+why:"At the event, one person owns the car's schedule: scrutineering order, fixes, refuelling, dynamic event slots.",
+in:[["TM9","Mock scrutineering clean"],["DOC5","Scrutineering file & documents"],["LOG6","Pit setup & spares kit"],["TEL6","Driver line-up per event"]],
+tasks:["Plan scrutineering order and who presents each area","Run fix crew for scrutineering findings","Manage refuelling, tyre and setup changes between events","Keep a timeline of event slots and queues","Make the call on risk (e.g. setup for endurance finish over speed)"],
+tools:"Event timetable, radio/phone, fix log",
+rules:"Event handbook procedures for each competition.",
+done:"All tech inspection stickers; car finishes endurance.",
+pit:["Too many people touching the car","No plan for failed inspection items"]},
+
+{id:"TM12",l:"TM",p:9,n:"Post-season technical review",o:"Tech captain",w:["DOC","TEL","VD","CH","PT","AC","BR","ECS","ERG"],loops:["L1"],
+why:"Closes the loop. Turns the season's mistakes and data into next year's starting point.",
+in:[["TM11","Competition results and failures"],["TEL5","All logged data"],["X:Judges","Design, cost and business judges' feedback"],["FIN4","Cost event feedback"]],
+tasks:["Each subteam writes a 2-page review: target vs achieved, failures, ideas","Score sheet analysis: where points were lost","Archive CAD, calcs, data and drawings","Update the rule-owner matrix with new findings","Hand over to TM2 of next season"],
+tools:"Review template, archive structure",
+rules:"Next year's rule changes noted here.",
+done:"Review published and archived.",
+pit:["Seniors leave before writing it down"]},
+
+/* ================= VEHICLE DYNAMICS ================= */
+{id:"VD1",l:"VD",p:1,n:"Tyre data analysis & tyre/rim selection",o:"VD tyre engineer",w:["FIN","TM"],crit:1,loops:["L2"],
+why:"Tyres set the grip ceiling of the car and the size of the whole wheel envelope (10-inch vs 13-inch). Everything inside the wheel depends on this choice.",
+in:[["X:TTC","FSAE TTC tyre test data (purchased round data)"],["FIN1","Budget for tyres and data"],["TM2","Last season tyre wear and temperature notes",1],["TEL5","Measured tyre temperatures and pressures",1]],
+tasks:["Run the team MATLAB tyre toolset: compare candidate tyres (Fy, Fx, Mz, load sensitivity)","Check temperature and pressure sensitivity at expected loads","Fit Pacejka Magic Formula and export .tir for lap sim","Choose 10-inch or 13-inch rim; select rim width and offset","Get rim drawing: bolt pattern, centre bore, offset, inner barrel profile","Publish tyre/rim data sheet to VD, BR, AC, TM"],
+tools:"MATLAB tyre toolset (TTC analysis + MF fitting), MFeval",
+rules:"Wheel size and tyre rules (FS T / FSAE V), dry and wet tyres.",
+done:".tir file + rim/tyre data sheet released.",
+pit:["Choosing tyres on peak mu alone and ignoring load sensitivity","Rim inner barrel profile unknown until parts arrive"]},
+
+{id:"VD2",l:"VD",p:1,n:"Lap-time simulation & sensitivity",o:"VD lap-sim engineer",w:["PT","AC","TM"],crit:1,loops:["L2"],
+why:"Converts design options into competition points. It answers questions like 'is 5 kg worth more than 3 hp?' before any money is spent.",
+in:[["VD1",".tir tyre model"],["PT2","Torque curve and gearing estimate",1],["AC1","CLA, CDA, aero balance targets",1],["TM4","Mass, CG and distribution",1],["X:Tracks","Event track layouts (accel, skidpad, autocross, endurance)"]],
+tasks:["Build or update a point-mass / quasi-steady-state lap sim","Model each dynamic event and convert times to points","Sensitivity sweep: mass, CG, power, gear ratio, CLA, CDA, track, wheelbase","Produce g-g diagram and peak load estimates for load cases","Report trade-offs to TM3 in points, not seconds"],
+tools:"MATLAB/OptimumLap/OpenLAP or in-house sim",
+rules:"Dynamic event scoring formulas (FS D / FSAE D).",
+done:"Sensitivity report accepted in concept review.",
+pit:["Trusting absolute lap times instead of deltas","No validation against last year's measured laps"]},
+
+{id:"VD3",l:"VD",p:1,n:"Suspension concept & targets",o:"VD lead",w:["TM","CH"],crit:1,loops:["L2"],
+why:"Turns the vehicle targets into suspension numbers: ride frequency, roll gradient, roll centre heights, anti-dive/squat, camber gain, steering behaviour.",
+in:[["TM3","Wheelbase, track, mass, CG targets"],["VD1","Tyre camber/slip sensitivity"],["VD2","Lateral/longitudinal g levels"]],
+tasks:["Choose architecture: double wishbone, push/pull rod, rocker layout, ARB yes/no","Set ride frequencies and roll gradient","Set roll centre height targets and migration limits","Set camber gain, scrub radius, kingpin, caster, mechanical trail targets","Set anti-dive / anti-squat targets","Document targets in a VD target sheet"],
+tools:"Hand calcs, MATLAB, spreadsheet models",
+rules:"Suspension travel and ground clearance rules (FS T / FSAE V).",
+done:"VD target sheet approved by TM.",
+pit:["Picking geometry first and targets later"]},
+
+{id:"VD4",l:"VD",p:2,n:"Suspension kinematics & hardpoints",o:"VD kinematics engineer",w:["CH","TM","BR","ERG"],crit:1,loops:["L3"],
+why:"Hardpoints define where every wishbone, pushrod and tie rod mounts. Chassis cannot draw the frame and Upright cannot draw the upright until they exist.",
+in:[["VD3","Kinematic targets"],["VD1","Rim & tyre envelope (inner barrel)"],["CH2","Frame node constraints",1],["TM5","Packaging envelope (driver, engine, radiator)",1],["BR2","Caliper & rotor envelope inside wheel",1],["VD7","Upright envelope (preliminary)",1]],
+tasks:["Place outboard points inside wheel envelope with clearance to rim and caliper","Place inboard points on/near frame nodes","Iterate to meet roll centre, camber gain, bump steer, anti targets","Check full bump/droop/steer travel for interference","Export hardpoint table (x,y,z) with revision number","Share to CH, TM (CAD skeleton) and VD component designers"],
+tools:"OptimumKinematics / Lotus Shark / SusProg3D / MATLAB",
+rules:"Suspension must have usable travel (rules specify minimum travel with driver).",
+done:"Hardpoint table rev A frozen at TM8.",
+pit:["Inboard points nowhere near frame nodes","Not checking steer + bump combined"]},
+
+{id:"VD5",l:"VD",p:2,n:"Steering geometry & rack selection",o:"VD steering engineer",w:["ERG","CH"],loops:["L3"],
+why:"Sets Ackermann, steering ratio, rack position and tie-rod points. Affects driver effort, turning radius for the hairpins, and bump steer.",
+in:[["VD4","Hardpoints (outboard tie-rod point, upright)"],["VD3","Steering targets (Ackermann %, ratio)"],["ERG2","Steering wheel position and driver arm reach"],["X:Track","Tightest hairpin radius from event layouts"]],
+tasks:["Choose Ackermann percentage from tyre slip-angle data","Choose steering ratio (lock-to-lock) for hairpins vs effort","Select rack (bought or custom) and place it","Minimise bump steer by tie-rod point placement","Check steering free-play and stops for rule compliance"],
+tools:"OptimumK, MATLAB, rack datasheets",
+rules:"Steering system rules: positive stops, free play limits, quick-release wheel (FS T / FSAE T).",
+done:"Rack position and tie-rod points added to hardpoint table.",
+pit:["Rack fouls the driver's legs or the frame","Too slow ratio for hairpins"]},
+
+{id:"VD6",l:"VD",p:2,n:"Load case derivation",o:"VD dynamics engineer",w:["CH","BR","PT","AC"],crit:1,loops:["L5"],
+why:"Every structural part needs forces to design against. VD owns these numbers so all parts are designed to the same events.",
+in:[["VD2","Peak lateral, braking, traction g"],["TM4","Mass, CG, distribution"],["VD4","Hardpoints (to resolve forces into members)"],["AC1","Peak downforce and its distribution"],["PT6","Peak drive torque at wheels"]],
+tasks:["Define load cases: max braking, max cornering, combined, max traction, 3g bump, pothole","Compute tyre contact patch forces per corner per case","Resolve into member forces (wishbones, pushrods, tie rods)","Compute upright, hub and bearing loads","Apply safety factors per part class","Publish load-case sheet to every component designer"],
+tools:"MATLAB / spreadsheet free-body solver, OptimumK loads",
+rules:"Not directly specified; judges ask for justification of load cases.",
+done:"Load-case sheet rev A issued and used by all FEA.",
+pit:["Each designer inventing their own loads","Forgetting brake torque reaction and drive torque on hubs"]},
+
+{id:"VD7",l:"VD",p:3,n:"Upright design",o:"VD component designer",w:["BR","TM","LOG"],loops:["L3","L4","L5"],
+why:"The upright joins wishbones, tie rod, bearings, hub and brake caliper. It is the most interface-heavy part on the car.",
+in:[["VD4","Outboard hardpoints"],["VD6","Upright load cases"],["VD8","Bearing outer diameter and seat",1],["BR4","Caliper mounting pattern and position"],["VD1","Rim inner barrel clearance"],["LOG1","Machining capability (CNC 3/4/5-axis, material stock)"],["TM4","Mass target"]],
+tasks:["Choose material (7075-T6, 6061-T6, steel) and process","Model around bearing seat, pickup points, caliper mounts","Check clearance to rim at full steer and travel","FEA for all load cases; check stiffness (camber compliance)","Topology optimisation if machining allows","Detailed drawing with GD&T on bearing bore and pickup holes"],
+tools:"CAD, ANSYS/Abaqus/SolidWorks Simulation, topology optimisation",
+rules:"Critical fastener rules for upright pickups.",
+done:"FEA passes with safety factor; drawing released.",
+pit:["Bearing bore tolerance too loose","Upright fits CAD rim but not real rim"]},
+
+{id:"VD8",l:"VD",p:3,n:"Wheel hub & bearing design",o:"VD component designer",w:["BR","PT","TM","LOG"],loops:["L4","L5"],
+why:"The hub carries wheel loads into the bearings, holds the brake rotor and, at the rear, takes drive torque from the driveshaft. It needs information from four subteams.",
+in:[["VD1","Rim bolt pattern, centre bore, offset (tyre engineer)"],["VD7","Upright bearing seat and spacing"],["VD6","Hub & bearing load cases (cornering, braking, bump)"],["BR3","Rotor mounting PCD, bolt size, floating mount"],["PT8","Driveshaft spline/tripod interface (rear hubs)"],["LOG1","Machining & heat-treat capability"],["TM4","Rotating mass target"]],
+tasks:["Choose bearing type (angular contact pair / deep groove / thin-section) and size from loads and life","Calculate bearing life for the season duty cycle","Design hub: wheel studs or centre lock, rotor flange, spline (rear)","Design bearing preload and retention (nut, spacer, circlip)","FEA hub for combined loads incl. brake torque and drive torque","Drawing with tolerances for bearing fits and spline"],
+tools:"Bearing manufacturer calculators, CAD, FEA",
+rules:"Wheel retention / lug nut rules; positive locking of fasteners (FS T / FSAE V & T).",
+done:"Hub drawing released with bearing calc report.",
+pit:["Bearing preload not controlled","Spline designed before driveshaft supplier confirmed"]},
+
+{id:"VD9",l:"VD",p:3,n:"Wishbones, pushrods, tie rods & inserts",o:"VD component designer",w:["CH","LOG"],loops:["L4","L5"],
+why:"The link members carry the load cases into the frame. Buckling, rod-end selection and weld quality decide if they survive.",
+in:[["VD4","Hardpoints"],["VD6","Member forces per load case"],["CH6","Inboard bracket design",1],["LOG1","Tube stock and welding capability"]],
+tasks:["Select tube size (steel 4130 or CFRP + bonded inserts) by buckling and stress","Select rod ends / spherical bearings with load rating","Design inserts and adjustable ends (shims, threads for camber/toe)","Design welding jig","Calculate buckling safety factor of pushrods and tie rods","Drawings with cut lengths and weld spec"],
+tools:"CAD, buckling calcs, FEA",
+rules:"Rod end and critical fastener rules; no single-shear on critical joints where rules prohibit.",
+done:"All members pass buckling/stress; jig designed.",
+pit:["Rod ends in bending","No adjustment range left for alignment"]},
+
+{id:"VD10",l:"VD",p:3,n:"Rockers, dampers, springs & ARB",o:"VD lead",w:["CH","LOG"],
+why:"Sets ride and roll stiffness and damping. Motion ratio and damper choice decide how tunable the car is at the track.",
+in:[["VD3","Ride frequency and roll gradient targets"],["VD4","Pushrod/pullrod hardpoints, rocker pivot"],["TM4","Sprung and unsprung masses"],["CH6","Rocker and damper mounting brackets",1]],
+tasks:["Calculate motion ratios and wheel rates","Select springs and dampers (adjustable FS-specific dampers)","Design rocker geometry (progression), bearings, pivot","Size and design anti-roll bars (blade or torsion bar)","Create setup sheet ranges for testing"],
+tools:"MATLAB, OptimumK, damper dyno data",
+rules:"Suspension travel rules.",
+done:"Spring/damper/ARB spec + rocker drawings released.",
+pit:["Motion ratio too low, damper never works","Damper ordered late (long lead)"]},
+
+{id:"VD11",l:"VD",p:3,n:"Steering system detail design",o:"VD steering engineer",w:["ERG","ECS","CH"],
+why:"Rack mounts, column, U-joints, quick release and steering wheel. The driver's main control input must be stiff, safe and rule-compliant.",
+in:[["VD5","Rack choice and position"],["ERG2","Steering wheel position and angle"],["ECS5","Steering-wheel buttons and display wiring",1],["CH6","Rack mount brackets",1]],
+tasks:["Design column with U-joint angles within limits","Select quick release (rules require it)","Design rack mounts and column supports","Steering wheel design with button and shift paddle integration","Check steering free-play and stops"],
+tools:"CAD, U-joint angle calcs",
+rules:"Steering wheel quick release, free play, positive stops (FS T / FSAE T).",
+done:"Steering assembly drawings released.",
+pit:["U-joint angles too large → notchy steering"]},
+
+{id:"VD12",l:"VD",p:3,n:"Suspension compliance & FEA review",o:"VD lead",w:["CH","TM"],loops:["L5"],
+why:"A stiff kinematic design is useless if brackets and uprights flex. This checks the whole corner as one system.",
+in:[["VD7","Upright FEA"],["VD8","Hub FEA"],["VD9","Member stress/buckling"],["CH6","Bracket FEA"],["VD6","Load cases"]],
+tasks:["Assemble corner FEA or compliance model","Compute camber and toe compliance per kN lateral load","Compare to targets; redesign weakest link","Summarise in design-event-ready slides"],
+tools:"ANSYS/Abaqus, MATLAB",
+rules:"—",
+done:"Compliance within target, documented.",
+pit:["Only checking strength, never stiffness"]},
+
+{id:"VD13",l:"VD",p:5,n:"Suspension manufacture",o:"VD lead",w:["LOG","CH"],crit:1,
+why:"Wishbones, uprights, hubs and rockers are made or outsourced. Jigs and tolerances decide whether the kinematics match CAD.",
+in:[["TM8","Released drawings"],["LOG3","Machining/outsourcing schedule and material"],["VD9","Welding jig design"]],
+tasks:["Make wishbone jigs; tack, check, weld","Machine or outsource uprights, hubs, rockers","Press bearings; check preload","Inspect critical dimensions; record measurements","Label parts with part number and side (FL/FR/RL/RR)"],
+tools:"Jigs, CNC, lathe, welding, measurement tools",
+rules:"—",
+done:"All suspension parts inspected and labelled.",
+pit:["Welding distortion not measured"]},
+
+{id:"VD14",l:"VD",p:6,n:"Corner assembly, alignment & corner weights",o:"VD lead",w:["CH","TEL","TM"],crit:1,
+why:"Puts the car on the ground at the designed setup: ride height, camber, toe, corner weights.",
+in:[["VD13","Suspension parts"],["CH9","Inspected frame with brackets"],["BR6","Brake components installed"],["PT13","Drivetrain installed"],["TM4","Target weight distribution"]],
+tasks:["Assemble corners with torque spec and positive locking","Set ride height, camber, toe, caster","Corner weight with driver ballast; adjust spring perches","Measure suspension travel and steering stops","Record baseline setup sheet"],
+tools:"Corner scales, camber gauge, toe plates/strings, torque wrench",
+rules:"Positive locking on suspension fasteners.",
+done:"Baseline setup sheet recorded; car on its wheels.",
+pit:["No baseline recorded so changes cannot be compared"]},
+
+{id:"VD15",l:"VD",p:7,n:"Setup tuning & K&C validation",o:"VD lead",w:["TEL","TM"],loops:["L8"],
+why:"Checks that the real car behaves as designed and finds the best setup per event.",
+in:[["TEL5","Logged data and driver feedback"],["TM10","Test plan and run objectives"],["VD14","Baseline setup"]],
+tasks:["Measure actual camber/toe change in bump (static K&C)","Validate roll gradient and ride frequency from data","Tune ARB, dampers, toe, camber per event","Build an event setup book (skidpad, accel, autocross, endurance)"],
+tools:"Data analysis, setup sheets",
+rules:"—",
+done:"Setup book ready with data-backed choices.",
+pit:["Changing several things at once"]},
+
+{id:"VD16",l:"VD",p:8,n:"Design event – VD defence",o:"VD lead",w:["TM","DOC"],
+why:"Judges probe the reasoning chain: tyre data → targets → kinematics → validation. VD usually carries the most questions.",
+in:[["DOC2","Engineering design report"],["VD15","Validation results"],["VD2","Lap-sim trade studies"]],
+tasks:["Prepare a defensible 'why' chain for every number","Bring physical parts and data plots","Practice with mock judges"],
+tools:"Slides, printed plots, parts",
+rules:"Design event (FS S5 / FSAE S).",
+done:"Design event score improved vs last season.",
+pit:["Showing results without reasons"]}
+);
+
+D.blocks.push(
+/* ================= CHASSIS ================= */
+{id:"CH1",l:"CH",p:0,n:"Chassis rules envelope study",o:"Chassis lead",w:["TM","ERG"],crit:1,
+why:"The frame is the most rule-dense part of the car: hoops, bracing, side impact, front bulkhead, minimum tube specs. These rules shape the frame before any engineering.",
+in:[["TM1","Rule-owner matrix and checklist"],["TM2","Last frame's issues",1]],
+tasks:["Extract all primary/secondary structure rules from FS and FSAE","List minimum tube sizes, alternative tubing and equivalency options","Note main/front hoop geometry, bracing and head-clearance rules","Note side impact, front bulkhead and anti-intrusion requirements","Make a 3D rule-envelope sketch for the CAD skeleton"],
+tools:"Rulebooks, CAD sketch",
+rules:"FS T sections on primary structure; FSAE F (Chassis and Structural).",
+done:"Rule-envelope sketch in skeleton; checklist complete.",
+pit:["Using tube sizes from an old rulebook"]},
+
+{id:"CH2",l:"CH",p:2,n:"Frame concept & node layout",o:"Chassis lead",w:["VD","ERG","PT","TM"],crit:1,loops:["L3"],
+why:"Places frame nodes where suspension, engine and driver loads enter. Good node placement makes a stiff, light frame; bad placement needs heavy tabs.",
+in:[["CH1","Rule envelope"],["VD4","Suspension inboard hardpoints",1],["ERG2","Driver template and cockpit openings"],["PT9","Engine mounts and envelope",1],["TM5","Packaging skeleton"]],
+tasks:["Draw wireframe with hoops, bulkhead, side impact members","Put nodes at suspension pickups, engine mounts, harness mounts","Triangulate load paths, especially suspension bays","Check driver template and 95th percentile clearance","Iterate with VD until pickups land on nodes"],
+tools:"CAD 3D sketch / weldment",
+rules:"Hoop geometry, bracing, helmet clearance, cockpit openings.",
+done:"Frame wireframe rev A agreed with VD and ERG.",
+pit:["Suspension pickups mid-tube causing bending"]},
+
+{id:"CH3",l:"CH",p:3,n:"Tube sizing & torsional stiffness FEA",o:"Chassis analyst",w:["VD","TM"],crit:1,loops:["L4","L5"],
+why:"Frame stiffness must be high compared with suspension roll stiffness so the springs do the work. Mass must stay in budget.",
+in:[["CH2","Frame wireframe"],["VD6","Suspension and engine loads"],["VD10","Roll stiffness target (for stiffness ratio)"],["TM4","Frame mass allocation"]],
+tasks:["Beam-element FEA for torsional stiffness (Nm/deg)","Load-case FEA for cornering, braking, bump","Optimise tube sizes within rule minimums","Check stiffness ratio frame vs suspension roll stiffness","Report mass and CG to TM4"],
+tools:"ANSYS / Abaqus / SolidWorks beam FEA",
+rules:"Minimum tube specs; equivalency calculations.",
+done:"Stiffness target met at mass target.",
+pit:["Optimising stiffness with tubes the rules do not allow"]},
+
+{id:"CH4",l:"CH",p:4,n:"Structural equivalency submission (SES / structural docs)",o:"Chassis lead",w:["DOC","TM"],crit:1,
+why:"Organisers must approve the structure before you build it. A rejected submission blocks the whole car.",
+in:[["CH3","Final tube sizes and geometry"],["CH5","Impact attenuator data"],["X:Templates","Official structural equivalency spreadsheet/template for each event"]],
+tasks:["Fill the structural spreadsheet/template for each competition","Provide drawings and photos required","Document any alternative materials or tube sizes","Submit before the deadline; answer reviewer questions","Keep approved version for scrutineering"],
+tools:"Official templates, CAD drawings",
+rules:"FS A5 documentation deadlines; FSAE structural documentation requirements.",
+done:"Approved by both competitions.",
+pit:["Template version mismatch","Built frame differs from submitted one"]},
+
+{id:"CH5",l:"CH",p:3,n:"Impact attenuator & anti-intrusion plate",o:"Chassis engineer",w:["AC","DOC"],
+why:"Protects the driver's feet in a frontal crash. Use the standard attenuator or prove a custom one by test data.",
+in:[["CH2","Front bulkhead geometry"],["AC5","Nose cone shape (packaging)"],["X:Rules","Standard IA spec or custom IA test requirements"]],
+tasks:["Decide standard IA vs custom design","Design anti-intrusion plate and its mounting to bulkhead","Prepare IA data report (IAD) for submission","Design nose so IA fits inside bodywork"],
+tools:"CAD, test data if custom",
+rules:"Impact attenuator & anti-intrusion rules (FS T / FSAE F), IAD submission.",
+done:"IA approved; mounting drawing released.",
+pit:["Bolting pattern not matching the bulkhead"]},
+
+{id:"CH6",l:"CH",p:3,n:"Mounting brackets & tabs (all subsystems)",o:"Chassis engineer",w:["VD","PT","ECS","AC","BR","ERG"],loops:["L5"],
+why:"Every subsystem bolts to the frame. Chassis owns the tabs so welding happens once, before paint.",
+in:[["VD4","Suspension pickup positions"],["VD6","Bracket loads"],["PT9","Engine mount positions"],["ERG4","Harness mount positions"],["ECS3","Harness clip and box mount positions"],["AC4","Wing and bodywork mounts"],["BR4","Brake line and master cylinder mounts"],["VD11","Rack mounts"]],
+tasks:["Collect all mount requests through the ICD","Design tabs with correct thickness and double shear where required","FEA the suspension and harness brackets","Add tabs to the frame weldment drawing","Freeze tab list before welding"],
+tools:"CAD, FEA, ICD sheet",
+rules:"Harness attachment, critical fastener and bracket rules.",
+done:"All tabs on the frame drawing; nothing to weld after paint.",
+pit:["Tabs requested after welding and painting"]},
+
+{id:"CH7",l:"CH",p:4,n:"Frame jig & tube drawings",o:"Chassis lead",w:["LOG"],crit:1,
+why:"Accuracy of the frame decides if hardpoints are where VD designed them.",
+in:[["CH3","Final tube sizes"],["CH6","Tab list"],["TM8","Freeze approval"]],
+tasks:["Design frame jig (laser cut plates or table)","Create cut list with tube lengths and notch angles","Generate notching templates/coping drawings","Plan weld sequence to limit distortion"],
+tools:"CAD, notching templates, cut list sheet",
+rules:"—",
+done:"Jig and tube drawings released to workshop.",
+pit:["No datum features for measuring later"]},
+
+{id:"CH8",l:"CH",p:5,n:"Frame fabrication & welding",o:"Chassis lead",w:["LOG"],crit:1,
+why:"Turns the design into the backbone of the car. Weld quality is inspected at scrutineering.",
+in:[["CH7","Jig, cut list, templates"],["LOG3","Tubes and welding consumables"]],
+tasks:["Cut and notch tubes","Tack frame in jig; measure diagonals and node positions","Weld in planned sequence (TIG)","Weld all tabs","Record measurements and any deviations"],
+tools:"Jig, TIG welder, notcher",
+rules:"Material certificates may be requested at inspection.",
+done:"Frame fully welded with measurement record.",
+pit:["Welding without measuring between stages"]},
+
+{id:"CH9",l:"CH",p:6,n:"Frame inspection & torsion test",o:"Chassis analyst",w:["VD","TM"],crit:1,
+why:"Checks that the real frame matches CAD and FEA.",
+in:[["CH8","Welded frame"],["CH3","Predicted stiffness"]],
+tasks:["Measure hardpoint locations vs CAD","Torsion test with dial gauges","Compare with FEA; explain differences","Inspect welds; fix defects","Release frame for paint/assembly"],
+tools:"Torsion rig, dial gauges, measuring arm or tape and plumb",
+rules:"—",
+done:"Deviation and stiffness report signed off.",
+pit:["Skipping the test and having no validation for judges"]},
+
+{id:"CH10",l:"CH",p:3,n:"Firewall, floor & closeout panels",o:"Chassis engineer",w:["PT","ERG","AC"],
+why:"Separates driver from fuel and engine. Rules specify materials and sealing.",
+in:[["CH2","Frame geometry"],["PT5","Fuel tank position"],["ERG2","Cockpit layout"]],
+tasks:["Design firewall with sealed pass-throughs","Design floor closeout and side panels","Choose materials that meet the rules","Plan fastening and removable panels for service"],
+tools:"CAD, sheet-metal/composite tools",
+rules:"Firewall and floor closeout rules (FS T / FSAE T).",
+done:"Panels drawn; pass-throughs sealed.",
+pit:["Gaps around harness pass-throughs"]},
+
+{id:"CH11",l:"CH",p:5,n:"Paint / powder coat & finishing",o:"Chassis lead",w:["LOG","BUS"],
+why:"Protects the frame from corrosion and makes cracks visible. Done after all tabs are welded.",
+in:[["CH9","Frame released after inspection"],["BUS3","Livery colours"]],
+tasks:["Mask threaded inserts and bearing seats","Powder coat or paint","Re-tap threads; clean faces"],
+tools:"Outsourced coater",
+rules:"—",
+done:"Frame coated and returned.",
+pit:["Coating inside bearing bores"]},
+
+/* ================= ERGONOMICS ================= */
+{id:"ERG1",l:"ERG",p:0,n:"Driver anthropometry & template study",o:"Ergonomics lead",w:["TEL","CH"],
+why:"Rules require the car to fit a 95th percentile template, and your real drivers must fit, see and egress quickly.",
+in:[["TM1","Template and cockpit rules"],["TEL3","Driver pool and body measurements"]],
+tasks:["Model the rules template in CAD","Measure all candidate drivers","Define adjustable range needed (pedals, seat)","Set cockpit targets: sight lines, elbow and knee clearance"],
+tools:"CAD, measuring tape, buck",
+rules:"95th percentile template and cockpit rules.",
+done:"Driver data sheet + template model.",
+pit:["Designing for one driver"]},
+
+{id:"ERG2",l:"ERG",p:2,n:"Cockpit packaging & driver position",o:"Ergonomics lead",w:["CH","VD","TM"],loops:["L3"],
+why:"Driver position sets CG height, frame shape and steering wheel position.",
+in:[["ERG1","Driver data and template"],["TM3","CG targets"],["CH1","Hoop and cockpit opening rules"]],
+tasks:["Choose seat angle and hip point","Place steering wheel, pedals, shifter","Build a wooden or tube cockpit buck","Test with real drivers; adjust","Publish driver template in CAD skeleton"],
+tools:"CAD, buck",
+rules:"Cockpit opening, internal cross-section, visibility rules.",
+done:"Driver position frozen and in skeleton.",
+pit:["Driver too upright, CG high"]},
+
+{id:"ERG3",l:"ERG",p:3,n:"Seat & headrest",o:"Ergonomics engineer",w:["CH","AC"],loops:["L4"],
+why:"Holds the driver for steady inputs and meets head-restraint rules.",
+in:[["ERG2","Driver position"],["CH2","Seat mounting nodes"]],
+tasks:["Make seat foam moulds from drivers","Design composite or moulded seat","Design headrest with energy-absorbing foam","Design quick seat inserts for different drivers"],
+tools:"Foam, composites, CAD",
+rules:"Head restraint and seat rules.",
+done:"Seat drawings and moulds ready.",
+pit:["Seat blocks egress"]},
+
+{id:"ERG4",l:"ERG",p:3,n:"Harness & mounting",o:"Ergonomics engineer",w:["CH"],
+why:"Harness geometry is rule-defined and inspected closely.",
+in:[["ERG2","Driver position"],["CH2","Frame nodes"]],
+tasks:["Select certified harness","Design shoulder, lap and anti-submarine mounts within angle rules","Request tabs from Chassis (CH6)","Check belt angles in CAD with template"],
+tools:"CAD",
+rules:"Driver restraint system rules (angles, mounts, certification date).",
+done:"Mount positions in CH6 tab list.",
+pit:["Expired harness labels"]},
+
+{id:"ERG5",l:"ERG",p:3,n:"Pedal box & driver controls",o:"Ergonomics engineer",w:["BR","PT","ECS"],
+why:"Brake pedal ratio sets brake feel; throttle feel and travel affect drivability. Shared with Braking.",
+in:[["ERG2","Pedal position and heel point"],["BR2","Pedal ratio, master cylinder sizes, balance bar"],["PT3","Throttle body cable route and pull"],["ECS1","Brake light and BOTS position"]],
+tasks:["Design pedal tray with adjustment range","Design brake pedal with balance bar mounts","Design throttle pedal with return springs (two springs)","FEA brake pedal for rule-specified pedal force","Add stops and over-travel switch mount"],
+tools:"CAD, FEA",
+rules:"Brake pedal load requirement, throttle return springs, over-travel switch.",
+done:"Pedal box drawings released.",
+pit:["Pedal too weak for rule pedal force"]},
+
+{id:"ERG6",l:"ERG",p:3,n:"Shifter, switches & cockpit controls",o:"Ergonomics engineer",w:["ECS","PT"],
+why:"Gear shift, kill switches and master switches must be reachable and rule-compliant.",
+in:[["ERG2","Driver reach"],["ECS1","Shutdown button & master switch locations"],["PT6","Gearbox shift mechanism"]],
+tasks:["Choose shift system (mechanical, pneumatic, electric)","Place shutdown buttons and master switch","Label switches as per rules","Design mounts"],
+tools:"CAD",
+rules:"Shutdown buttons, master switch location and marking.",
+done:"Controls positions agreed with ECS.",
+pit:["Kill switch out of driver reach"]},
+
+{id:"ERG7",l:"ERG",p:7,n:"Seat fitting & egress drills",o:"Ergonomics lead",w:["TEL"],loops:["L8"],
+why:"Every driver must egress within the rule time with full gear.",
+in:[["ERG3","Seat and inserts"],["TEL3","Driver line-up"]],
+tasks:["Fit each driver with insert","Egress practice with full gear","Record times","Fix any snag"],
+tools:"Stopwatch",
+rules:"Driver egress test.",
+done:"All drivers below required time with margin.",
+pit:["Not practising with gloves and helmet"]}
+);
+
+D.blocks.push(
+/* ================= POWERTRAIN ================= */
+{id:"PT1",l:"PT",p:1,n:"Engine selection & baseline",o:"Powertrain lead",w:["TM","FIN","LOG","VD"],crit:1,loops:["L2"],
+why:"The single-cylinder engine sets power, mass, packaging, heat load and reliability for the whole season. It is also the longest-lead purchase, so it must be decided early.",
+in:[["TM2","Last engine's failures, oil/temperature issues, service history",1],["FIN1","Engine & spares budget"],["VD2","Lap-sim sensitivity: points per hp vs per kg",1],["LOG1","Local availability of engine, spares, service manuals, import time"],["X:Rules","Displacement, four-stroke, restrictor and fuel rules"]],
+tasks:["List single-cylinder candidates within the displacement limit (450–690 cc motocross/enduro/street engines)","Compare peak power, torque band, dry mass, gearbox ratios, starter, cooling, wet/dry sump","Check aftermarket ECU / injector / throttle body support","Check spares price, rebuild interval, availability of a service manual","Decide carry-over engine vs new; plan spare engine or rebuild kit","Order engine and long-lead spares; record serial numbers"],
+tools:"Comparison matrix, supplier quotes",
+rules:"FS CV1 / FSAE IC: four-stroke, displacement limit, single air restrictor between throttle and engine.",
+done:"Engine purchased; engine data sheet (bore, stroke, valve timing, ratios, mass) published.",
+pit:["Choosing peak power over reliability and torque band","No rebuild plan, so engine runs tired at competition"]},
+
+{id:"PT2",l:"PT",p:2,n:"Engine 1D simulation & torque targets",o:"Powertrain engineer",w:["VD","AC"],loops:["L2","L7"],
+why:"With a restrictor fitted, intake and exhaust lengths decide where torque lives. The simulation gives VD a realistic torque curve and Aero & Cooling the heat to reject.",
+in:[["PT1","Engine geometry: bore, stroke, valve sizes and timing"],["X:Rules","Restrictor diameter and position"],["PT11","Dyno data to calibrate the model",1]],
+tasks:["Build 1D model of engine + restrictor + plenum + runner + exhaust","Sweep runner length, plenum volume and exhaust primary length","Choose torque band vs gearing with lap sim (VD2)","Output torque curve, volumetric efficiency, fuel flow","Estimate heat rejection to coolant and oil for cooling sizing","Publish the target torque curve and geometry"],
+tools:"GT-Power, Ricardo WAVE, Lotus Engine Simulation",
+rules:"Restrictor: 20 mm for gasoline, 19 mm for E85 in recent FS/FSAE rules — confirm in current rulebook.",
+done:"Target torque curve + intake/exhaust geometry released.",
+pit:["Uncalibrated model treated as truth","Optimising peak power the car cannot use"]},
+
+{id:"PT3",l:"PT",p:3,n:"Intake: restrictor, plenum, runner, throttle",o:"Powertrain engineer",w:["AC","ECS","ERG"],loops:["L7"],
+why:"The restrictor chokes airflow; the venturi, plenum and runner design decide how much power and throttle response survive.",
+in:[["PT2","Plenum volume, runner length, throttle size"],["TM5","Packaging envelope near main hoop"],["ECS2","Sensor list: MAP, IAT, TPS positions"],["ERG5","Throttle cable pull and travel",1],["AC3","Sidepod and airbox flow region",1]],
+tasks:["CFD the converging-diverging restrictor for minimum loss","Design plenum and runner; check volume vs sim","Select throttle body; design throttle cable route","Choose manufacture (SLS/SLA print, CFRP, aluminium) and check heat resistance","Add bosses for MAP, IAT, injector","Plan leak test (pressure/vacuum)"],
+tools:"CFD (ANSYS Fluent / Star-CCM+ / SimScale), CAD",
+rules:"Restrictor location (throttle → restrictor → engine order), intake system location rules (FS CV1 / FSAE IC).",
+done:"Intake drawings released; leak-test plan written.",
+pit:["Leak between restrictor and engine = instant fail","Printed plenum softening with heat"]},
+
+{id:"PT4",l:"PT",p:3,n:"Exhaust & silencer",o:"Powertrain engineer",w:["AC","CH","ECS"],loops:["L7"],
+why:"Exhaust tuning adds torque; the silencer must pass the noise test at the event with margin.",
+in:[["PT2","Primary length and diameter"],["TM5","Packaging route past frame and rear suspension"],["CH2","Frame tubes near exhaust path"],["X:Rules","Noise test procedure and limits, outlet position"]],
+tasks:["Design header with correct primary length and collector","Select or design silencer (packing, volume)","Plan O2 sensor boss for ECS","Design heat shielding near harness, fuel and composites","Check outlet height/position rules","Plan noise test rehearsal"],
+tools:"1D sim, CAD, sound level meter",
+rules:"FS CV3 exhaust & noise control; FSAE IC exhaust/noise. Noise test at inspection (FS IN10).",
+done:"Exhaust drawings released with heat shield plan.",
+pit:["Passing noise when new, failing after packing burns out","Exhaust cooking harness or bodywork"]},
+
+{id:"PT5",l:"PT",p:3,n:"Fuel system: tank, pump, lines, filler",o:"Powertrain engineer",w:["CH","ECS","ERG"],
+why:"Must deliver fuel in hard cornering without starving and must not leak at the tilt test.",
+in:[["TM5","Tank envelope (usually behind the firewall)"],["PT2","Fuel flow at peak power"],["VD2","Endurance fuel use estimate and lateral g"],["X:Rules","Fuel tank, filler, venting, line and tilt rules"],["ECS4","Fuel pump power and relay",1]],
+tasks:["Size tank volume for endurance + margin","Design tank with baffles or a surge pot for lateral g","Select pump, regulator, filter","Route lines with rule-compliant fittings and protection","Design filler neck, sight tube and vent","Plan pressure and tilt leak tests"],
+tools:"CAD, flow calcs",
+rules:"Fuel system location, filler neck, sight tube, venting rules; tilt test (FS IN7).",
+done:"Fuel system drawings and fittings list released.",
+pit:["Starvation at low fuel in long corners","Lines routed near exhaust"]},
+
+{id:"PT6",l:"PT",p:3,n:"Gearing, chain & sprockets",o:"Powertrain engineer",w:["VD","CH"],
+why:"Final drive ratio decides acceleration and how much of the torque curve is used on the track.",
+in:[["PT2","Torque curve and rev limit"],["VD2","Lap-sim sensitivity to final drive"],["VD1","Tyre loaded radius"],["PT1","Gearbox internal ratios"]],
+tasks:["Choose final drive ratio per event (accel vs endurance)","Select chain size and sprockets; check chain loads","Design chain guard to rules","Design chain tension adjustment (eccentric diff carriers)","Specify spare sprockets for event changes"],
+tools:"Lap sim, spreadsheet",
+rules:"Chain/scatter shield rules (FS T / FSAE T).",
+done:"Gear set and guard drawings released.",
+pit:["No tension adjustment designed in","Guard too thin for rules"]},
+
+{id:"PT7",l:"PT",p:3,n:"Limited-slip differential & carriers",o:"Powertrain engineer",w:["CH","VD"],
+why:"The LSD controls traction on corner exit; its carriers take chain pull and must allow chain adjustment.",
+in:[["PT6","Chain loads and sprocket position"],["CH2","Frame nodes near diff"],["VD3","Desired locking behaviour (understeer/oversteer balance)"]],
+tasks:["Select LSD (torque-sensing or plate type) and preload","Design diff carriers with eccentric adjustment","FEA carriers with chain pull + drive torque","Design sprocket mount to diff","Request mounting tabs from Chassis"],
+tools:"CAD, FEA",
+rules:"—",
+done:"LSD spec and carrier drawings released.",
+pit:["Carriers flex, chain jumps"]},
+
+{id:"PT8",l:"PT",p:3,n:"Driveshafts & tripod joints",o:"Powertrain engineer",w:["VD"],loops:["L5"],
+why:"Transfers torque to the rear hubs through full suspension travel; its spline is a direct interface with the hub.",
+in:[["PT7","Diff output spline/tripod housing"],["VD4","Rear suspension travel and wheel centre path"],["VD6","Peak drive torque per wheel"]],
+tasks:["Select tripod joints and housings","Check plunge and angle over full travel + steer","Size shaft for torsional stress and fatigue","Define hub-side spline spec and send to VD8","Design boots and retention"],
+tools:"CAD, kinematics output",
+rules:"—",
+done:"Driveshaft drawings released; spline spec agreed with VD8.",
+pit:["Plunge runs out at full droop","Spline designed twice by two teams"]},
+
+{id:"PT9",l:"PT",p:3,n:"Engine mounts & packaging",o:"Powertrain engineer",w:["CH","TM"],loops:["L4"],
+why:"Mounts hold the engine and decide its height in the car, which drives the car CG.",
+in:[["PT1","Engine mount points and mass"],["CH2","Frame node layout",1],["TM5","Engine envelope"]],
+tasks:["Position engine as low as oil pan and exhaust allow","Design mounts (plate or tube) with vibration in mind","FEA for gear-shift and bump loads","Report engine + drivetrain mass and CG to TM4"],
+tools:"CAD, FEA",
+rules:"—",
+done:"Mount drawings released; engine CG reported.",
+pit:["Vibration cracks at welds"]},
+
+{id:"PT10",l:"PT",p:3,n:"Lubrication & oil system",o:"Powertrain engineer",w:["AC","CH"],loops:["L6"],
+why:"Sustained lateral g can starve a wet sump. Catch cans are rule-required.",
+in:[["PT1","Engine sump type"],["VD2","Peak and sustained lateral g"],["AC2","Oil heat rejection and cooler need",1]],
+tasks:["Decide wet sump + baffles vs dry sump","Design catch cans and breather routing","Decide oil cooler need with Aero & Cooling","Design oil fill and drain access"],
+tools:"CAD",
+rules:"Catch can and breather rules.",
+done:"Oil system drawings released.",
+pit:["Oil starvation in skidpad"]},
+
+{id:"PT12",l:"PT",p:5,n:"Powertrain manufacture & procurement",o:"Powertrain lead",w:["LOG","FIN"],
+why:"Makes and buys every powertrain part on time and inspects them before assembly.",
+in:[["TM8","Released drawings"],["LOG3","Supplier and machining schedule"],["FIN2","Purchase approval"]],
+tasks:["Order ECU-compatible injector, throttle, fuel parts","Make intake, exhaust, mounts, carriers","Rebuild/inspect engine; record clearances","Inspect parts against drawings"],
+tools:"Workshop, suppliers",
+rules:"—",
+done:"Complete powertrain kit inspected and labelled.",
+pit:["Late imported parts stop first fire"]},
+
+{id:"PT11",l:"PT",p:6,n:"Engine dyno & base calibration",o:"Powertrain engineer",w:["ECS"],loops:["L7"],
+why:"Measures real torque and closes the loop with simulation; produces a safe base map.",
+in:[["PT12","Engine with intake and exhaust"],["ECS8","ECU base map and logging"]],
+tasks:["Run engine on dyno (or chassis dyno / in-car with logging)","Map fuel (lambda) and ignition per rpm/load","Measure torque curve vs PT2 prediction","Test cooling and oil temperatures under load","Feed results back to PT2 and VD2"],
+tools:"Engine/chassis dyno, wideband lambda, ECU software",
+rules:"—",
+done:"Base map validated; measured torque curve published.",
+pit:["No dyno access → map built on track only"]},
+
+{id:"PT13",l:"PT",p:6,n:"Powertrain install & first fire",o:"Powertrain lead",w:["ECS","CH","AC"],crit:1,
+why:"The engine running in the car is the first big milestone of assembly.",
+in:[["PT12","Powertrain kit"],["CH9","Frame released"],["ECS7","Harness installed and checked"],["AC7","Radiator and hoses",1]],
+tasks:["Install engine, mounts, diff, chain, driveshafts","Fill and bleed coolant; fill oil","Install fuel system; pressure-test lines","First fire with fire extinguisher ready","Check leaks, temperatures, shutdown function"],
+tools:"Workshop, fire extinguisher",
+rules:"Shutdown must kill the engine (ECS7).",
+done:"Engine runs in car; no leaks.",
+pit:["Fuel leaks found with engine hot"]},
+
+{id:"PT14",l:"PT",p:7,n:"Noise test & tilt rehearsal",o:"Powertrain engineer",w:["TM","ECS"],loops:["L7"],
+why:"Noise and tilt are pass/fail; rehearse them so the event is a formality.",
+in:[["PT13","Running car"],["PT4","Silencer design"],["X:Rules","Noise test rpm and limits; tilt procedure"]],
+tasks:["Measure noise at idle and test rpm per rules","Repack/modify silencer if needed","Fill fuel to rule level; tilt check for leaks","Record results for scrutineering file"],
+tools:"Sound level meter, tilt table if available",
+rules:"Noise test (FS IN10), tilt test (FS IN7); FSAE IN equivalents.",
+done:"Measured noise below limit with margin.",
+pit:["Testing noise only on a cold engine"]}
+);
+
+D.blocks.push(
+/* ================= AERO & COOLING ================= */
+{id:"AC1",l:"AC",p:1,n:"Aero concept & targets",o:"Aero lead",w:["VD","TM"],loops:["L2","L6"],
+why:"Decides how much downforce and drag the car carries and where the centre of pressure sits. Feeds lap sim and load cases.",
+in:[["VD2","Points gained per unit CLA and lost per unit CDA",1],["TM3","Mass budget for aero"],["TM2","Last aero package performance",1],["X:Rules","Aero device dimension and position limits"]],
+tasks:["Decide package: front wing, rear wing, undertray/diffuser, sidepods","Set CLA, CDA and aero balance (% front) targets","Estimate aero mass","Feed coefficients to lap sim","Estimate peak downforce for load cases"],
+tools:"Lap sim, hand calcs, past CFD",
+rules:"Aerodynamic device rules (FS T / FSAE T): position, height, width limits.",
+done:"Aero targets in VRD.",
+pit:["Aero balance not matched to mechanical balance"]},
+
+{id:"AC2",l:"AC",p:2,n:"Cooling system sizing",o:"Cooling engineer",w:["PT","TM"],loops:["L6"],
+why:"An overheating engine ends endurance. Radiator size and position fight aero and packaging.",
+in:[["PT2","Heat rejection at peak and endurance load"],["X:Climate","Ambient temperatures at FS Japan and FS UK"],["TM5","Radiator envelope"],["AC1","Sidepod concept"]],
+tasks:["Calculate heat to reject at worst case","Size radiator core and fan","Choose position (sidepod, behind driver)","Estimate airflow through duct","Plan coolant routing and overflow"],
+tools:"Heat exchanger calcs, CFD",
+rules:"Coolant and overflow rules (water-only coolant where specified).",
+done:"Radiator spec and envelope released.",
+pit:["Sizing for cool UK and overheating in Japan's summer heat"]},
+
+{id:"AC3",l:"AC",p:3,n:"Aero CFD & package design",o:"Aero lead",w:["VD","CH","PT"],loops:["L4","L6"],
+why:"Turns targets into wing profiles and surfaces with validated downforce and balance.",
+in:[["AC1","Targets"],["VD3","Ride height and pitch/roll range"],["TM5","Car surfaces and packaging"],["AC2","Radiator duct needs"],["PT3","Airbox position",1]],
+tasks:["Select wing profiles and element counts","Full-car CFD at straight and cornering conditions","Check sensitivity to ride height and yaw","Iterate for balance","Report final CLA, CDA, balance, mass"],
+tools:"Star-CCM+, Fluent, OpenFOAM, SimScale",
+rules:"Aero device dimensions.",
+done:"Aero package frozen.",
+pit:["CFD not validated"]},
+
+{id:"AC4",l:"AC",p:3,n:"Wing mounts & aero structures",o:"Aero engineer",w:["CH","VD"],loops:["L4","L5"],
+why:"Wings must stay put and not deflect beyond rules under load.",
+in:[["AC3","Aero loads and surfaces"],["CH2","Frame mounting points"]],
+tasks:["Design mounts and endplates","FEA under aero load + inertia","Check deflection","Request tabs from Chassis"],
+tools:"CAD, FEA",
+rules:"Aero device stability and deflection rules.",
+done:"Mount drawings released.",
+pit:["Wing flutters"]},
+
+
+{id:"AC5",l:"AC",p:3,n:"Bodywork, nose cone & sidepods",o:"Aero engineer",w:["CH","BUS","ECS"],
+why:"Bodywork covers the frame, wraps the impact attenuator, carries sponsor branding and guides air into the radiator and around the driver.",
+in:[["CH2","Frame outer surface and node positions"],["CH5","Impact attenuator and anti-intrusion plate envelope"],["AC3","Aero surfaces and sidepod shape"],["BUS3","Logo areas sponsors were promised",1],["ECS1","Access needs for master switches and shutdown buttons"]],
+tasks:["Surface nose, sidepods and engine cover from the CAD skeleton","Split into removable panels with quick fasteners for service","Leave cut-outs/access for master switches, filler neck, jacking","Plan mould split lines and draft angles","Check all edges against minimum radius rules","Export flat logo areas to Business & Brand"],
+tools:"CAD surfacing (SolidWorks/CATIA/Rhino)",
+rules:"Bodywork, sharp edge and opening rules; visibility of switches and numbers.",
+done:"Bodywork surfaces and panel drawings released.",
+pit:["Sharp edges fail inspection","Panels that need 20 minutes to remove at the event"]},
+
+{id:"AC6",l:"AC",p:3,n:"Cooling installation design",o:"Cooling engineer",w:["PT","ECS","CH"],loops:["L6"],
+why:"Ducts, hoses, fan and overflow decide whether the sized radiator actually gets air and coolant.",
+in:[["AC2","Radiator core and fan spec"],["AC3","Sidepod inlet/outlet flow field"],["PT10","Oil cooler requirement"],["ECS4","Fan and pump power, fan control strategy",1],["CH6","Radiator mounting tabs",1]],
+tasks:["Design inlet and outlet ducts with sealed sides so air cannot bypass the core","Route hoses with minimum bends; select clamps and fittings","Place expansion/overflow bottle to rules","Mount fan with shroud; agree fan control with ECS","Add coolant temperature sensor bosses","Design radiator mounts with vibration isolation"],
+tools:"CAD, CFD on duct",
+rules:"Coolant type and overflow/catch rules.",
+done:"Cooling installation drawings and hose list released.",
+pit:["Air leaking around the core","Hoses chafing on frame"]},
+
+{id:"AC7",l:"AC",p:5,n:"Composite manufacture & cooling procurement",o:"Aero lead",w:["LOG","FIN"],
+why:"Makes moulds, wings and bodywork and buys radiator, fan and hoses.",
+in:[["TM8","Released aero and bodywork drawings"],["LOG3","Material, mould machining and curing schedule"],["FIN2","Purchase approval for carbon/glass, resin, radiator"]],
+tasks:["Machine or build plugs and moulds (MDF/foam/tooling board)","Layup wings, endplates, bodywork; cure; trim","Bond inserts for mounts","Procure radiator, fan, hoses, clamps","Weigh parts and report to TM4","Inspect surface finish and fit on frame"],
+tools:"Composites shop, vacuum bagging, oven if available",
+rules:"—",
+done:"Aero and cooling parts ready for fit-up.",
+pit:["Moulds started late; bodywork arrives after testing"]},
+
+{id:"AC8",l:"AC",p:7,n:"Aero & cooling validation",o:"Aero lead",w:["TEL","VD"],loops:["L8"],
+why:"Confirms the real downforce, drag and cooling performance so the setup and future designs rest on data.",
+in:[["TEL5","Logged speed, suspension, temperature data"],["TM10","Test plan slots for aero runs"],["AC3","Predicted CLA, CDA and balance"]],
+tasks:["Coastdown test for drag","Suspension-displacement or load-based downforce estimate at speed","Wool tufts / flow-vis paint on wings and sidepods","Log coolant and oil temperatures across endurance runs","Compare with predictions; adjust wing angles"],
+tools:"Data logger, tufts, flow-vis paint",
+rules:"—",
+done:"Validation report: predicted vs measured.",
+pit:["No baseline run without aero to compare"]}
+);
+
+D.blocks.push(
+/* ================= BRAKING ================= */
+{id:"BR1",l:"BR",p:2,n:"Braking targets & brake force distribution",o:"Braking lead",w:["VD","TM"],
+why:"Sets the deceleration target and the ideal front/rear split from load transfer. Every brake component is sized from these numbers.",
+in:[["TM4","Mass, CG height, weight distribution"],["TM3","Wheelbase"],["VD1","Tyre longitudinal grip (mu) vs load"],["AC1","Downforce at braking speed",1]],
+tasks:["Compute dynamic axle loads at target deceleration","Plot ideal brake force distribution curve","Choose design bias with margin to avoid rear lock first","Define target pedal force and pedal travel","Publish braking target sheet"],
+tools:"MATLAB/spreadsheet",
+rules:"Brake test requires locking all four wheels (FS IN11 / FSAE IN).",
+done:"Braking target sheet approved.",
+pit:["Bias computed with static CG only"]},
+
+{id:"BR2",l:"BR",p:2,n:"Brake component sizing",o:"Braking lead",w:["VD","ERG"],loops:["L3"],
+why:"Picks calipers, rotors, master cylinders, pedal ratio and balance bar. Caliper and rotor size decide the space VD has inside the wheel.",
+in:[["BR1","Target torque per axle and bias"],["VD1","Rim inner diameter (10-inch vs 13-inch)"],["ERG2","Pedal box position and driver leg force"],["X:Rules","Dual-circuit and brake system rules"]],
+tasks:["Choose caliper (piston area) per axle","Size rotor diameter and thickness; estimate temperature over endurance","Choose master cylinder bores front/rear and pedal ratio","Check line pressure and pedal travel","Specify balance bar and adjustment range","Send caliper and rotor envelope to VD4/VD7"],
+tools:"Spreadsheet, supplier data, thermal calc",
+rules:"Two independent hydraulic circuits; brake system rules (FS T / FSAE T).",
+done:"Component spec sheet released.",
+pit:["Caliper that fouls 10-inch rim barrel"]},
+
+{id:"BR3",l:"BR",p:3,n:"Rotor & mounting design",o:"Braking engineer",w:["VD"],loops:["L5"],
+why:"Rotor must handle heat and mount to the hub. The mounting pattern is a direct input to the hub design.",
+in:[["BR2","Rotor diameter, thickness, material"],["VD8","Hub flange space",1],["VD6","Brake torque per corner"]],
+tasks:["Design rotor (laser cut steel, floating or fixed)","Design drilling/slotting for mass and pad cleaning","Define mounting PCD, bolt size, bobbins if floating","Thermal and stress check","Send mounting spec to hub designer"],
+tools:"CAD, FEA, thermal calc",
+rules:"—",
+done:"Rotor drawing and mounting spec released.",
+pit:["Rotor warping from no thermal expansion allowance"]},
+
+{id:"BR4",l:"BR",p:3,n:"Caliper mounting & brake lines",o:"Braking engineer",w:["VD","CH"],
+why:"Caliper position on the upright and line routing affect stiffness, bleeding and safety.",
+in:[["BR2","Caliper selection"],["VD7","Upright geometry",1],["CH2","Frame route for lines"]],
+tasks:["Define caliper mounting points on upright","Design spacers and shims for alignment","Route hard and flexible lines with protection","Position bleed nipples at the top","Specify fittings"],
+tools:"CAD",
+rules:"Line protection and mounting rules.",
+done:"Mounting and line routing drawings released.",
+pit:["Bleed screws at the bottom"]},
+
+{id:"BR5",l:"BR",p:3,n:"Brake light & over-travel switch",o:"Braking engineer",w:["ECS","ERG"],
+why:"Rule-required safety items that link braking with electronics.",
+in:[["ERG5","Pedal box design"],["ECS1","Shutdown circuit design"]],
+tasks:["Design pressure switch for brake light","Place over-travel switch on pedal","Agree wiring with ECS"],
+tools:"CAD",
+rules:"Brake light and brake over-travel switch rules.",
+done:"Switch positions in pedal drawings.",
+pit:["Switch triggers during normal braking"]},
+
+
+{id:"BR6",l:"BR",p:6,n:"Brake installation, bleeding & bedding",o:"Braking lead",w:["VD","LOG"],
+why:"A firm, consistent pedal comes from clean assembly, correct bleeding and bedded pads; inspectors push hard on the pedal.",
+in:[["LOG3","Calipers, rotors, master cylinders, lines, fittings"],["VD14","Corner assemblies with uprights and hubs",1],["ERG5","Pedal box installed"]],
+tasks:["Install master cylinders, balance bar, reservoirs","Fit calipers with spacers; check rotor centring and run-out","Install lines; torque fittings; leak-check under pressure","Bleed each circuit (furthest corner first)","Bed in pads and rotors with a defined procedure","Set initial balance bar position from BR1"],
+tools:"Bleed kit, dial gauge, torque wrench, pressure gauges",
+rules:"Brake system inspection items (dual circuit, reservoirs, line protection).",
+done:"Firm pedal, no leaks, run-out within limit.",
+pit:["Air trapped because bleed screws face down","Wrong fluid or contaminated pads"]},
+
+{id:"BR7",l:"BR",p:7,n:"Brake test rehearsal & bias tuning",o:"Braking lead",w:["TEL","VD"],loops:["L8"],
+why:"The brake test is pass/fail and requires all four wheels to lock. Bias also changes lap time and driver confidence.",
+in:[["BR6","Installed and bled system"],["TEL5","Front/rear line pressure and wheel speed data"],["TM10","Test plan slot"]],
+tasks:["Practice the brake test sequence from the rulebook","Adjust balance bar until all four lock reliably","Log front/rear pressure; compare with BR1 prediction","Check pad and rotor temperatures after endurance runs","Write brake test procedure card for drivers"],
+tools:"Line pressure sensors, wheel speed data",
+rules:"Brake test (FS IN11 / FSAE IN).",
+done:"Repeatable 4-wheel lock; bias documented.",
+pit:["Rears won't lock because bias set too far forward"]},
+
+/* ================= ELECTRONICS (ECS) ================= */
+{id:"ECS1",l:"ECS",p:2,n:"Electrical architecture & shutdown circuit",o:"ECS lead",w:["TM","ERG","BR","PT"],
+why:"Defines every electrical device, power supply and the rule-required shutdown circuit. All other electrical work follows this.",
+in:[["TM1","Electrical rules checklist (CV)"],["TM5","Component locations in the car"],["PT1","Engine electrical needs: starter, injector, ignition, pump"],["TEL1","Sensor and logger channel list"]],
+tasks:["Make a block diagram of all electrical devices","Design shutdown circuit: master switch, shutdown buttons, inertia switch, BOTS","Define power budget and fuse/relay layout","Pick connector family and wire gauges","Write the electrical system description for inspection"],
+tools:"KiCad / draw.io / Visio",
+rules:"CV electrical, master switch, shutdown buttons and brake light rules — check FS CV and FSAE IC/T electrical sections.",
+done:"Architecture and shutdown schematic approved.",
+pit:["Shutdown circuit not killing fuel pump and ignition"]},
+
+{id:"ECS2",l:"ECS",p:2,n:"ECU selection & sensor plan",o:"ECS engineer",w:["PT","TEL"],
+why:"The ECU runs the engine and often logs data; its inputs decide which sensors Powertrain must package.",
+in:[["PT1","Engine type and injection/ignition needs"],["TEL1","Logging requirements"],["FIN1","Budget"]],
+tasks:["Choose standalone ECU (e.g. MoTeC, Link, Haltech, ECUMaster) or modified OEM","List sensors: crank, cam, MAP, IAT, TPS, lambda, coolant, oil, fuel pressure","Decide CAN bus layout to dash and logger","Send sensor positions to PT3/PT4/PT5"],
+tools:"ECU documentation",
+rules:"—",
+done:"ECU and sensor list frozen.",
+pit:["ECU without enough inputs"]},
+
+{id:"ECS3",l:"ECS",p:3,n:"Wiring harness design",o:"ECS engineer",w:["TM","CH","PT"],loops:["L4"],
+why:"The harness connects everything; most race-weekend failures are wiring.",
+in:[["ECS1","Architecture and connector choice"],["ECS2","Sensor list"],["TM5","Routing paths in CAD"],["CH6","Clip mount positions",1]],
+tasks:["Draw wiring diagram pin-to-pin","Route harness in CAD; measure lengths","Choose sleeving and strain relief","Plan service loops and labels","Report harness mass"],
+tools:"CAD, harness design software",
+rules:"Wiring protection rules.",
+done:"Harness drawing released.",
+pit:["Harness near exhaust"]},
+
+{id:"ECS4",l:"ECS",p:3,n:"Battery, LV power, fuses & relays",o:"ECS engineer",w:["PT","AC"],
+why:"Powers starter, pump, fan, ECU and logger reliably.",
+in:[["ECS1","Power budget"],["PT5","Fuel pump current"],["AC6","Fan current"]],
+tasks:["Size battery for cranking and run time","Design power distribution (fuse box or PDM)","Plan charging from alternator/stator","Design battery mount and protection"],
+tools:"Spreadsheet",
+rules:"Battery mounting and protection rules.",
+done:"Power distribution design released.",
+pit:["Battery flat after a few starts"]},
+
+{id:"ECS5",l:"ECS",p:3,n:"Dashboard, steering-wheel electronics & shift",o:"ECS engineer",w:["VD","ERG","TEL","PT"],
+why:"The driver interface: shift lights, gear display, warnings and buttons. A failed wheel connector can end a run.",
+in:[["ECS2","CAN bus layout and ECU outputs"],["ERG6","Shift system choice (mechanical / pneumatic / electric)"],["VD11","Steering wheel geometry and quick release"],["PT1","Gearbox shift mechanism and gear position sensor"]],
+tasks:["Choose dash or build a CAN display; define warning pages (oil P, water T, low fuel, low battery)","Design steering-wheel PCB, buttons, paddle switches","Choose quick-release connector that survives repeated removal","Design shift actuator control (ignition cut / blip if supported)","Define shift-light rpm per gear from PT2 torque curve","Bench-test the wheel before installation"],
+tools:"KiCad, dash configuration software, bench power supply",
+rules:"Steering wheel must remove with quick release; wiring must not hinder it.",
+done:"Wheel and dash electronics working on the bench.",
+pit:["Wheel connector failing after 50 removals","Warnings nobody can read while driving"]},
+
+{id:"ECS6",l:"ECS",p:5,n:"Harness manufacture",o:"ECS lead",w:["LOG"],
+why:"Building the harness on a board, away from the car, makes it faster to install and far more reliable.",
+in:[["ECS3","Pin-to-pin diagram, lengths, routing"],["LOG3","Wire, connectors, sleeving, crimp tools"],["ECS4","Fuse/relay box or PDM"]],
+tasks:["Build a 1:1 harness board from CAD lengths","Crimp with correct tools; pull-test sample crimps","Label every wire and connector both ends","Heat-shrink and sleeve branches; add strain relief","Continuity and insulation check every circuit","Document as-built changes"],
+tools:"Harness board, ratchet crimpers, multimeter",
+rules:"—",
+done:"Harness passes 100% continuity check; as-built drawing updated.",
+pit:["Cheap crimpers → intermittent faults at the event"]},
+
+{id:"ECS7",l:"ECS",p:6,n:"Electrical install & shutdown functional test",o:"ECS lead",w:["PT","TM","BR"],crit:1,
+why:"Gets the car electrically alive and proves every rule-required safety function before the engine runs.",
+in:[["ECS6","Built harness"],["CH9","Frame with clip tabs"],["BR5","Brake light and over-travel switch fitted"],["ECS4","Battery and power distribution"]],
+tasks:["Install harness; clip every 150-200 mm; protect at edges","Power up in stages: dash, ECU, sensors, pump, ignition","Test every shutdown button, master switch, inertia switch and BOTS kills the engine","Test brake light brightness and visibility","Check all sensor readings make sense","Record the test on a sign-off sheet"],
+tools:"Multimeter, test checklist",
+rules:"Shutdown circuit, master switch, brake light inspection items.",
+done:"Signed electrical sign-off sheet.",
+pit:["Shutdown kills ignition but fuel pump keeps running"]},
+
+{id:"ECS8",l:"ECS",p:6,n:"ECU base map & calibration",o:"ECS engineer",w:["PT","TEL"],loops:["L7","L8"],
+why:"A safe base map lets the engine start and run; track calibration then improves drivability and fuel use.",
+in:[["ECS2","ECU and sensor configuration"],["PT2","Predicted VE and fuel flow"],["PT11","Dyno results",1],["TEL5","Track lambda and knock data",1]],
+tasks:["Configure ECU: trigger, injector data, sensor calibrations","Build start-up and idle map","Create safe rev limit and cold-start settings","Tune fuel and ignition on dyno, then on track","Tune throttle response for drivability","Set up logging channels for engine health"],
+tools:"ECU tuning software, wideband lambda",
+rules:"—",
+done:"Calibrated map + backup copies saved.",
+pit:["Running lean at full load","No backup of the working map"]}
+);
+
+D.blocks.push(
+/* ================= TELEMETRY & DRIVER ================= */
+{id:"TEL1",l:"TEL",p:2,n:"Data acquisition plan & channel list",o:"Telemetry lead",w:["VD","PT","ECS","AC","BR"],
+why:"Decides what the car will measure. Sensors must be designed in now; adding them after build means drilling and splicing.",
+in:[["VD3","Parameters VD must validate (ride, roll, steering)"],["PT2","Engine health channels needed"],["BR1","Brake pressure validation needs"],["AC1","Aero validation needs"],["ECS1","Available logger/ECU inputs"]],
+tasks:["Collect what each subteam wants to prove with data","Write channel list: sensor, range, sample rate, location, owner","Choose logger (ECU internal, dash logger, standalone)","Prioritise: must-have (engine safety, speed, g, steering, brakes) vs nice-to-have","Send sensor mounting needs to designers via ICD"],
+tools:"Spreadsheet",
+rules:"—",
+done:"Channel list frozen and in ICD.",
+pit:["Sensors chosen after the parts are made"]},
+
+{id:"TEL2",l:"TEL",p:3,n:"Logger & telemetry setup",o:"Telemetry engineer",w:["ECS"],
+why:"Hardware and software must be configured and tested before the car runs.",
+in:[["TEL1","Channel list"],["ECS3","Harness and CAN design"],["ECS2","ECU logging capability"]],
+tasks:["Configure logger channels, scaling and sample rates","Calibrate sensors (steering, damper pots, pressure)","Set up live telemetry radio if used","Bench-test full logging chain","Create a data file naming and backup routine"],
+tools:"Logger software, calibration rigs",
+rules:"—",
+done:"Bench logging verified on all channels.",
+pit:["Unscaled channels, no idea what the numbers mean"]},
+
+{id:"TEL3",l:"TEL",p:1,n:"Driver selection & training programme",o:"Driver training lead",w:["ERG","TM"],
+why:"Driver skill is one of the cheapest sources of points. Training must start long before the car exists.",
+in:[["TM1","Driver eligibility rules (licence, age, team member)"],["X:Drivers","Candidate drivers' experience"]],
+tasks:["Select a driver pool (at least 4 for event and endurance changes)","Karting and simulator sessions with lap timing","Teach FS event formats and rules (flags, cones, driver change)","Collect body measurements for ergonomics","Rank drivers per event type"],
+tools:"Karting track, sim rig, lap timers",
+rules:"Driver requirements in both rulebooks.",
+done:"Driver pool selected; training log started.",
+pit:["Only one experienced driver"]},
+
+{id:"TEL4",l:"TEL",p:3,n:"Data analysis toolchain",o:"Telemetry engineer",w:["VD","PT"],
+why:"Raw logs are useless without math channels and standard reports that every subteam can read quickly after a run.",
+in:[["TEL1","Channel list"],["VD3","Targets to compare against"]],
+tasks:["Create math channels: roll gradient, understeer gradient, slip, lap time","Build standard report per run (engine health, brakes, VD)","Write a short guide for each subteam","Set up comparison overlays between drivers"],
+tools:"MoTeC i2, MATLAB, Python",
+rules:"—",
+done:"Report templates working on sample data.",
+pit:["Only one person can read the data"]},
+
+{id:"TEL5",l:"TEL",p:7,n:"Test data & driver coaching loop",o:"Telemetry lead",w:["VD","PT","BR","AC","TM"],loops:["L1","L8"],
+why:"Turns every test run into setup changes and better drivers.",
+in:[["TM10","Test plan"],["TEL2","Working logger"],["TEL4","Analysis reports"],["TEL3","Drivers"]],
+tasks:["Download and back up data after each run","Produce the standard report within minutes","Debrief drivers with data overlays","Feed findings to VD15, BR7, AC8, ECS8","Archive data with setup sheet and weather"],
+tools:"Data analysis tools",
+rules:"—",
+done:"Data archive with debrief notes per session.",
+pit:["Data collected but never reviewed"]},
+
+{id:"TEL6",l:"TEL",p:8,n:"Driver line-up & dynamic events",o:"Driver training lead",w:["TM","VD"],
+why:"Each event rewards different skills. The line-up and run plan decide many points.",
+in:[["TEL5","Driver performance data"],["VD15","Event setup book"],["X:Handbook","Event-specific driving rules and run counts"]],
+tasks:["Assign drivers to accel, skidpad, autocross, endurance","Plan run order and setup between runs","Rehearse endurance driver change within time","Brief drivers on track walk, flags, penalties"],
+tools:"Run sheets",
+rules:"FS D / FSAE D driving rules.",
+done:"Line-up and run plan approved by TM11.",
+pit:["Cone penalties throw away points"]},
+
+/* ================= DOCUMENTATION ================= */
+{id:"DOC1",l:"DOC",p:0,n:"Document register & deadline tracker",o:"Documentation lead",w:["TM","FIN","BUS"],
+why:"Missed deadlines cost points or entry. One tracker covers every submission for both competitions.",
+in:[["TM1","Rule-required documents list"],["X:Handbooks","FS UK and FSAEJ deadlines and templates"]],
+tasks:["List every submission for each event (e.g. FS UK DCS, structural docs, design report, cost report, business plan items)","Record template, format, deadline, owner","Set internal deadlines one to two weeks earlier","Weekly reminder to owners"],
+tools:"Shared tracker",
+rules:"FS A5 documentation & deadlines; FSAEJ participation rules.",
+done:"Tracker live with owners.",
+pit:["Different time zones on deadlines"]},
+
+{id:"DOC2",l:"DOC",p:4,n:"Engineering design report & spec sheet",o:"Documentation lead",w:["TM","VD","CH","PT","AC","BR","ECS","ERG"],
+why:"The design report is how judges first see the car. It must show the reasoning chain, not only results.",
+in:[["TM3","Vehicle targets"],["TM7","Design review material"],["VD12","Suspension validation"],["CH3","Frame analysis"],["PT2","Engine sim"],["AC3","Aero results"],["DOC1","Template and page limit"]],
+tasks:["Collect sections from each lead","Edit for one consistent story","Check page limit and format","Proof-read and submit"],
+tools:"Word/LaTeX",
+rules:"Design report rules (FS S5 / FSAE S).",
+done:"Submitted before deadline.",
+pit:["Last-minute writing"]},
+
+{id:"DOC3",l:"DOC",p:4,n:"Structural & IA submission compile",o:"Documentation lead",w:["CH"],
+why:"Supports Chassis in meeting format and deadline for structural submissions.",
+in:[["CH4","Structural spreadsheet and drawings"],["CH5","Impact attenuator data"],["DOC1","Deadlines"]],
+tasks:["Check templates are the current version","Check every required field","Submit and archive","Track reviewer feedback"],
+tools:"Tracker",
+rules:"Structural and IA documentation rules.",
+done:"Submissions approved.",
+pit:["Wrong template version"]},
+
+{id:"DOC4",l:"DOC",p:3,n:"Drawing control & BOM",o:"Documentation lead",w:["TM","FIN","LOG"],
+why:"Everyone builds from the same revision and the cost report comes from the same BOM.",
+in:[["TM5","Full-car assembly structure"],["TM6","Interfaces and fasteners"]],
+tasks:["Part numbering scheme","Drawing template with revision block","BOM export from CAD","Revision log"],
+tools:"PDM, spreadsheet",
+rules:"Cost report BOM structure.",
+done:"BOM and drawing list complete.",
+pit:["Two versions of same drawing in workshop"]},
+
+{id:"DOC5",l:"DOC",p:7,n:"Scrutineering file",o:"Documentation lead",w:["TM","CH","ECS","PT","ERG"],
+why:"Inspectors ask for evidence. Having it in one folder saves hours.",
+in:[["CH4","Approved structural documents"],["ECS7","Electrical sign-off"],["PT14","Noise and tilt results"],["ERG7","Egress times"]],
+tasks:["Collect approvals, data sheets, material certificates","Print inspection sheet with evidence per item","Prepare harness and helmet certificates"],
+tools:"Binder + digital copy",
+rules:"Inspection procedures of each event.",
+done:"File ready before shipping.",
+pit:["Certificates left at home"]},
+
+{id:"DOC6",l:"DOC",p:9,n:"Knowledge base & handover",o:"Documentation lead",w:["TM"],loops:["L1"],
+why:"The team loses its seniors every year; written knowledge is what survives.",
+in:[["TM12","Post-season review"],["DOC4","Final drawings and BOM"],["TEL5","Data archive"]],
+tasks:["Archive CAD, calcs, data, reports","Write subteam handbooks","Run handover sessions"],
+tools:"Team workspace",
+rules:"—",
+done:"Archive complete; handover done.",
+pit:["Files only on personal laptops"]},
+);
+
+D.blocks.push(
+/* ================= LOGISTICS & MANUFACTURING ================= */
+{id:"LOG1",l:"LOG",p:1,n:"Manufacturing capability & vendor map",o:"Logistics lead",w:["TM","FIN","CH","VD","AC"],loops:["L9"],
+why:"Designers must know what can be made, by whom, how fast and how accurately. A design that cannot be made locally is a wrong design.",
+in:[["TM2","Last season's manufacturing problems and late parts",1],["X:Vendors","Local machine shops, laser cutters, coaters, suppliers, import agents"]],
+tasks:["List in-house machines with capability (CNC axes, lathe, TIG, composites)","List vendors per process with lead time, tolerance, cost and contact","Identify parts that must be imported and their customs lead time","Publish a 'can we make it?' sheet for designers","Agree workshop safety rules and machine trainers"],
+tools:"Vendor database",
+rules:"Cost event asks how parts are made; keep process records.",
+done:"Capability sheet published to all designers.",
+pit:["Designs assuming 5-axis CNC that nobody has access to"]},
+
+{id:"LOG2",l:"LOG",p:2,n:"Long-lead procurement",o:"Logistics lead",w:["FIN","PT","VD","ECS","BR"],crit:1,loops:["L9"],
+why:"Engine, tyres, dampers, ECU, bearings, brake calipers and harness need months to arrive in Bangladesh. Ordering early protects the build.",
+in:[["PT1","Engine choice"],["VD1","Tyre and rim choice"],["VD10","Damper selection",1],["ECS2","ECU selection"],["BR2","Caliper and master cylinder spec"],["FIN1","Budget approval"]],
+tasks:["Create long-lead list with order-by dates","Get quotes, compare shipping and customs","Place orders as soon as each spec is frozen","Track shipments and customs clearance","Inspect items on arrival; report damage at once"],
+tools:"Procurement tracker",
+rules:"—",
+done:"All long-lead items received before assembly start.",
+pit:["Waiting for full design freeze before ordering dampers and engine"]},
+
+{id:"LOG3",l:"LOG",p:5,n:"Manufacturing & procurement execution",o:"Logistics lead",w:["FIN","CH","VD","PT","AC","BR","ECS"],crit:1,
+why:"Coordinates hundreds of make/buy jobs so each subteam gets parts in the right order.",
+in:[["TM8","Release packages and drawing list"],["DOC4","BOM with make/buy flags"],["LOG2","Long-lead deliveries"],["FIN2","Purchase approvals"]],
+tasks:["Build a manufacturing schedule ordered by assembly sequence (frame first)","Assign each part to in-house or vendor","Buy raw material and standard parts (fasteners, rod ends)","Track part status: queued, machining, inspection, done","Receive, inspect and store parts with labels","Escalate delays to TM weekly"],
+tools:"Kanban board / workspace tracker",
+rules:"—",
+done:"All parts received and inspected.",
+pit:["No inspection, wrong parts found during assembly"]},
+
+{id:"LOG4",l:"LOG",p:6,n:"Workshop, tools, spares & trackside kit",o:"Logistics lead",w:["TM","TEL"],
+why:"Assembly and testing stop if a torque wrench, spare rod end or fuel can is missing.",
+in:[["DOC4","BOM for spares list"],["TM10","Test plan needs"]],
+tasks:["Make tool list and buy missing tools","Make spares list (rod ends, bolts, chain, sprockets, brake pads)","Prepare trackside kit (fuel, jacks, stands, extinguishers, tyre warmers)","Plan transport to the test track"],
+tools:"Checklist",
+rules:"Fire extinguisher and pit equipment rules at events.",
+done:"Trackside kit complete.",
+pit:["Testing stopped for a missing part"]},
+
+{id:"LOG5",l:"LOG",p:8,n:"Shipping, travel & customs",o:"Logistics lead",w:["FIN","TM","MGM"],
+why:"Getting a car, tools and team from Bangladesh to Japan or the UK needs early freight booking and paperwork.",
+in:[["TM9","Car ready to ship date"],["FIN1","Travel and freight budget"],["X:Organisers","Shipping guidance and arrival windows"]],
+tasks:["Book freight (air/sea) with buffer for customs","Prepare packing list, carnet/temporary import documents, dangerous goods declarations","Visas and travel for team members","Insurance for car and equipment","Plan return shipping"],
+tools:"Freight forwarder, checklist",
+rules:"Event handbook shipping guidance.",
+done:"Car and team arrive before scrutineering.",
+pit:["Battery or fuel parts held as dangerous goods"]},
+
+{id:"LOG6",l:"LOG",p:8,n:"Event pit setup & spares kit",o:"Logistics lead",w:["TM"],
+why:"A well-organised pit fixes problems faster.",
+in:[["LOG4","Spares and tools"],["X:Handbook","Pit rules and space"]],
+tasks:["Plan pit layout","Label boxes","Set up power and lighting","Fire safety equipment"],
+tools:"Checklist",
+rules:"Pit rules.",
+done:"Pit ready.",
+pit:["Hunting for tools"]},
+
+/* ================= FINANCE & COST ================= */
+{id:"FIN1",l:"FIN",p:0,n:"Season budget & funding plan",o:"Finance lead",w:["TM","BUS","LOG"],loops:["L2","L9"],
+why:"Sets how much car the team can afford and when money arrives. Late money means late parts.",
+in:[["TM2","Last season's actual spend"],["BUS1","Sponsor commitments",1],["X:University","Department/university funding"]],
+tasks:["Build budget by subsystem plus travel, registration, freight","Map cash-flow timing vs long-lead order dates","Set approval rules for spending","Agree contingency (10-15%)"],
+tools:"Spreadsheet",
+rules:"Registration fees per event.",
+done:"Budget approved by faculty advisor and captains.",
+pit:["No money for spares and testing"]},
+
+{id:"FIN2",l:"FIN",p:5,n:"Spend tracking & purchase approvals",o:"Finance lead",w:["LOG"],loops:["L9"],
+why:"Keeps spending in budget and keeps receipts for audit and cost report.",
+in:[["FIN1","Budget"],["LOG3","Purchase requests"]],
+tasks:["Approve purchases","Track actual vs budget","Store receipts","Report monthly"],
+tools:"Spreadsheet",
+rules:"—",
+done:"Monthly report.",
+pit:["Lost receipts"]},
+
+{id:"FIN3",l:"FIN",p:4,n:"Cost report (BOM, costing, explanations)",o:"Finance lead",w:["DOC","LOG","TM"],
+why:"The cost and manufacturing event judges how well you know your car's cost and processes.",
+in:[["DOC4","BOM"],["LOG1","Process information"],["X:Rules","Cost report format"]],
+tasks:["Cost every part","Write process explanations","Submit"],
+tools:"Template",
+rules:"FS S3 / FSAE S cost event.",
+done:"Submitted.",
+pit:["Missing parts"]},
+
+{id:"FIN4",l:"FIN",p:8,n:"Cost & manufacturing event",o:"Finance lead",w:["LOG","TM"],
+why:"Defend the cost report and manufacturing choices.",
+in:[["FIN3","Cost report"]],
+tasks:["Prepare","Bring parts"],
+tools:"—",
+rules:"Cost event.",
+done:"Event done.",
+pit:["Can't explain processes"]},
+
+/* ================= BUSINESS & BRAND ================= */
+{id:"BUS1",l:"BUS",p:0,n:"Sponsorship acquisition",o:"Business lead",w:["FIN"],loops:["L9"],
+why:"Money and parts.",
+in:[["FIN1","Funding gap"]],
+tasks:["Sponsor list","Proposals","Meetings"],
+tools:"Deck",
+rules:"—",
+done:"Sponsors signed.",
+pit:["Late"]},
+
+{id:"BUS2",l:"BUS",p:3,n:"Business plan development",o:"Business lead",w:["FIN"],
+why:"Business plan event.",
+in:[["X:Rules","Event format"]],
+tasks:["Idea","Plan","Pitch"],
+tools:"Deck",
+rules:"Business event.",
+done:"Plan ready.",
+pit:["Weak finances"]},
+
+{id:"BUS3",l:"BUS",p:4,n:"Livery & sponsor visibility",o:"Branding lead",w:["AC"],
+why:"Sponsors visible.",
+in:[["AC5","Bodywork"],["BUS1","Sponsor contracts"]],
+tasks:["Design livery","Print"],
+tools:"Illustrator",
+rules:"Number and logo rules.",
+done:"Livery done.",
+pit:["Late"]},
+
+{id:"BUS4",l:"BUS",p:8,n:"Business plan presentation",o:"Business lead",w:["FIN"],
+why:"Points.",
+in:[["BUS2","Plan"]],
+tasks:["Rehearse","Present"],
+tools:"Deck",
+rules:"Business event.",
+done:"Presented.",
+pit:["Over time"]}
+);
+
+(function(){
+var P={
+TM12:{why:"Closes the season loop. It turns failures, judges' feedback, scores and data into a written starting point for next season, before the seniors who know the answers leave.",
+ in:[["TM11","Competition results, failures and fixes log"],["TEL5","All logged test and event data"],["VD16","Design-event questions the team could not answer"],["FIN4","Cost-event feedback and penalties"],["BUS4","Business-plan judges' feedback"],["AC8","Aero/cooling measured vs predicted"],["BR7","Brake bias and temperature findings"],["LOG5","Shipping and travel lessons"],["X:Judges","Score sheets from every static and dynamic event"]],
+ pit:["Seniors leave before writing it down","Blame-focused review that nobody wants to repeat"]},
+VD3:{pit:["Picking geometry first and targets later","Roll centre targets that migrate wildly in roll"]},
+VD11:{pit:["U-joint angles too large → notchy, uneven steering","No clearance check with driver's knees at full lock"]},
+VD12:{why:"A good kinematic design is wasted if uprights, brackets and rod ends flex. This step checks the whole corner as one load path and gives judges stiffness numbers, not only stresses.",
+ tasks:["Build a corner compliance model (FEA assembly or spring-network model)","Apply lateral and longitudinal contact-patch loads from VD6","Compute camber and toe compliance (deg per kN)","Find the weakest link (bracket, upright arm, rod end, frame node)","Redesign weakest link and repeat until targets are met","Summarise results in design-event slides"],
+ pit:["Checking only strength, never stiffness","Ignoring frame-node flex in the corner model"]},
+VD13:{pit:["Welding distortion not measured","Left/right parts mixed up without labels"]},
+VD14:{pit:["No baseline recorded, so later changes cannot be compared","Corner weighting without the driver or fuel"],
+ in:[["VD13","Suspension parts"],["CH9","Inspected frame"],["CH11","Frame coated and returned"],["BR6","Brake components installed",1],["PT13","Drivetrain installed",1],["TM4","Target weight distribution"]]},
+VD15:{why:"Confirms the real car behaves like the designed one, then finds the best setup for each event using data and driver feedback together.",
+ tasks:["Static K&C check: measure camber and toe change through bump and roll","Validate ride frequency and roll gradient from logged data","Compare measured understeer gradient with prediction","Tune ARB, dampers, toe, camber and tyre pressures per event","Build an event setup book (accel, skidpad, autocross, endurance)","Record every change with run number and result"],
+ pit:["Changing several things at once","Ignoring driver feedback that disagrees with data"]},
+VD16:{why:"Judges test the reasoning chain from tyre data to targets, geometry and validation. VD usually takes the most questions, and a clear story gains many points.",
+ tasks:["Build a 'why' chain for every key number (from tyre data to setup)","Prepare plots: tyre curves, lap sim sensitivity, kinematics curves, test data","Bring physical parts (upright, hub, rocker)","Prepare honest 'what we would change' answers","Run mock design judging with alumni or faculty"],
+ pit:["Showing results without reasons","Claiming validation that was never done"]},
+CH1:{pit:["Using tube sizes from an old rulebook","Missing helmet clearance lines from the start"]},
+CH2:{pit:["Suspension pickups mid-tube, causing bending","Cockpit opening too small for the template"]},
+CH3:{pit:["Optimising with tubes the rules do not allow","Comparing stiffness with no suspension roll stiffness target"]},
+CH5:{tasks:["Decide standard IA vs custom attenuator","Design anti-intrusion plate and bolted/welded mounting to the front bulkhead","Check IA fits inside the nose with clearance","Prepare the IA data report for each competition","Order standard IA early if chosen (long lead)"],
+ pit:["Bolt pattern not matching the bulkhead","Nose designed without IA envelope"]},
+CH6:{pit:["Tabs requested after welding and painting","Single-shear tabs where double shear is needed"]},
+CH7:{why:"Frame accuracy decides whether the hardpoints in the welded frame match the hardpoints VD designed. The jig and drawings are where that accuracy is built in.",
+ tasks:["Design frame jig (laser-cut plates, fixture table or tube jig)","Create cut list with tube lengths, grades and notch angles","Generate printable coping/notching templates","Plan the weld sequence to limit distortion","Add datum features for measuring hardpoints later"],
+ pit:["No datum features for measuring later","Cut list not updated after last CAD change"]},
+CH8:{pit:["Welding without measuring between stages","Wrong wall thickness tube used"]},
+CH9:{why:"Proves the real frame matches CAD (hardpoints) and FEA (stiffness) before the rest of the car is built on it. Also gives the design event real validation data.",
+ pit:["Skipping the torsion test and having no validation for judges","Finding hardpoint errors after suspension is assembled"]},
+CH10:{why:"The firewall separates the driver from fuel and engine; the floor closeout stops the driver touching the ground. Both are rule items inspected at scrutineering.",
+ tasks:["Design firewall covering the area required by rules","Design sealed grommets for harness, cables and hoses passing through","Design floor closeout panels","Choose materials that meet the rules","Plan quick-release fasteners for removable panels","Send mounting tab needs to CH6"],
+ pit:["Gaps around harness pass-throughs","Firewall too low near the driver's head"]},
+CH11:{why:"Coating protects the steel from corrosion and makes cracks easier to see. It is done only after every tab is welded and the frame passes inspection.",
+ tasks:["Confirm no more tabs are needed (CH6 frozen)","Mask threads, bearing seats and mating faces","Powder coat or paint, using livery colours","Chase threads; clean mating faces","Record coating mass for TM4"],
+ pit:["Coating inside bearing bores or threads","Coating before all tabs are welded"]},
+ERG1:{tasks:["Model the rules template in CAD","Measure all candidate drivers (height, sitting height, leg and arm length)","Find smallest and largest driver to set adjustment range","Set cockpit targets: sight lines, elbow, knee and helmet clearance","Share driver data with Chassis and VD"],
+ pit:["Designing for one driver","Ignoring helmet and gloves in clearances"]},
+ERG2:{why:"Driver position sets the car's CG height, the frame shape, steering wheel and pedal positions. It is one of the first things to fix in the skeleton.",
+ pit:["Driver too upright, raising CG","Steering wheel blocks egress"]},
+ERG3:{why:"A seat that holds the driver firmly gives steadier inputs; the headrest must meet head-restraint rules. Inserts let several drivers share the car.",
+ tasks:["Make foam-bag seat moulds of each driver","Design composite seat or moulded insert system","Design headrest with rule-compliant energy-absorbing foam","Design seat mounting to frame nodes","Plan quick insert swap for driver change"],
+ pit:["Seat blocks egress","Headrest foam not the type the rules require"]},
+ERG4:{why:"Harness geometry and mounting are strictly defined in the rules and inspected closely. Mounts also need frame tabs welded before paint.",
+ tasks:["Select a certified harness within its valid date","Design shoulder, lap and anti-submarine belt mounts","Check belt angles with the template in CAD","Send mount positions and loads to CH6","Plan harness adjustment for different drivers"],
+ pit:["Expired harness labels","Shoulder belt angle outside rules for tall drivers"]},
+ERG5:{pit:["Pedal too weak for the rule pedal force","Pedal box adjustment that slips under load"]},
+ERG6:{why:"Gear shift, shutdown buttons and master switches must be reachable and correctly marked. Poor placement fails inspection or slows the driver.",
+ tasks:["Choose shift system (mechanical lever, pneumatic, electric)","Place the cockpit shutdown button within reach with belts tight","Place master switches where marshals can reach them","Label switches as the rules require","Design mounts and request tabs from CH6"],
+ pit:["Kill switch out of driver reach","Shifter fouling the frame"]},
+ERG7:{why:"Every driver must get out of the car within the rule time with full gear. Practice also finds snags in seat, wheel and harness.",
+ tasks:["Fit each driver with their seat insert","Practice egress with full gear (helmet, gloves, suit)","Time each driver; record results","Fix snags (wheel release, belt buckle, insert edges)","Repeat until all drivers pass with margin"],
+ pit:["Not practising with gloves and helmet","Only testing the smallest driver"]},
+PT5:{why:"The fuel system must feed the engine in hard cornering without starving, and must not leak during the tilt test."},
+PT7:{pit:["Carriers flex and the chain jumps","No way to adjust chain tension"]},
+PT9:{why:"Engine mounts hold the engine against drive and shift loads and decide how low it sits. Engine height is one of the largest single CG items.",
+ tasks:["Position the engine as low as oil pan and exhaust allow","Design mounts (plate or tube) to frame nodes","FEA for drive torque, gear-shift and bump loads","Plan rubber isolation if vibration is a problem","Report engine and drivetrain mass and CG to TM4"],
+ pit:["Vibration cracks at welds","Mounts that block engine removal"]},
+PT10:{why:"Sustained lateral g can starve a wet sump and destroy the engine. Catch cans and breathers are rule items.",
+ tasks:["Decide wet sump with baffles vs dry sump","Check oil pickup under sustained lateral g","Design catch cans and breather routing","Decide oil cooler need with Aero & Cooling","Design oil fill and drain access"],
+ pit:["Oil starvation in skidpad","Breather vent dripping on exhaust"]},
+PT11:{why:"Measures real torque, closes the loop with the simulation and produces a safe base map before the car runs on track.",
+ pit:["No dyno access, so the map is built on track only","Running lean during dyno pulls"]},
+PT12:{why:"Makes and buys every powertrain part on time and inspects it before assembly, so first fire is not delayed by a missing fitting.",
+ tasks:["Order injector, throttle body, fuel pump, fittings","Make intake, exhaust, mounts, diff carriers","Inspect or rebuild the engine; record clearances","Inspect every part against its drawing","Label and store parts by assembly order"],
+ pit:["Late imported parts stop first fire","Engine rebuilt without recording clearances"]},
+PT13:{why:"The engine running inside the car is the first big assembly milestone. It also proves fuel, cooling, electrics and shutdown work together.",
+ pit:["Fuel leaks found with a hot engine","No fire extinguisher ready at first fire"]},
+PT14:{why:"Noise and tilt are pass/fail tests at inspection. Rehearsing them makes the event a formality and leaves time to fix a silencer.",
+ tasks:["Measure noise at idle and at the rule test rpm","Repack or modify the silencer if close to the limit","Fill fuel to rule level; tilt check for leaks","Check catch cans and breathers during tilt","Record results for the scrutineering file"],
+ pit:["Testing noise only with a cold engine","Silencer packing burning out over the season"]},
+AC1:{pit:["Aero balance not matched to mechanical balance","Aero mass ignored in the lap sim"]},
+AC2:{pit:["Sizing for cool UK weather and overheating in Japan's summer heat","Fan not considered for slow autocross sections"]},
+AC3:{why:"Turns the aero targets into wing profiles and surfaces, with downforce, drag and balance checked across ride height and yaw.",
+ pit:["CFD never validated on track","Package sensitive to ride height changes"]},
+AC4:{why:"Wings must stay attached, stay stable and not deflect beyond the rules under load. Mounts also add mass high up, so they matter for CG.",
+ tasks:["Design wing mounts, pylons and endplates","FEA under peak aero load plus inertia and bump loads","Check deflection against rule limits","Design adjustment for wing angle","Request mounting tabs from CH6"],
+ pit:["Wing flutter at speed","Mounts too weak for a cone strike"]},
+AC7:{why:"Makes moulds, wings and bodywork, and buys the radiator, fan and hoses. Composite parts take weeks, so they must start right after release.",
+ pit:["Moulds started late, so bodywork arrives after testing","Poor mould finish needing hours of sanding"]},
+AC8:{pit:["No baseline run without aero to compare","Temperatures logged only on cool days"]},
+BR1:{pit:["Bias computed with static CG only","Ignoring downforce at braking speed"]},
+BR2:{pit:["Caliper that fouls the 10-inch rim barrel","Pedal ratio too low, needing huge pedal force"]},
+BR3:{pit:["Rotor warping from no thermal expansion allowance","Mounting PCD changed after hub drawing release"]},
+BR4:{why:"Caliper mounting on the upright and line routing affect pedal stiffness, bleeding and safety. Bleed screws must end up at the top.",
+ pit:["Bleed screws at the bottom","Flexible lines rubbing on wheels at full steer"]},
+BR5:{why:"The brake light and brake over-travel switch are rule-required safety items. They link the pedal box with the shutdown circuit, so Braking and ECS must agree on them.",
+ tasks:["Select brake pressure switch for the brake light","Design over-travel switch position on the pedal box","Agree wiring and logic with ECS","Test switch trigger point on the bench","Document for scrutineering"],
+ pit:["Switch triggers during normal hard braking","Brake light too dim in daylight"]},
+BR7:{pit:["Rears will not lock because bias is too far forward","Bias set cold and never re-checked hot"]},
+ECS1:{pit:["Shutdown circuit not killing fuel pump and ignition","No fuse for each circuit"]},
+ECS2:{tasks:["Choose a standalone ECU or modified OEM ECU","List sensors: crank, cam, MAP, IAT, TPS, lambda, coolant, oil, fuel pressure","Decide CAN bus layout to dash and logger","Send sensor positions to PT3, PT4, PT5","Check ECU support for shift cut and launch control"],
+ pit:["ECU without enough inputs","No support or tuning knowledge locally"]},
+ECS3:{why:"The harness connects every sensor, actuator and switch. Most race-weekend failures are wiring, so routing, protection and labelling matter as much as the schematic.",
+ pit:["Harness routed near the exhaust","Connectors that cannot be unplugged without tools"]},
+ECS4:{why:"Low-voltage power must start the engine and run pump, fan, ECU and logger reliably through a long endurance run with a hot restart.",
+ tasks:["Size battery for cranking and run time","Design power distribution (fuse box or PDM)","Check charging from the engine stator/alternator","Design battery mount and protection to rules","Plan hot-restart test for endurance driver change"],
+ pit:["Battery flat after a few starts","Battery not secured to rules"]},
+ECS6:{pit:["Cheap crimpers causing intermittent faults","No labels, so faults take hours to trace"]},
+ECS7:{pit:["Shutdown kills ignition but fuel pump keeps running","Harness pinched by bodywork"]},
+TEL1:{pit:["Sensors chosen after the parts are made","Logging at too low a sample rate"]},
+TEL2:{why:"Logger hardware and software must be set up and tested before the car runs, so the first shakedown already gives usable data.",
+ pit:["Unscaled channels, so nobody knows what the numbers mean","Data lost because nobody backed it up"]},
+TEL3:{pit:["Only one experienced driver","Drivers chosen by seniority, not by lap times"]},
+TEL4:{tasks:["Create math channels: roll gradient, understeer gradient, slip, lap time","Build a standard report per run (engine health, brakes, VD)","Write a short guide for each subteam","Set up comparison overlays between drivers","Train at least two people to use the tools"],
+ pit:["Only one person can read the data","Reports so long nobody reads them"]},
+TEL5:{why:"Turns every test run into setup decisions and better drivers. Without this loop, testing only adds kilometres.",
+ pit:["Data collected but never reviewed","Setup changes not linked to data files"]},
+TEL6:{why:"Each dynamic event rewards different skills. The line-up, run plan and endurance driver change can win or lose many points.",
+ tasks:["Assign drivers to acceleration, skidpad, autocross and endurance","Plan run order and setup changes between runs","Rehearse endurance driver change within the time limit","Brief drivers on track walk, flags and penalties","Plan fuel and tyre use for endurance"],
+ pit:["Cone penalties throw away points","Driver change slower than practised"]},
+DOC1:{tasks:["List every submission for each event (e.g. FS UK DCS, structural documents, design report, cost report, business plan items)","Record template, format, page limit, deadline and owner","Set internal deadlines one to two weeks earlier","Send weekly reminders to owners","Archive every submitted version"],
+ pit:["Deadlines in different time zones","Template version changed after the work started"]},
+DOC2:{tasks:["Collect sections from each lead using one template","Edit into one consistent story from targets to validation","Fill the design spec sheet with checked numbers","Check page limit and format","Proof-read, then submit before the deadline"],
+ pit:["Writing everything the night before","Numbers in the report that differ from the car"]},
+DOC3:{why:"Supports Chassis so the structural and impact-attenuator submissions meet every format rule and deadline for both competitions.",
+ tasks:["Check templates are the current version","Check every required field and attachment","Submit and archive the confirmation","Track reviewer comments and resubmission deadlines","Keep approved copies for the scrutineering file"],
+ pit:["Wrong template version","Missing reviewer feedback in an unread inbox"]},
+DOC4:{why:"Everyone must build from the same revision, and the cost report must come from the same BOM. Drawing control is the link between CAD, workshop and cost.",
+ tasks:["Set a part-numbering scheme by subsystem","Create a drawing template with revision block","Export the BOM from CAD with make/buy flags","Keep a revision log and recall old prints from the workshop","Link BOM lines to cost report entries"],
+ pit:["Two versions of the same drawing in the workshop","BOM missing fasteners and fluids"]},
+DOC5:{why:"Inspectors ask for evidence: approvals, certificates and data sheets. Having them in one folder saves hours at scrutineering.",
+ tasks:["Collect structural approvals, data sheets and material certificates","Add harness, helmet and fire-extinguisher certificates","Print the inspection sheet with evidence for each item","Add noise, tilt, egress and shutdown test records","Keep a digital copy on two devices"],
+ pit:["Certificates left at home","Evidence for a part that was changed after approval"]},
+DOC6:{why:"The team loses its senior members every year. Written knowledge, organised files and handover sessions are what the next team inherits.",
+ tasks:["Archive CAD, calculations, data and reports in the team workspace","Write or update subteam handbooks","Record design decisions and why they were made","Run handover sessions from seniors to juniors","Update the rule-owner matrix for next season"],
+ pit:["Files only on personal laptops","Handbooks with no reasons, only results"]},
+LOG1:{pit:["Designs assuming a 5-axis CNC nobody can access","Vendor lead times guessed, not asked"]},
+LOG2:{pit:["Waiting for full design freeze before ordering engine and dampers","Customs delays not planned for"]},
+LOG3:{why:"Coordinates hundreds of make and buy jobs so each subteam gets parts in assembly order, inspected and labelled.",
+ pit:["No inspection, so wrong parts are found during assembly","Frame parts queued behind cosmetic parts"]},
+LOG4:{why:"Assembly and testing stop if a torque wrench, spare rod end or fuel can is missing. A planned kit keeps track days productive.",
+ tasks:["Make a tool list and buy missing tools","Make a spares list (rod ends, bolts, chain, sprockets, pads, fuses)","Prepare a trackside kit (fuel, jacks, stands, extinguishers, tyre pressure gauge)","Plan transport to the test track","Check the kit before every test day"],
+ pit:["Testing stopped for a missing part","No spare for parts that failed last season"]},
+LOG5:{w:["FIN","TM","BUS"],pit:["Battery or fuel parts held as dangerous goods","Visas applied for too late"]},
+LOG6:{why:"A well-organised pit fixes problems faster and keeps the team calm during scrutineering and dynamic events.",
+ tasks:["Plan pit layout (car, tools, spares, rest area)","Label boxes by subsystem","Set up power, lighting and charging","Place fire extinguishers and spill kit as required","Make a quick-reference board with event timetable"],
+ pit:["Hunting for tools during a fix","Pit fire-safety items missing at inspection"]},
+FIN1:{tasks:["Build budget by subsystem plus travel, registration and freight","Map cash-flow timing against long-lead order dates","Set approval rules for spending","Agree contingency (10-15%)","Review budget monthly with captains"],
+ pit:["No money left for spares and testing","Freight and travel underestimated"]},
+FIN2:{why:"Keeps spending inside the budget and keeps every receipt for audits and the cost report.",
+ tasks:["Approve purchases against the budget line","Track actual vs budget by subsystem","Store receipts digitally with part numbers","Report monthly to captains and faculty advisor","Flag overruns early"],
+ pit:["Lost receipts","Overruns found after the money is spent"]},
+FIN3:{why:"The cost and manufacturing event judges how well the team knows the cost and manufacturing process of its own car. The report must match the real car.",
+ tasks:["Cost every BOM line using the rules' method and tables","Write process explanations for main parts","Prepare make-vs-buy and cost-reduction discussion","Check the report against the real car","Submit before the deadline"],
+ pit:["Parts missing from the report","Report not matching the car on the day"]},
+FIN4:{why:"Judges test whether the team understands its costs and manufacturing choices. Physical parts and process knowledge decide the score.",
+ in:[["FIN3","Submitted cost report"],["LOG3","Manufacturing process records"],["DOC4","BOM and drawings"]],
+ tasks:["Prepare answers on cost drivers and manufacturing choices","Bring example parts and process photos","Prepare any event-specific cost exercise","Rehearse with a mock judge","Record judges' feedback for TM12"],
+ pit:["Cannot explain how a part was made","Report and car differ"]},
+BUS1:{why:"Sponsors provide money, parts, machining and services. Without them the budget and the build schedule collapse.",
+ in:[["FIN1","Funding gap and timing"],["TM3","Car concept and story to show sponsors"],["TM2","Last season's results for the pitch",1]],
+ tasks:["Build a sponsor target list (cash, parts, machining, logistics)","Make a sponsorship deck with packages and benefits","Meet sponsors; follow up in writing","Sign agreements with clear deliverables","Report sponsor needs (logo size, events) to Branding"],
+ pit:["Starting sponsor search after the money is needed","Promising logo space that does not exist"]},
+BUS2:{why:"The business plan event judges a business idea built around the car. It is scored on its own, so it needs its own preparation track.",
+ in:[["X:Rules","Business plan event format and scoring"],["FIN1","Cost data"],["TM3","Car concept and unique features"]],
+ tasks:["Choose a business idea linked to the car","Research market, customers and competitors","Build the financial plan","Write the executive summary or required submission","Draft the pitch deck"],
+ pit:["Weak financial plan","Idea not linked to the car"]},
+BUS3:{why:"Livery shows sponsors and team identity on the car. It depends on bodywork shapes and must leave room for rule-required numbers and markings.",
+ tasks:["Collect sponsor logo requirements","Design livery on bodywork surfaces from AC5","Reserve space for car number and required markings","Prepare print files for vinyl wrap","Check fit on the real bodywork"],
+ pit:["Livery designed before bodywork shapes are final","Missing space for the car number"]},
+BUS4:{why:"The business plan presentation is a scored static event. A rehearsed pitch with clear numbers gains points without touching the car.",
+ in:[["BUS2","Business plan and deck"],["FIN1","Financial figures"]],
+ tasks:["Rehearse within the time limit","Prepare answers to likely judge questions","Assign speakers and roles","Check presentation equipment on site","Record feedback for TM12"],
+ pit:["Running over time","Numbers nobody can explain"]}
+};
+D.blocks.forEach(function(b){var p=P[b.id];if(p)for(var k in p)b[k]=p[k];});
+// extra consumer links
+function add(id,inp){D.blocks.forEach(function(b){if(b.id===id)b.in.push(inp);});}
+add("TM8",["CH10","Firewall and closeout panels designed"]);
+add("TM9",["DOC3","Approved structural and IA submissions"]);
+})();
+
+</script>
+<script>
+(function(){
+var B=D.blocks, byId={}, laneBy={}, loopBy={};
+D.lanes.forEach(function(l,i){l.i=i;laneBy[l.k]=l;});
+D.loops.forEach(function(L){loopBy[L.k]=L;});
+B.forEach(function(b){byId[b.id]=b;b.loops=b.loops||[];b.w=b.w||[];});
+// loops from loop definitions too
+D.loops.forEach(function(L){L.b.forEach(function(id){var b=byId[id];if(b&&b.loops.indexOf(L.k)<0)b.loops.push(L.k);});});
+// edges
+var E=[];
+B.forEach(function(b){b.in.forEach(function(x){if(x[0].indexOf("X:")===0)return;var f=byId[x[0]];
+  E.push({f:f.id,t:b.id,what:x[1],fb:!!x[2]||f.p>b.p});});});
+var outs={},ins={};B.forEach(function(b){outs[b.id]=[];ins[b.id]=[];});
+E.forEach(function(e){outs[e.f].push(e);ins[e.t].push(e);});
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
+function lc(k){return "--lc:"+laneBy[k].c;}
+
+// stats
+document.getElementById("stats").innerHTML=[[B.length,"Activities"],[D.lanes.length,"Subteam lanes"],[E.length,"Handoffs"],[D.loops.length,"Iteration loops"],[B.filter(function(b){return b.crit}).length,"Critical-path steps"]]
+ .map(function(s){return '<div class="stat"><b>'+s[0]+'</b><span>'+s[1]+'</span></div>';}).join("");
+
+// ---------- build grid ----------
+var map=document.getElementById("map"), svg=document.getElementById("edges");
+var html='<div class="corner">Lane / Phase</div>';
+D.phases.forEach(function(p){html+='<div class="ph'+(p.k===4?' gate':'')+'"><div class="no">P'+p.k+(p.k===4?' · GATE':'')+'</div><h3>'+esc(p.n)+'</h3><p>'+esc(p.s)+'</p></div>';});
+D.lanes.forEach(function(l){
+  var n=B.filter(function(b){return b.l===l.k}).length;
+  html+='<button type="button" class="lane" data-lane="'+l.k+'" style="'+lc(l.k)+'"><b>'+esc(l.n)+'</b><small>'+esc(l.s)+'</small><em>'+n+' activities</em></button>';
+  D.phases.forEach(function(p){
+    var bs=B.filter(function(b){return b.l===l.k&&b.p===p.k});
+    html+='<div class="cell'+(p.k===4?' gatecol':'')+'">';
+    bs.forEach(function(b){
+      html+='<button type="button" class="blk'+(b.crit?' crit':'')+'" id="b-'+b.id+'" data-id="'+b.id+'" style="'+lc(b.l)+'">'+
+        '<span class="id"><i></i>'+b.id+'</span><span class="nm">'+esc(b.n)+'</span><span class="ft">'+
+        b.loops.map(function(k){return '<s style="background:'+loopBy[k].c+'" title="'+esc(loopBy[k].n)+'"></s>';}).join("")+
+        (b.crit?'<span class="cp">CP</span>':'')+'</span></button>';
+    });
+    html+='</div>';
+  });
+});
+map.insertAdjacentHTML("beforeend",html);
+
+// ---------- edges ----------
+var NS="http://www.w3.org/2000/svg", paths={};
+function drawEdges(){
+  var r0=map.getBoundingClientRect();
+  svg.setAttribute("width",map.scrollWidth);svg.setAttribute("height",map.scrollHeight);
+  svg.setAttribute("viewBox","0 0 "+map.scrollWidth+" "+map.scrollHeight);
+  var defs='<defs>'+["e","in","out","red"].map(function(k){
+    var col={e:"var(--edge)",in:"var(--in)",out:"var(--out)",red:"var(--red)"}[k];
+    return '<marker id="m-'+k+'" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" style="fill:'+col+'"/></marker>';}).join("")+
+    D.loops.map(function(L){return '<marker id="m-'+L.k+'" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="'+L.c+'"/></marker>';}).join("")+'</defs>';
+  svg.innerHTML=defs;
+  var rects={};
+  B.forEach(function(b){var el=document.getElementById("b-"+b.id);var r=el.getBoundingClientRect();rects[b.id]={x:r.left-r0.left,y:r.top-r0.top,w:r.width,h:r.height};});
+  E.forEach(function(e,i){
+    var a=rects[e.f],b=rects[e.t],d;
+    var x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2;
+    if(x2>x1+8){var dx=Math.max(30,(x2-x1)*.45);d="M"+x1+" "+y1+"C"+(x1+dx)+" "+y1+" "+(x2-dx)+" "+y2+" "+(x2-2)+" "+y2;}
+    else if(Math.abs(a.x-b.x)<4){ // same column: route on the right side
+      var xr=a.x+a.w,yA=y1,yB=y2,bulge=26+Math.min(40,Math.abs(yB-yA)*.08);
+      d="M"+xr+" "+yA+"C"+(xr+bulge)+" "+yA+" "+(xr+bulge)+" "+yB+" "+(xr+2)+" "+yB;}
+    else{ // backward: leave right, loop over to target left
+      var k=70;d="M"+x1+" "+y1+"C"+(x1+k)+" "+(y1-30)+" "+(x2-k)+" "+(y2-30)+" "+(x2-2)+" "+y2;}
+    var p=document.createElementNS(NS,"path");p.setAttribute("d",d);if(e.fb)p.setAttribute("class","fb");
+    p.setAttribute("marker-end","url(#m-e)");p.dataset.i=i;svg.appendChild(p);paths[i]=p;
+  });
+  applyState();
+}
+
+// ---------- state ----------
+var S={sel:null,mode:"all",crit:false,chain:false,loop:null,q:"",lane:null};
+function chainSet(id,dir){var seen={},st=[id];while(st.length){var c=st.pop();(dir==="up"?ins[c]:outs[c]).forEach(function(e){var n=dir==="up"?e.f:e.t;if(!seen[n]&&n!==id){seen[n]=1;st.push(n);}});}return seen;}
+function applyState(){
+  var hl={},up={},down={},onE={};
+  var any=false;
+  document.querySelectorAll(".blk").forEach(function(el){el.classList.remove("hl","sel","up","down","match");});
+  if(S.loop){any=true;var L=loopBy[S.loop];L.b.forEach(function(id){hl[id]=1;});
+    E.forEach(function(e,i){if(hl[e.f]&&hl[e.t])onE[i]="loop:"+L.k;});}
+  if(S.crit){any=true;B.forEach(function(b){if(b.crit)hl[b.id]=1;});
+    E.forEach(function(e,i){if(byId[e.f].crit&&byId[e.t].crit&&!e.fb)onE[i]="crit";});}
+  if(S.lane){any=true;B.forEach(function(b){if(b.l===S.lane)hl[b.id]=1;});}
+  if(S.q){any=true;var q=S.q.toLowerCase();B.forEach(function(b){var t=(b.id+" "+b.n+" "+b.why+" "+b.tasks.join(" ")+" "+b.in.map(function(x){return x[1]}).join(" ")).toLowerCase();
+    if(t.indexOf(q)>=0){hl[b.id]=1;var el=document.getElementById("b-"+b.id);el.classList.add("match");}});}
+  if(S.sel){any=true;hl[S.sel]=1;
+    if(S.chain){up=chainSet(S.sel,"up");down=chainSet(S.sel,"down");}
+    else{ins[S.sel].forEach(function(e){up[e.f]=1;});outs[S.sel].forEach(function(e){down[e.t]=1;});}
+    E.forEach(function(e,i){
+      if(S.chain){if((up[e.f]||e.f===S.sel)&&(up[e.t]||e.t===S.sel))onE[i]="in";else if((down[e.t]||e.t===S.sel)&&(down[e.f]||e.f===S.sel))onE[i]="out";}
+      else{if(e.t===S.sel)onE[i]="in";else if(e.f===S.sel)onE[i]="out";}});
+    Object.keys(up).forEach(function(id){hl[id]=1;});Object.keys(down).forEach(function(id){hl[id]=1;});}
+  map.classList.toggle("dim",any);
+  Object.keys(hl).forEach(function(id){document.getElementById("b-"+id).classList.add("hl");});
+  Object.keys(up).forEach(function(id){document.getElementById("b-"+id).classList.add("up");});
+  Object.keys(down).forEach(function(id){document.getElementById("b-"+id).classList.add("down");});
+  if(S.sel)document.getElementById("b-"+S.sel).classList.add("sel");
+  svg.classList.toggle("hide-rest",S.mode!=="all");
+  svg.style.display=S.mode==="off"&&!any?"none":"";
+  E.forEach(function(e,i){var p=paths[i];if(!p)return;var o=onE[i];p.removeAttribute("style");
+    var cls=e.fb?"fb":"";
+    if(o==="in"){cls+=" on-in";p.setAttribute("marker-end","url(#m-in)");}
+    else if(o==="out"){cls+=" on-out";p.setAttribute("marker-end","url(#m-out)");}
+    else if(o==="crit"){cls+=" on-crit";p.setAttribute("marker-end","url(#m-red)");}
+    else if(o&&o.indexOf("loop:")===0){var L=loopBy[o.slice(5)];cls+=" on-loop";p.style.stroke=L.c;p.setAttribute("marker-end","url(#m-"+L.k+")");}
+    else p.setAttribute("marker-end","url(#m-e)");
+    p.setAttribute("class",cls.trim());
+    if(o)svg.appendChild(p);});
+}
+
+// ---------- drawer ----------
+var drawer=document.getElementById("drawer"),dh=document.getElementById("dhead"),db=document.getElementById("dbody"),scrim=document.getElementById("scrim");
+var hist=[];
+function laneChip(k){return '<button type="button" class="lanechip" data-lane="'+k+'" style="'+lc(k)+'"><i></i>'+esc(laneBy[k].n)+'</button>';}
+function srcChip(id){if(id.indexOf("X:")===0)return '<span class="src ext">EXT · '+esc(id.slice(2))+'</span>';var b=byId[id];return '<button type="button" class="src" data-go="'+id+'" style="'+lc(b.l)+'" title="'+esc(b.n)+'"><i></i>'+id+'</button>';}
+function flowIn(b){return b.in.map(function(x){var f=x[0].indexOf("X:")===0?null:byId[x[0]];
+  return '<li style="--fc:'+(f?laneBy[f.l].c:'var(--line2)')+'">'+srcChip(x[0])+'<div class="txt">'+esc(x[1])+(x[2]||(f&&f.p>b.p)?'<span class="fbtag">iterative</span>':'')+
+   '<small>'+(f?esc(f.n)+' · '+esc(laneBy[f.l].n)+' ('+esc(f.o)+')':'Outside source')+'</small></div></li>';}).join("");}
+function flowOut(b){var o=outs[b.id];if(!o.length)return '<li style="--fc:var(--line2)"><span class="src ext">END</span><div class="txt">Final output of the program</div></li>';
+  return o.map(function(e){var t=byId[e.t];return '<li style="--fc:'+laneBy[t.l].c+'">'+srcChip(t.id)+'<div class="txt">'+esc(e.what)+(e.fb?'<span class="fbtag">iterative</span>':'')+
+   '<small>to '+esc(t.n)+' · '+esc(laneBy[t.l].n)+' ('+esc(t.o)+')</small></div></li>';}).join("");}
+function detailHTML(b,compact){
+  return '<div class="sec"><h4>Why it matters</h4><p>'+esc(b.why)+'</p></div>'+
+  '<div class="sec"><h4>Who</h4><dl class="who"><dt>Owner</dt><dd><strong>'+esc(b.o)+'</strong>&nbsp;'+laneChip(b.l)+'</dd>'+
+   (b.w.length?'<dt>Works with</dt><dd>'+b.w.map(laneChip).join("")+'</dd>':'')+'</dl></div>'+
+  '<div class="sec"><h4>Needs from · '+b.in.length+'</h4><ul class="flow">'+flowIn(b)+'</ul></div>'+
+  '<div class="sec"><h4>Gives to · '+outs[b.id].length+'</h4><ul class="flow">'+flowOut(b)+'</ul></div>'+
+  '<div class="sec'+(compact?' full':'')+'"><h4>Tasks</h4><ol class="tasks">'+b.tasks.map(function(t){return '<li>'+esc(t)+'</li>';}).join("")+'</ol></div>'+
+  '<div class="sec"><h4>Tools</h4><p class="kv">'+esc(b.tools)+'</p></div>'+
+  '<div class="sec"><h4>Rules & checks</h4><p class="kv">'+esc(b.rules)+'</p></div>'+
+  '<div class="sec"><h4>Done when</h4><p class="kv">'+esc(b.done)+'</p></div>'+
+  '<div class="sec"><h4>Common pitfalls</h4><ul class="pit">'+b.pit.map(function(t){return '<li>'+esc(t)+'</li>';}).join("")+'</ul></div>';
+}
+function openBlock(id,push){
+  var b=byId[id];if(!b)return;
+  if(push!==false&&S.sel&&S.sel!==id)hist.push(S.sel);
+  S.sel=id;S.lane=null;applyState();
+  var ph=D.phases[b.p];
+  drawer.style.cssText=lc(b.l);
+  dh.innerHTML='<button type="button" class="dclose" id="dclose" aria-label="Close">×</button>'+
+   (hist.length?'<div class="dnav"><button type="button" id="dback">← '+hist[hist.length-1]+'</button></div>':'')+
+   '<div class="dmeta"><b>'+b.id+'</b> · P'+b.p+' '+esc(ph.n)+' · '+esc(laneBy[b.l].n)+'</div><h2>'+esc(b.n)+'</h2><div class="badges">'+
+   (b.crit?'<span class="badge cp">Critical path</span>':'')+
+   b.loops.map(function(k){return '<span class="badge"><i style="background:'+loopBy[k].c+'"></i>'+esc(loopBy[k].n)+'</span>';}).join("")+
+   (b.loops.length?'<span class="badge">Iterative</span>':'<span class="badge">Linear step</span>')+'</div>';
+  db.innerHTML=detailHTML(b);db.scrollTop=0;
+  showDrawer();
+  if(innerWidth>700){var el=document.getElementById("b-"+id),box=document.getElementById("mapbox"),r=el.getBoundingClientRect(),lim=innerWidth-drawer.offsetWidth-24;
+    if(r.right>lim)box.scrollBy({left:r.right-lim+40,behavior:"smooth"});}
+  try{history.replaceState(null,"","#"+id);}catch(e){}
+}
+function openLane(k){
+  var l=laneBy[k];S.sel=null;S.lane=k;hist=[];applyState();
+  var mine=B.filter(function(b){return b.l===k});
+  var give={},need={};
+  E.forEach(function(e){var f=byId[e.f],t=byId[e.t];if(f.l===k&&t.l!==k)give[t.l]=(give[t.l]||0)+1;if(t.l===k&&f.l!==k)need[f.l]=(need[f.l]||0)+1;});
+  var support=B.filter(function(b){return b.l!==k&&b.w.indexOf(k)>=0});
+  drawer.style.cssText=lc(k);
+  dh.innerHTML='<button type="button" class="dclose" id="dclose" aria-label="Close">×</button><div class="dmeta">Subteam duty sheet</div><h2>'+esc(l.n)+'</h2><div class="badges"><span class="badge">'+mine.length+' owned</span><span class="badge">'+support.length+' supporting</span></div>';
+  function cnt(o){return Object.keys(o).sort(function(a,b){return o[b]-o[a]}).map(function(x){return '<span style="display:inline-flex;gap:4px;align-items:center">'+laneChip(x)+'<small style="font-family:var(--f-mono);color:var(--muted)">×'+o[x]+'</small></span>';}).join("")||'<span style="color:var(--muted)">None</span>';}
+  db.innerHTML='<div class="sec"><h4>Scope</h4><p>'+esc(l.s)+'</p></div>'+
+   '<div class="sec"><h4>Owns · in program order</h4><ul class="flow">'+mine.map(function(b){return '<li style="--fc:'+l.c+'">'+srcChip(b.id)+'<div class="txt">'+esc(b.n)+(b.crit?'<span class="fbtag" style="border-color:var(--red);color:var(--red)">CP</span>':'')+'<small>P'+b.p+' '+esc(D.phases[b.p].n)+' · '+esc(b.o)+'</small></div></li>';}).join("")+'</ul></div>'+
+   '<div class="sec"><h4>Needs information from</h4><dl class="who"><dd>'+cnt(need)+'</dd></dl></div>'+
+   '<div class="sec"><h4>Gives information to</h4><dl class="who"><dd>'+cnt(give)+'</dd></dl></div>'+
+   (support.length?'<div class="sec"><h4>Supports other subteams on</h4><ul class="flow">'+support.map(function(b){return '<li style="--fc:'+laneBy[b.l].c+'">'+srcChip(b.id)+'<div class="txt">'+esc(b.n)+'<small>owned by '+esc(laneBy[b.l].n)+'</small></div></li>';}).join("")+'</ul></div>':'');
+  db.scrollTop=0;showDrawer();
+}
+function showDrawer(){drawer.classList.add("open");drawer.setAttribute("aria-hidden","false");if(innerWidth<=700)scrim.classList.add("on");}
+function closeDrawer(){drawer.classList.remove("open");drawer.setAttribute("aria-hidden","true");scrim.classList.remove("on");S.sel=null;S.lane=null;hist=[];applyState();try{history.replaceState(null,"",location.pathname+location.search);}catch(e){}}
+function goTo(id){openBlock(id);var el=document.getElementById("b-"+id);var box=document.getElementById("mapbox");
+  var r=el.getBoundingClientRect(),rb=box.getBoundingClientRect();
+  box.scrollTo({left:box.scrollLeft+(r.left-rb.left)-rb.width/2+r.width/2+(innerWidth>700?-200:0),behavior:"smooth"});
+  if(r.top<80||r.bottom>innerHeight-40)window.scrollTo({top:scrollY+r.top-innerHeight/3,behavior:"smooth"});}
+
+document.addEventListener("click",function(ev){
+  var t=ev.target.closest("[data-id],[data-go],[data-lane],#dclose,#dback,#scrim");if(!t)return;
+  if(t.id==="dclose"||t.id==="scrim"){closeDrawer();return;}
+  if(t.id==="dback"){var p=hist.pop();goTo(p);hist.pop();return;}
+  if(t.dataset.id){openBlock(t.dataset.id);return;}
+  if(t.dataset.go){goTo(t.dataset.go);return;}
+  if(t.dataset.lane){openLane(t.dataset.lane);return;}
+});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeDrawer();});
+
+// toolbar
+document.querySelectorAll("#linkmode button").forEach(function(btn){btn.addEventListener("click",function(){S.mode=btn.dataset.v;
+  document.querySelectorAll("#linkmode button").forEach(function(b){b.setAttribute("aria-pressed",b===btn)});applyState();});});
+var critB=document.getElementById("crit");critB.addEventListener("click",function(){S.crit=!S.crit;critB.setAttribute("aria-pressed",S.crit);applyState();});
+var chainB=document.getElementById("chain");chainB.addEventListener("click",function(){S.chain=!S.chain;chainB.setAttribute("aria-pressed",S.chain);applyState();});
+var lcBox=document.getElementById("loopchips");
+lcBox.innerHTML=D.loops.map(function(L){return '<button type="button" class="lchip" data-loop="'+L.k+'" aria-pressed="false"><i style="background:'+L.c+'"></i>'+esc(L.n)+'</button>';}).join("");
+function setLoop(k){S.loop=S.loop===k?null:k;document.querySelectorAll("[data-loop]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.loop===S.loop)});applyState();}
+lcBox.addEventListener("click",function(e){var b=e.target.closest("[data-loop]");if(b)setLoop(b.dataset.loop);});
+var q=document.getElementById("q");q.addEventListener("input",function(){S.q=q.value.trim();applyState();});
+
+// loop cards
+document.getElementById("loopcards").innerHTML=D.loops.map(function(L){return '<button type="button" class="loopcard" data-loopcard="'+L.k+'" style="--lpc:'+L.c+'"><h3><i></i>'+esc(L.n)+'<small>'+L.k+'</small></h3><p>'+esc(L.d)+'</p><span class="ids">'+L.b.map(function(id){return '<span>'+id+'</span>';}).join("")+'</span></button>';}).join("");
+document.getElementById("loopcards").addEventListener("click",function(e){var c=e.target.closest("[data-loopcard]");if(!c)return;if(S.loop!==c.dataset.loopcard)setLoop(c.dataset.loopcard);
+  document.getElementById("mapbox").scrollIntoView({behavior:"smooth",block:"start"});});
+
+// matrix
+var M={};E.forEach(function(e){var a=byId[e.f].l,b=byId[e.t].l;var k=a+">"+b;(M[k]=M[k]||[]).push(e);});
+var maxv=0;Object.keys(M).forEach(function(k){var a=k.split(">");if(a[0]!==a[1])maxv=Math.max(maxv,M[k].length);});
+var mh='<thead><tr><th class="corner2">Gives ↓ · Receives →</th>'+D.lanes.map(function(l){return '<th style="'+lc(l.k)+'"><i></i>'+esc(l.k)+'</th>';}).join("")+'</tr></thead><tbody>';
+D.lanes.forEach(function(a){mh+='<tr><th style="'+lc(a.k)+'"><i style="width:30px"></i>'+esc(a.n)+'</th>';D.lanes.forEach(function(b){var k=a.k+">"+b.k,n=(M[k]||[]).length;
+  var alpha=a.k===b.k?0:(n/maxv);
+  mh+='<td class="'+(a.k===b.k?'diag':'')+'" style="background:'+(n&&a.k!==b.k?'color-mix(in srgb,var(--red) '+Math.round(10+alpha*60)+'%,transparent)':'transparent')+'">'+(n?'<button type="button" data-mx="'+k+'" aria-pressed="false" title="'+esc(a.n)+' → '+esc(b.n)+'">'+n+'</button>':'')+'</td>';});mh+='</tr>';});
+document.getElementById("mx").innerHTML=mh+'</tbody>';
+var hoBox=document.getElementById("handoffs");
+function showHand(k){var a=k.split(">");document.querySelectorAll("[data-mx]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.mx===k)});
+  hoBox.innerHTML='<div class="hh">'+esc(laneBy[a[0]].n)+' → '+esc(laneBy[a[1]].n)+' · '+M[k].length+' handoffs</div>'+
+  M[k].map(function(e){var f=byId[e.f],t=byId[e.t];return '<div class="ho"><div class="pair"><button type="button" data-go="'+f.id+'">'+f.id+'</button>→<button type="button" data-go="'+t.id+'">'+t.id+'</button></div><div class="what">'+esc(e.what)+(e.fb?'<span class="fbtag">iterative</span>':'')+'<small>'+esc(f.n)+' ('+esc(f.o)+') → '+esc(t.n)+' ('+esc(t.o)+')</small></div></div>';}).join("");}
+document.getElementById("mx").addEventListener("click",function(e){var b=e.target.closest("[data-mx]");if(b)showHand(b.dataset.mx);});
+showHand("VD>CH");
+
+// register
+document.getElementById("regcount").textContent=B.length+" activities";
+document.getElementById("reg").innerHTML=D.lanes.map(function(l){var mine=B.filter(function(b){return b.l===l.k});
+  return '<div class="reglane" style="'+lc(l.k)+'"><h3><i></i>'+esc(l.n)+'<small>'+mine.length+' ACTIVITIES</small></h3>'+
+  mine.map(function(b){return '<details class="act" id="r-'+b.id+'"><summary><span class="i">'+b.id+'</span><span class="n">'+esc(b.n)+(b.crit?' <span class="fbtag" style="border-color:var(--red);color:var(--red)">CP</span>':'')+'</span><span class="p">P'+b.p+' · '+esc(D.phases[b.p].n)+'</span></summary><div class="in">'+detailHTML(b,true)+'</div></details>';}).join("")+'</div>';}).join("");
+document.getElementById("expandall").addEventListener("click",function(){document.querySelectorAll("details.act").forEach(function(d){d.open=true});});
+document.getElementById("collapseall").addEventListener("click",function(){document.querySelectorAll("details.act").forEach(function(d){d.open=false});});
+
+// draw
+var rt;function redraw(){clearTimeout(rt);rt=setTimeout(drawEdges,60);}
+addEventListener("resize",redraw);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawEdges);
+drawEdges();
+var h=(location.hash||"").slice(1);if(byId[h])setTimeout(function(){goTo(h)},300);
+})();
+</script>
