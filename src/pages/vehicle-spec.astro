@@ -138,6 +138,7 @@ const SOURCING: Record<string, string> = {
 <script>
   import { loadMaster, setMasterValue, setFrozen, editFrozenParam, setMasterText, editFrozenText, fmt, debounce, loadPresets, saveNamedPreset, deletePreset, currentUserId } from '../lib/store';
   import { subscribeLive, liveToast, describeBurst } from '../lib/realtime';
+  import { myRole, gateToLead, roleNote } from '../lib/roles';
   import { COUPLING_BY_KEY } from '../lib/config';
 
   const G = 9.81;
@@ -348,6 +349,15 @@ const SOURCING: Record<string, string> = {
       }
     });
 
+    // Freezing/unfreezing is the gate mechanic, so it is lead-only (migration
+    // 0011 enforces it; disabling the box here explains it before the error).
+    const me = await myRole();
+    if (me.role !== 'lead') {
+      document.querySelectorAll<HTMLInputElement>('[data-freeze]').forEach((el) => gateToLead(el, 'Freezing a parameter'));
+      if (note) note.innerHTML += ` <span style="color:var(--amber-text);">${roleNote(me)}</span>`;
+    } else if (me.bootstrap && note) {
+      note.innerHTML += ` <span style="color:var(--amber-text);">${roleNote(me)}</span>`;
+    }
     document.querySelectorAll('[data-freeze]').forEach((el) => {
       const box = el as HTMLInputElement;
       const tr = box.closest('tr')!; const key = tr.getAttribute('data-key')!;
