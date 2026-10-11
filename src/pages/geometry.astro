@@ -136,7 +136,8 @@ const SYNTH = [
   import Chart from 'chart.js/auto';
   import { geometrySweep, geometrySummary, antiGeometry, frontViewConstruction, staticCamber, type Hardpoints } from '../lib/calc/geometry';
   import { synthesize, solvedScrub, solvedKpiDeg, type SynthInput } from '../lib/calc/geometry-synth';
-  import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, setMasterValue, fmt, debounce } from '../lib/store';
+  import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
+  import { contributeMaster } from '../lib/master-write';
   import { toCsv, downloadText } from '../lib/csv';
   import { decorateLinkedCells } from '../lib/linked';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
@@ -333,7 +334,7 @@ const SYNTH = [
       const v = Number((document.getElementById('geo-rear-rc') as HTMLInputElement).value);
       if (!Number.isFinite(v)) { st.textContent = 'Enter a value.'; st.style.color = 'var(--heritage)'; return; }
       st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
-      const err = await setMasterValue('rear_rc_height', +v.toFixed(2));
+      const err = await contributeMaster('rear_rc_height', +v.toFixed(2));
       st.textContent = err ? 'Failed (frozen?): ' + err : 'Written ✓';
       st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
     });

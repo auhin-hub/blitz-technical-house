@@ -7,14 +7,39 @@
 import { supabase } from './supabase';
 import type { SpecRow } from './master';
 
+/** Columns we need; `text_value` only exists from migration 0008 onwards. */
+const MASTER_COLS = 'key,label,symbol,unit,value,text_value,source,confidence,frozen,frozen_gate,updated_at';
+const MASTER_COLS_LEGACY = 'key,label,symbol,unit,value,source,confidence,frozen,frozen_gate,updated_at';
+
+/**
+ * The last load error, if any. A schema lag (e.g. migration 0008 not run) used to
+ * blank the whole Master silently; now we retry without the new column and record
+ * the problem so the UI can say so instead of showing "—" everywhere.
+ */
+export let masterLoadError: string | null = null;
+
 /** Load the whole Master, keyed by parameter key. Empty object if not signed in. */
 export async function loadMaster(): Promise<Record<string, SpecRow>> {
-  const { data, error } = await supabase
-    .from('vehicle_spec')
-    .select('key,label,symbol,unit,value,text_value,source,confidence,frozen,frozen_gate,updated_at')
-    .order('display_order', { ascending: true });
+  masterLoadError = null;
   const out: Record<string, SpecRow> = {};
-  if (error || !data) return out;
+  let { data, error } = await supabase
+    .from('vehicle_spec').select(MASTER_COLS).order('display_order', { ascending: true });
+
+  // Unknown column (PostgREST 42703) ⇒ migration 0008 hasn't been run. Degrade
+  // loudly but keep the site usable with the legacy columns.
+  if (error && /text_value|42703|column/i.test(error.message)) {
+    const legacy = await supabase
+      .from('vehicle_spec').select(MASTER_COLS_LEGACY).order('display_order', { ascending: true });
+    if (!legacy.error && legacy.data) {
+      masterLoadError = 'Master loaded without text keys — run migration 0008 (vehicle_spec.text_value).';
+      data = legacy.data as any; error = null;
+    }
+  }
+  if (error || !data) {
+    masterLoadError = error ? error.message : 'Master unavailable (not signed in?).';
+    if (error) console.error('[loadMaster]', error.message);
+    return out;
+  }
   for (const r of data as any[]) out[r.key] = r as SpecRow;
   return out;
 }
@@ -75,6 +100,28 @@ export async function setMasterText(key: string, text: string): Promise<string |
 export async function editFrozenText(key: string, text: string, reason: string): Promise<string | null> {
   const { error } = await supabase.rpc('edit_param_text', { p_key: key, p_text: text, p_reason: reason });
   return error ? error.message : null;
+}
+
+/**
+ * The one sanctioned way for a TOOL to write a Master value (handoff ground rule).
+ * Unfrozen → ordinary update. Frozen → the change-logged edit_param() path, which
+ * needs a reason; `askReason` supplies it (the caller can show the coupling
+ * knock-ons first). Returns null on success, an error/skip message otherwise.
+ */
+export async function writeMaster(
+  key: string,
+  value: number,
+  askReason?: (key: string) => string | null,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('vehicle_spec').select('frozen').eq('key', key).maybeSingle();
+  if (error) return error.message;
+  if (!data) return `unknown parameter "${key}"`;
+  if (!data.frozen) return setMasterValue(key, value);
+  if (!askReason) return `"${key}" is frozen — edit it in Vehicle Spec with a reason.`;
+  const reason = askReason(key);
+  if (!reason || !reason.trim()) return `"${key}" is frozen — change cancelled (a reason is required).`;
+  return editFrozenParam(key, value, reason.trim());
 }
 
 /** Freeze / unfreeze a parameter at a gate (logged by trigger). */

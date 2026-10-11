@@ -124,7 +124,8 @@ const R8_COLS = ['Run', 'Tyre (anon)', 'Size', 'Rim width', 'Test', 'Notes'];
 </Base>
 
 <script>
-  import { loadTyreResults, addTyreResult, uploadTyrePlot, signedUrl, fmt, setMasterValue, uploadTir, listTir, type TyreResult } from '../lib/store';
+  import { loadTyreResults, addTyreResult, uploadTyrePlot, signedUrl, fmt, uploadTir, listTir, type TyreResult } from '../lib/store';
+  import { contributeMaster } from '../lib/master-write';
   import { parseTir, tirToMaster, TIR_MASTER_MAP, type TirDerived } from '../lib/calc/tir';
   import { readFileText } from '../lib/csv';
 
@@ -251,7 +252,7 @@ const R8_COLS = ['Run', 'Tyre (anon)', 'Size', 'Rim width', 'Test', 'Notes'];
     const writes: [string, number | undefined][] = [['rolling_radius', rollRadius(d)], ...TIR_MASTER_MAP.map((m) => [m.key, d[m.field] as number | undefined] as [string, number | undefined])];
     tirSay('Writing…', true); tirStatus.style.color = 'var(--ink-3)';
     const errs: string[] = [];
-    for (const [k, v] of writes) { if (v === undefined || !Number.isFinite(v)) continue; const e = await setMasterValue(k, +v.toFixed(4)); if (e) errs.push(`${k} (frozen?)`); }
+    for (const [k, v] of writes) { if (v === undefined || !Number.isFinite(v)) continue; const e = await contributeMaster(k, +v.toFixed(4)); if (e) errs.push(`${k}: ${e}`); }
     tirSay(errs.length ? 'Some skipped: ' + errs.join(', ') : 'Written to Master ✓', !errs.length);
   });
 

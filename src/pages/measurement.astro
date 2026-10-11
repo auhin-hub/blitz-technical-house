@@ -81,7 +81,7 @@ import { url } from '../lib/config';
 <script>
   import { mountCalculator } from '../lib/calc/engine';
   import { cogTiltCompute, cornerWeightCompute, quarterCarCompute, trifilarCompute } from '../lib/calc/extras';
-  import { setMasterValue } from '../lib/store';
+  import { contributeMaster } from '../lib/master-write';
 
   mountCalculator({ root: 'cog', tool: 'ms_cog', compute: cogTiltCompute, digits: { cogAboveAxle: 1, cogHeight: 1 } });
 
@@ -101,7 +101,7 @@ import { url } from '../lib/config';
     const { izz } = trifilarCompute({ mass: gi('mass'), radius: gi('radius'), wireLength: gi('wireLength'), period: gi('period') });
     if (!Number.isFinite(izz as number)) { st.textContent = 'Enter valid inputs first.'; st.style.color = 'var(--heritage)'; return; }
     st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
-    const err = await setMasterValue('yaw_inertia', +(izz as number).toFixed(4));
+    const err = await contributeMaster('yaw_inertia', +(izz as number).toFixed(4));
     st.textContent = err ? 'Failed (frozen?): ' + err : 'Written to Master ✓';
     st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
   });

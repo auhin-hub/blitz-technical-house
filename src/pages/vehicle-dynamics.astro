@@ -277,7 +277,8 @@ const STEER_OUTPUTS = [
   import { steeringCompute, steeringEffortCompute } from '../lib/calc/vd-steering';
   import { loadTransfer } from '../lib/calc/vd-loadtransfer';
   import { rpSweep, rackTravelPerRev } from '../lib/calc/extras';
-  import { loadMaster, setMasterValue } from '../lib/store';
+  import { loadMaster } from '../lib/store';
+  import { contributeMaster } from '../lib/master-write';
 
   const noOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } } };
 
@@ -351,7 +352,7 @@ const STEER_OUTPUTS = [
     );
     if (!Number.isFinite(r.tlltdFront)) { st.textContent = 'Fill in Master (mass, ff, tracks…) first.'; st.style.color = 'var(--heritage)'; return; }
     st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
-    const err = await setMasterValue('tlltd_front', +r.tlltdFront.toFixed(4));
+    const err = await contributeMaster('tlltd_front', +r.tlltdFront.toFixed(4));
     st.textContent = err ? 'Failed (frozen?): ' + err : 'Written to Master ✓';
     st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
   });
