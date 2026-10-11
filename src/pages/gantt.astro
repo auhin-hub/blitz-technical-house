@@ -62,6 +62,7 @@ import { url } from '../lib/config';
   import { PARAM_SEED } from '../lib/master';
   import { loadToolJson, saveToolJson, debounce } from '../lib/store';
   import { mountListControls } from '../lib/list-controls';
+  import { esc } from '../lib/html';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
   import { palette, watchTheme } from '../lib/chart-theme';
 
@@ -74,7 +75,7 @@ import { url } from '../lib/config';
   let tasks: GanttTask[] = [];
   let gateDates: Record<string, string> = {};
 
-  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  
   const inp = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;font-size:var(--fs-200);';
   const MASTER_KEYS = PARAM_SEED.map((p) => p.key);
 

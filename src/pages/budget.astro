@@ -71,6 +71,7 @@ import { url } from '../lib/config';
   import { teamRollups, totals, topOvershoots, alarmFor, type BudgetRow } from '../lib/calc/budget';
   import { loadToolJson, saveToolJson, debounce } from '../lib/store';
   import { mountListControls } from '../lib/list-controls';
+  import { esc } from '../lib/html';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
@@ -83,7 +84,7 @@ import { url } from '../lib/config';
   let log: { item: string; old: number | null; new: number | null; reason: string; at: string }[] = [];
   let chart: Chart | null = null;
 
-  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  
   const inp = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;font-size:var(--fs-200);';
   const numI = inp + 'width:72px;text-align:right;font-family:var(--font-mono);';
 

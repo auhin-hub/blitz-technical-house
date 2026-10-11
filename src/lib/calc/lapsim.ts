@@ -46,9 +46,12 @@ export function simulateLap(p: LapParams, segments: Segment[], ds = 2): LapResul
   if (!N) return { lapTime: NaN, distance: 0, topSpeed: NaN, minSpeed: NaN, avgSpeed: NaN, v: [] };
 
   const v = vCap.slice();
+  const gripCeiling = p.muLong > 0 ? p.muLong : Infinity;   // longitudinal grip cap
   const accelAt = (vv: number) => {
     const k = kAero(p, vv);
-    const tract = p.launchG * G * k;
+    // Traction-limited accel is capped by BOTH the launch figure and the tyre's
+    // longitudinal grip (audit P2.7 — muLong used to be a dead parameter).
+    const tract = Math.min(p.launchG, gripCeiling) * G * k;
     const pw = vv > 0.5 ? p.power / (p.mass * vv) : tract;
     const drag = (0.5 * p.rho * vv * vv * p.cdA) / p.mass;
     return Math.max(0, Math.min(tract, pw) - drag);
@@ -56,7 +59,7 @@ export function simulateLap(p: LapParams, segments: Segment[], ds = 2): LapResul
   const brakeAt = (vv: number) => {
     const k = kAero(p, vv);
     const drag = (0.5 * p.rho * vv * vv * p.cdA) / p.mass;
-    return p.brakeG * G * k + drag;
+    return Math.min(p.brakeG, gripCeiling) * G * k + drag;
   };
   // Looped forward/backward relaxation.
   for (let iter = 0; iter < 4; iter++) {

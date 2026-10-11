@@ -81,6 +81,7 @@ import { url } from '../lib/config';
   import { tableUnitPrice, costSummary, num } from '../lib/calc/cost';
   import { loadToolJson, saveToolJson, debounce } from '../lib/store';
   import { mountListControls } from '../lib/list-controls';
+  import { esc } from '../lib/html';
   import { toCsv, parseCsv, downloadText, missingColumns } from '../lib/csv';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
   import { url } from '../lib/config';
@@ -108,7 +109,7 @@ import { url } from '../lib/config';
   const byName = (arr: any[]) => new Map(arr.map((r) => [r.name, r]));
   let matMap = new Map(), procMap = new Map(), fastMap = new Map(), multMap = new Map(), toolMap = new Map();
 
-  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  
   const inp = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.2rem 0.35rem;font-size:var(--fs-200);';
   const n = (s: string) => (s.trim() === '' ? null : Number(s));
 
@@ -133,7 +134,9 @@ import { url } from '../lib/config';
   function partBlocks(p: Part): Blocks {
     if (p.fca) return { mat: p.fca.materials.reduce((s, l) => s + matLinePrice(l), 0), proc: p.fca.processes.reduce((s, l) => s + procLinePrice(l), 0), fast: p.fca.fasteners.reduce((s, l) => s + fastLinePrice(l), 0), tool: p.fca.tooling.reduce((s, l) => s + toolLinePrice(l), 0) };
     if (p.blocks) return p.blocks;
-    return { mat: num(p.unitManual), proc: 0, fast: 0, tool: 0 };
+    // No FCA and no seeded blocks: we genuinely don't know the split, so report
+    // nothing rather than mis-attributing the whole unit to Materials (P2.5).
+    return { mat: null, proc: null, fast: null, tool: null };
   }
   function partUnit(p: Part): number {
     if (p.fca) return fcaResolvedTotal(p.fca);
@@ -250,7 +253,8 @@ import { url } from '../lib/config';
   // template's BOM sheet from row 7; its Cost Summary then recomputes).
   function officialBomCsv(): string {
     const cols = ['Line Num.', 'System Code', 'Asm/Prt #', 'Rev. Lvl.', 'Asm', 'Component', 'Description', 'Unit Cost', 'Quantity', 'Material Cost', 'Process Cost', 'Fastener Cost', 'Tooling Cost', 'Total Cost', 'Link to FCA Sheet'];
-    const rows = parts.map((p, i) => { const b = partBlocks(p); return [(i + 1) * 10, p.sysCode ?? '', p.asmPrt ?? '', p.rev ?? '', '', p.name, p.description ?? '', partUnit(p).toFixed(2), p.qty ?? '', num(b.mat).toFixed(2), num(b.proc).toFixed(2), num(b.fast).toFixed(2), num(b.tool).toFixed(2), partTotal(p).toFixed(2), p.fca ? (p.sysCode ?? p.name) : '']; });
+    const rows = parts.map((p, i) => { const b = partBlocks(p); const blk = (v: number | null) => (v === null || v === undefined ? '' : num(v).toFixed(2));
+      return [(i + 1) * 10, p.sysCode ?? '', p.asmPrt ?? '', p.rev ?? '', '', p.name, p.description ?? '', partUnit(p).toFixed(2), p.qty ?? '', blk(b.mat), blk(b.proc), blk(b.fast), blk(b.tool), partTotal(p).toFixed(2), p.fca ? (p.sysCode ?? p.name) : '']; });
     return toCsv(cols, rows);
   }
 

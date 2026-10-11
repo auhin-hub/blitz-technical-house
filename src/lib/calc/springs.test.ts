@@ -30,7 +30,17 @@ describe('Springs · rates with tyre in series', () => {
 describe('Springs · roll', () => {
   it('roll stiffness + roll gradient (springs only)', () => {
     expect(out.rollStiffFront as number).toBeCloseTo(176.83, 1); // ½·Kw·t² → N·m/deg
-    expect(out.rollGradient as number).toBeCloseTo(2.197, 2);    // (m·g·h)/Kφ_total → deg/g
+    // Sprung weight × lever above the roll axis (audit P1.1): sprung = 264 − 4·16
+    // = 200 kg; roll axis on the ground here, so lever = full 300 mm.
+    expect(out.sprungMass as number).toBeCloseTo(200, 6);
+    expect(out.rollLever as number).toBeCloseTo(300, 6);
+    expect(out.rollGradient as number).toBeCloseTo(1.664, 2);    // (Ws·g·lever)/Kφ → deg/g
+  });
+  it('raising the roll centres shortens the lever and stiffens the gradient', () => {
+    const withRc = springsCompute(s, { ...s }, { ...m, rcFront: 30, rcRear: 45 });
+    expect(withRc.rollLever as number).toBeCloseTo(262.5, 3);    // 300 − (30+15·0.5)
+    expect(withRc.rollGradient as number).toBeCloseTo(1.456, 2);
+    expect(withRc.rollGradient as number).toBeLessThan(out.rollGradient as number);
   });
 });
 

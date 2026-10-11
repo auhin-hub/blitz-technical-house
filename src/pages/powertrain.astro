@@ -98,7 +98,8 @@ const OUTPUTS = [
     stats={[{ key: 'speed', label: 'Road speed', unit: 'km/h' }]} />
 
   <CalcTool id="restrictor" title="Intake restrictor" spec="§9 ⚖"
-    blurb="Choked air mass flow through the restrictor → a power ceiling. Ø is a rulebook value (20 mm petrol / 19 mm E85)."
+    blurb="Choked air mass flow through the restrictor → a power ceiling. Ø is a rulebook value held in the Master (restrictor_dia); the local Ø is only a fallback while that is unset."
+    linked={[{ mkey: 'restrictor_dia', label: 'Restrictor Ø (rules)', unit: 'mm' }]} seed={seed}
     inputs={[
       { key: 'dia', label: 'Restrictor Ø', unit: 'mm', vals: [20], ref: { typ: '20 (⚖ rulebook)' } },
       { key: 'cd', label: 'Discharge coeff Cd', unit: '-', vals: [0.95] },
@@ -147,5 +148,9 @@ const OUTPUTS = [
   });
 
   mountCalculator({ root: 'gearspeed', tool: 'pt_gearspeed', compute: gearSpeedCompute, digits: { wheelRpm: 0, speed: 1 } });
-  mountCalculator({ root: 'restrictor', tool: 'pt_restrictor', compute: restrictorCompute, digits: { mdotAir: 1, maxPower: 1 } });
+  // Restrictor Ø is a rules value: prefer the Master key, fall back to the local
+  // input while it is unset (audit P1.5 — no private copies of a shared number).
+  const restrictorWithMaster = (inp: Record<string, number>, m: Record<string, number>) =>
+    restrictorCompute({ ...inp, dia: Number.isFinite(m.restrictor_dia) ? m.restrictor_dia : inp.dia });
+  mountCalculator({ root: 'restrictor', tool: 'pt_restrictor', compute: restrictorWithMaster, digits: { mdotAir: 1, maxPower: 1 } });
 </script>

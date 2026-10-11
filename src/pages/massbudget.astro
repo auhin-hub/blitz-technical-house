@@ -120,6 +120,7 @@ const LINKED = [
   import { contributeMaster } from '../lib/master-write';
   import { decorateLinkedCells } from '../lib/linked';
   import { mountListControls } from '../lib/list-controls';
+  import { esc } from '../lib/html';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
@@ -143,7 +144,7 @@ const LINKED = [
     unsprung: r.unsprung, subsystem: r.assembly || '—', localIzz: r.localIzz == null ? undefined : r.localIzz,
   }));
 
-  const esc = (s: string) => (s ?? '').replace(/"/g, '&quot;');
+  
   const txt = 'background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;font-size:var(--fs-200);';
   const num = txt + 'width:70px;text-align:right;font-family:var(--font-mono);';
 

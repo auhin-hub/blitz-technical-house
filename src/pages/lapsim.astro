@@ -6,6 +6,7 @@ import { url } from '../lib/config';
 const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
 const PARAMS = [
   { key: 'muLat', label: 'Peak lateral μ', unit: 'g', val: 1.5, ref: 'Tyre / g–g' },
+  { key: 'muLong', label: 'Peak longitudinal μ', unit: 'g', val: 1.4, ref: 'Tyre / g–g' },
   { key: 'launchG', label: 'Launch g (power/traction)', unit: 'g', val: 0.8, ref: 'Powertrain' },
   { key: 'brakeG', label: 'Max braking g', unit: 'g', val: 1.4, ref: 'Brakes / g–g' },
   { key: 'power', label: 'Engine peak power', unit: 'kW', val: 32, ref: 'Powertrain' },
@@ -112,7 +113,7 @@ const PARAMS = [
 
   const gi = (k: string) => Number((document.querySelector(`[data-in="${k}"]`) as HTMLInputElement)?.value);
   const params = (): LapParams => ({
-    mass, muLat: gi('muLat'), muLong: gi('muLat'), launchG: gi('launchG'), brakeG: gi('brakeG'),
+    mass, muLat: gi('muLat'), muLong: gi('muLong'), launchG: gi('launchG'), brakeG: gi('brakeG'),
     clA: gi('clA'), cdA: gi('cdA'), rho: gi('rho'), power: gi('power') * 1000,
   });
 
