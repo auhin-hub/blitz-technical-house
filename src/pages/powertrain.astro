@@ -75,9 +75,13 @@ const OUTPUTS = [
       <a class="btn btn-halftone" href={url('tools/cooling.html')} target="_blank" rel="noopener">Open full-screen ↗</a>
     </div>
     <div style="border:1px solid var(--rule);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);">
-      <iframe src={url('tools/cooling.html')} title="Cooling Dyno Analyzer"
-        loading="lazy" style="width:100%;height:1600px;border:0;display:block;background:var(--surface);"></iframe>
+      <iframe class="cooling-frame" src={url('tools/cooling.html')} title="Cooling Dyno Analyzer"
+        loading="lazy"></iframe>
     </div>
+    <p class="annot cooling-hint" style="margin-top:0.5rem;">
+      The analyzer scrolls inside its own frame on a small screen — use
+      “Open full-screen” above for the full layout.
+    </p>
     <p class="mono" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);">
       Its "From Vehicle Spec" strip pulls the live rolling radius → tyre Ø and
       final drive → rear sprocket (one click each, labelled); other inputs keep
@@ -113,6 +117,18 @@ const OUTPUTS = [
     stats={[{ key: 'maxPower', label: 'Power ceiling', unit: 'kW' }]} />
   </CockpitShell>
 </Base>
+
+<style>
+  /* The embedded analyzer is a tall self-contained app. Desktop gets its full
+     height (no nested scrolling); on a phone a 1600px frame made the page
+     unusable, so it is capped to the viewport and scrolls internally (audit P2.3). */
+  .cooling-frame { width: 100%; height: 1600px; border: 0; display: block; background: var(--surface); }
+  .cooling-hint { display: none; }
+  @media (max-width: 860px) {
+    .cooling-frame { height: 80vh; min-height: 420px; }
+    .cooling-hint { display: block; }
+  }
+</style>
 
 <script>
   import { mountCalculator } from '../lib/calc/engine';

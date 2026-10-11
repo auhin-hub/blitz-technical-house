@@ -131,11 +131,18 @@ export const TOP_NAV = [
  * (Handoff v2 Part 0.2). The Component Readiness requirement picker (P4) is the
  * union of these + all `vehicle_spec` keys — so a requirement can only reference
  * something the workspace actually produces.
+ *
+ * `upstream` lists the Master keys that actually enter the formula behind the
+ * output (not everything its page reads). Component Readiness shows a contributed
+ * output as AMBER while any of them is unset or unfrozen — "contributed, but
+ * standing on numbers that can still move" (audit P2.4). An empty/absent list
+ * means the output comes only from that tool's own inputs, so contributing it is
+ * genuinely green.
  */
-export const TOOL_OUTPUT_KEYS: { key: string; label: string; team: string }[] = [
+export const TOOL_OUTPUT_KEYS: { key: string; label: string; team: string; upstream?: string[] }[] = [
   { key: 'cl_a', label: 'Cl·A (downforce)', team: 'Aero' },
   { key: 'cd_a', label: 'Cd·A (drag)', team: 'Aero' },
-  { key: 'aero_balance_front', label: 'Aero balance (front)', team: 'Aero' },
+  { key: 'aero_balance_front', label: 'Aero balance (front)', team: 'Aero', upstream: ['mass_total', 'mass_frac_front'] },
   { key: 'engine_peak_power', label: 'Engine peak power', team: 'Powertrain' },
   { key: 'final_drive', label: 'Final drive ratio', team: 'Powertrain' },
   { key: 'max_wheel_torque', label: 'Max wheel torque', team: 'Powertrain' },
@@ -147,28 +154,28 @@ export const TOOL_OUTPUT_KEYS: { key: string; label: string; team: string }[] = 
   { key: 'seat_back_angle', label: 'Seat-back angle', team: 'Ergonomics' },
   { key: 'torsional_stiffness', label: 'Torsional stiffness', team: 'Chassis' },
   { key: 'chassis_mass_built', label: 'Chassis mass (as built)', team: 'Chassis' },
-  { key: 'brake_torque_front', label: 'Front brake torque / wheel', team: 'Brake' },
-  { key: 'brake_torque_rear', label: 'Rear brake torque / wheel', team: 'Brake' },
-  { key: 'achieved_front_bias', label: 'Achieved front brake bias', team: 'Brake' },
-  { key: 'spring_rate_front', label: 'Front spring rate', team: 'VD' },
-  { key: 'spring_rate_rear', label: 'Rear spring rate', team: 'VD' },
-  { key: 'roll_gradient', label: 'Roll gradient (springs)', team: 'VD' },
+  { key: 'brake_torque_front', label: 'Front brake torque / wheel', team: 'Brake', upstream: ['mass_total', 'mass_frac_front', 'cog_height', 'wheelbase', 'rolling_radius', 'accel_brake_target'] },
+  { key: 'brake_torque_rear', label: 'Rear brake torque / wheel', team: 'Brake', upstream: ['mass_total', 'mass_frac_front', 'cog_height', 'wheelbase', 'rolling_radius', 'accel_brake_target'] },
+  { key: 'achieved_front_bias', label: 'Achieved front brake bias', team: 'Brake', upstream: ['mass_total', 'mass_frac_front', 'cog_height', 'wheelbase', 'accel_brake_target'] },
+  { key: 'spring_rate_front', label: 'Front spring rate', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'tyre_vert_stiffness'] },
+  { key: 'spring_rate_rear', label: 'Rear spring rate', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'tyre_vert_stiffness'] },
+  { key: 'roll_gradient', label: 'Roll gradient (springs)', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'cog_height', 'track_front', 'track_rear', 'tyre_vert_stiffness'] },
   { key: 'rc_height_static', label: 'Static roll-centre height', team: 'VD' },
   { key: 'rc_migration', label: 'RC migration over travel', team: 'VD' },
   { key: 'camber_gain_bump', label: 'Camber gain per 10 mm bump', team: 'VD' },
-  { key: 'understeer_gradient', label: 'Understeer gradient', team: 'VD' },
-  { key: 'static_margin', label: 'Static margin', team: 'VD' },
-  { key: 'arb_front_needed', label: 'Front ARB needed', team: 'VD' },
-  { key: 'tlltd_front', label: 'Front TLLTD (derived)', team: 'VD' },
-  { key: 'pushrod_force_front', label: 'Pushrod force (front)', team: 'VD' },
-  { key: 'pushrod_force_rear', label: 'Pushrod force (rear)', team: 'VD' },
-  { key: 'anti_pct_front', label: 'Anti-dive (front)', team: 'VD' },
-  { key: 'anti_pct_rear', label: 'Anti-squat (rear)', team: 'VD' },
-  { key: 'ackermann_split', label: 'Ackermann split', team: 'VD' },
-  { key: 'steering_wheel_torque', label: 'Steering-wheel torque', team: 'VD' },
-  { key: 'rack_force', label: 'Rack force', team: 'VD' },
-  { key: 'lap_time_s', label: 'Lap time', team: 'VD' },
-  { key: 'endurance_fuel_l', label: 'Endurance fuel', team: 'Powertrain' },
+  { key: 'understeer_gradient', label: 'Understeer gradient', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'wheelbase', 'corner_stiffness'] },
+  { key: 'static_margin', label: 'Static margin', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'wheelbase', 'corner_stiffness'] },
+  { key: 'arb_front_needed', label: 'Front ARB needed', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'wheelbase', 'corner_stiffness'] },
+  { key: 'tlltd_front', label: 'Front TLLTD (derived)', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'cog_height', 'track_front', 'track_rear', 'rear_rc_height', 'unsprung_corner'] },
+  { key: 'pushrod_force_front', label: 'Pushrod force (front)', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'wheelbase', 'cog_height'] },
+  { key: 'pushrod_force_rear', label: 'Pushrod force (rear)', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'wheelbase', 'cog_height'] },
+  { key: 'anti_pct_front', label: 'Anti-dive (front)', team: 'VD', upstream: ['wheelbase', 'cog_height'] },
+  { key: 'anti_pct_rear', label: 'Anti-squat (rear)', team: 'VD', upstream: ['wheelbase', 'cog_height'] },
+  { key: 'ackermann_split', label: 'Ackermann split', team: 'VD', upstream: ['wheelbase', 'track_front'] },
+  { key: 'steering_wheel_torque', label: 'Steering-wheel torque', team: 'VD', upstream: ['mu_lat_peak', 'axle_load_front', 'rolling_radius'] },
+  { key: 'rack_force', label: 'Rack force', team: 'VD', upstream: ['mu_lat_peak', 'axle_load_front', 'rolling_radius'] },
+  { key: 'lap_time_s', label: 'Lap time', team: 'VD', upstream: ['mass_total', 'mu_lat_peak'] },
+  { key: 'endurance_fuel_l', label: 'Endurance fuel', team: 'Powertrain', upstream: ['mass_total', 'mu_lat_peak'] },
   { key: 'radiator_area', label: 'Radiator area', team: 'Powertrain' },
   { key: 'heat_rejection_kw', label: 'Heat rejection', team: 'Powertrain' },
 ];
