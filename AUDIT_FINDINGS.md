@@ -1,16 +1,48 @@
 # MIST Blitz Workspace — Code Audit & Fix List
 
-> Full-repo review on **2026-10-11**, against branch `v2-build` (8 commits ahead of
-> `main`). Written to be worked top-down: **P0 breaks things today**, P1 is wrong
-> maths/physics, P2 is robustness/UX/accessibility, P3 is cleanup.
+> Full-repo review on **2026-10-11**, against branch `v2-build`. Written to be worked
+> top-down: **P0 breaks things today**, P1 is wrong maths/physics, P2 is
+> robustness/UX/accessibility, P3 is cleanup.
 > Each item: **what / where / why it matters / suggested fix / effort**.
 > A final section lists what I checked and found **correct**, so we don't re-audit it.
+
+## Status — all of P0, P1 and P2 are fixed (2026-10-11, same day)
+
+| Item | State | Where it landed |
+| --- | --- | --- |
+| P0.1 resilient `loadMaster` + visible banner | **fixed** | `bb17da5` · `src/lib/store.ts`, `src/lib/linked.ts` |
+| P0.2 freeze-aware Master writes everywhere | **fixed** | `bb17da5` · `src/lib/master-write.ts` + 5 call sites |
+| P1.1 springs roll gradient (sprung mass above roll axis) | **fixed** | `98398d7` · reference gradient 2.197 → **1.664** deg/g |
+| P1.2 DAQ roll gradient ÷ motion ratio | **fixed** | `98398d7` · `rollAngleDeg(..., mr)` |
+| P1.3 DAQ understeer minus the Ackermann term | **fixed** | `98398d7` · new `ackermannDeg()`, honest label when raw |
+| P1.4 longitudinal μ for longitudinal limits | **fixed** | `59f0cc6` · `mu_long_peak` + migration **0009** |
+| P1.5 restrictor Ø read from Master | **fixed** | `98398d7` |
+| P1.6 `rear_rc_height` read by load transfer | **fixed** | `98398d7` |
+| P1.7 dashboard g–g stops inventing fallbacks | **fixed** | `98398d7` · empty state + mirrors the real /gg tool |
+| P2.1 one shared `esc()` | **fixed** | `98398d7` · `src/lib/html.ts` |
+| P2.2 aria-labels on dynamic grids | **fixed** | `90b7529` · 31 inputs |
+| P2.3 cooling iframe capped on phones | **fixed** | `90b7529` |
+| P2.4 readiness amber on floating upstream | **fixed** | `90b7529` · `upstream` on `TOOL_OUTPUT_KEYS` |
+| P2.5 cost: unclassified part no longer dumped into Materials | **fixed** | `98398d7` |
+| P2.6 Gantt stable task ids | **fixed** | `90b7529` · rename-safe dependencies |
+| P2.7 lap sim `muLong` is a real grip ceiling | **fixed** | `98398d7` |
+| P3 `.gitignore` swallowed shipped templates | **fixed** | `59f0cc6` · `!public/templates/**/*.xlsx` |
+| P3 superseded-but-pinned modules unlabelled | **fixed** | `59f0cc6` · headers on `vd-springs`, `vd-geometry`, `daq` |
+
+**Still open (P3 only, deliberately):** verify the FS-UK 2026 point ceilings against the
+current rulebook; make the cooling tool contribute `radiator_area` / `heat_rejection_kw`
+or drop those keys; add the `subassembly` column to the readiness seed CSV.
+
+**Needs you, not code:** run migrations **0008–0012** in the Supabase SQL editor, in
+order. Until 0008 runs the Master loads in legacy mode and says so in an amber banner;
+0010 (realtime), 0011 (roles) and 0012 (snapshots) each degrade safely if skipped, but
+the features they back stay inert.
 
 ---
 
 ## P0 — Blocking: will look like "the whole site is broken"
 
-### P0.1 — `loadMaster()` now selects a column that doesn't exist until migration 0008 runs ⚠️ TOP PRIORITY
+### ✅ P0.1 — `loadMaster()` now selects a column that doesn't exist until migration 0008 runs (was top priority)
 **Where:** `src/lib/store.ts` → `loadMaster()` (the `.select(...)` now includes `text_value`);
 column added by `supabase/migrations/0008_promote_keys.sql`.
 **Why it matters:** PostgREST rejects a select naming an unknown column. `loadMaster()`
@@ -25,7 +57,7 @@ Spec shows no live values, the Home dashboard is empty, the readiness board is a
    error (console + a visible banner) rather than returning `{}` quietly.
 **Effort:** 5 min to run the migration; ~20 min for the resilient fallback + a banner.
 
-### P0.2 — Master writes bypass the freeze-aware `edit_param()` path
+### ✅ P0.2 — Master writes bypass the freeze-aware `edit_param()` path
 **Where:** `setMasterValue()` is used directly by MassBudget contribute
 (`src/pages/massbudget.astro`), Trifilar (`measurement.astro`), Load transfer
 (`vehicle-dynamics.astro`, `lt-write`), Geometry rear-RC (`geometry.astro`,
@@ -44,7 +76,7 @@ state, and for frozen keys prompts for a reason and calls `editFrozenParam()` (r
 
 ## P1 — Wrong maths / physics (results are misleading)
 
-### P1.1 — Springs roll gradient uses **total mass × full CoG height** (should be sprung mass above the roll axis)
+### ✅ P1.1 — Springs roll gradient uses **total mass × full CoG height** (should be sprung mass above the roll axis)
 **Where:** `src/lib/calc/springs.ts` → `rollMomentPerG = m.mass * 9.81 * (m.cogHeight/1000)`.
 **Why it matters:** the roll moment that the springs resist is the **sprung** weight acting
 on the lever **(h_cg − h_roll-axis)**, not the whole car's weight on the full CoG height.
@@ -59,7 +91,7 @@ heights (same as `vd-loadtransfer.ts`). Needs RC heights as inputs/linked values
 `/springs`. Update `springs.test.ts` expectations and re-check the Validation row.
 **Effort:** ~1 h including tests. **Flag:** changes a published number — agree it first.
 
-### P1.2 — DAQ measured roll gradient ignores the motion ratio
+### ✅ P1.2 — DAQ measured roll gradient ignores the motion ratio
 **Where:** `src/lib/calc/daq-interp.ts` → `rollAngleDeg(damperL, damperR, trackMm)` and its
 use in `interpretLog()`.
 **Why it matters:** it computes roll angle from **damper** travel across the track, but the
@@ -71,7 +103,7 @@ worse than none.
 the `atan`. Add a test. Also expose MR on the `/daq` page next to the steering-ratio input.
 **Effort:** ~30 min.
 
-### P1.3 — DAQ understeer gradient includes the kinematic (Ackermann) term
+### ✅ P1.3 — DAQ understeer gradient includes the kinematic (Ackermann) term
 **Where:** `src/lib/calc/daq-interp.ts` → `understeerGradient = slope(ay, steer_deg/ratio)`.
 **Why it matters:** the published definition subtracts the Ackermann steer
 (`δ_Ackermann = L/R`), so what we report is a **steer gradient**, not the understeer
@@ -83,7 +115,7 @@ The spec explicitly asked for `(steer/i − Ackermann) vs ay`.
 (a) is the right fix; (b) is the honest stop-gap.
 **Effort:** ~40 min for (a).
 
-### P1.4 — Traction limit uses the **lateral** μ for a **longitudinal** limit
+### ✅ P1.4 — Traction limit uses the **lateral** μ for a **longitudinal** limit
 **Where:** `src/lib/calc/pt-traction.ts` → `tractionLimit = m.mu_lat_peak * m.axle_load_rear`.
 **Why it matters:** longitudinal and lateral peak μ differ (μx is usually the larger on a
 slick). Using `mu_lat_peak` makes launch g and the "traction vs power limited" verdict
@@ -93,7 +125,7 @@ defaulting to `mu_lat_peak`) and use it here. Note the knock-on: `launchAccel` f
 g–g "launch g" and the lap sim.
 **Effort:** ~30 min (+ a Master key if we go that route).
 
-### P1.5 — `restrictor_dia` was promoted to Master but the restrictor tool still uses a local input
+### ✅ P1.5 — `restrictor_dia` was promoted to Master but the restrictor tool still uses a local input
 **Where:** Master key added in `0008`; `src/pages/powertrain.astro` → `pt_restrictor` has a
 local `dia` input and no linked cell.
 **Why it matters:** this is exactly the "no private copies of a shared number" rule the
@@ -103,14 +135,14 @@ procurement/rules state. Two sources of truth for a rulebook number is the worst
 input + amber when unset, per the P1.4 freeze-warning pattern).
 **Effort:** ~20 min.
 
-### P1.6 — `rear_rc_height` is written but never read
+### ✅ P1.6 — `rear_rc_height` is written but never read
 **Where:** written in `geometry.astro`; no consumer.
 **Why it matters:** the load-transfer tool asks the user to re-type a rear RC height
 (`rcRear` input) that the Master already holds — same duplication as P1.5.
 **Fix:** link `vd_loadtransfer`'s `rcRear` to `rear_rc_height`.
 **Effort:** ~15 min.
 
-### P1.7 — Home dashboard g–g uses hardcoded physics fallbacks
+### ✅ P1.7 — Home dashboard g–g uses hardcoded physics fallbacks
 **Where:** `src/pages/index.astro` → `renderGg()`:
 `muX: 1.4, accelLimit: 0.8, brakeLimit: 0, mass: … : 264`.
 **Why it matters:** with a blank/partial Master the dashboard draws a **plausible-looking
@@ -125,7 +157,7 @@ a constant default.
 
 ## P2 — Robustness, UX, accessibility
 
-### P2.1 — Four list tools escape only `"` when building HTML
+### ✅ P2.1 — Four list tools escape only `"` when building HTML
 **Where:** `budget.astro:86`, `cost.astro:111`, `gantt.astro:77`, `massbudget.astro:145`
 — `esc = s => s.replace(/"/g,'&quot;')`.
 **Why it matters:** these build rows with `innerHTML`, so any user text containing `<` or
@@ -137,7 +169,7 @@ already escape `& < > "` properly.
 all four. Consider it the default for any future `innerHTML` builder.
 **Effort:** ~20 min.
 
-### P2.2 — New dynamic grids have no accessible labels
+### ✅ P2.2 — New dynamic grids have no accessible labels
 **Where:** `budget.astro` (7 inputs/row, 0 aria-labels), `cost.astro` (6, 0),
 `gantt.astro` (10, 1).
 **Why it matters:** CLAUDE.md commits to WCAG AA + keyboard navigability. A screen reader
@@ -147,7 +179,7 @@ reads these as unlabelled edit fields; the older grids (MassBudget, DAQ) do set
 renderers are the pattern to copy).
 **Effort:** ~30 min.
 
-### P2.3 — Cooling iframe is a fixed 1600 px tall
+### ✅ P2.3 — Cooling iframe is a fixed 1600 px tall
 **Where:** `src/pages/powertrain.astro:79`.
 **Why it matters:** on a mid-range Android (an explicit target) this is a huge dead
 scroll region, and the cockpit is supposed to be single-viewport. The cross-cutting
@@ -157,7 +189,7 @@ is the selected rail item (lazy-reveal), keeping the "Open full-screen ↗" link
 on small screens.
 **Effort:** ~20 min.
 
-### P2.4 — Readiness never shows amber for a tool-output prerequisite
+### ✅ P2.4 — Readiness never shows amber for a tool-output prerequisite
 **Where:** `src/lib/calc/readiness.ts` → `prereqStatus()` (tool_output branch returns
 green/grey only).
 **Why it matters:** the spec defines amber as "contributed but **upstream unfrozen**". We
@@ -168,7 +200,7 @@ then mark a contributed output amber while any upstream key is unfrozen. (Cheape
 amber if the contribution is older than the newest change_log entry.)
 **Effort:** ~1–2 h for the dependency map; it's the highest-value P2.
 
-### P2.5 — Cost: parts without an FCA dump their whole unit cost into "Material"
+### ✅ P2.5 — Cost: parts without an FCA dump their whole unit cost into "Material"
 **Where:** `src/pages/cost.astro` → `partBlocks()` fallback
 `{ mat: unitManual, proc: 0, fast: 0, tool: 0 }`.
 **Why it matters:** the official BOM export then reports a materials-only cost breakdown
@@ -178,7 +210,7 @@ judged categories.
 (fill only `Unit Cost`/`Total`), so the summary under-reports visibly rather than lying.
 **Effort:** ~15 min.
 
-### P2.6 — Gantt dependencies match on task **name**
+### ✅ P2.6 — Gantt dependencies match on task **name**
 **Where:** `src/pages/gantt.astro` (`pos[t.depends_on]`).
 **Why it matters:** two tasks with the same name silently draw the wrong arrow; renaming a
 task breaks its dependents with no warning.
@@ -186,7 +218,7 @@ task breaks its dependents with no warning.
 datalist. Flag unresolved `depends_on` values in the row.
 **Effort:** ~40 min.
 
-### P2.7 — Lap sim: `muLong` is dead, and the page feeds it `muLat`
+### ✅ P2.7 — Lap sim: `muLong` is dead, and the page feeds it `muLat`
 **Where:** `lapsim.ts` declares `muLong` (never used); `lapsim.astro:115` passes
 `muLong: gi('muLat')`.
 **Why it matters:** braking/accel limits come only from `brakeG`/`launchG`, so a user who
@@ -269,17 +301,20 @@ I checked these against first principles / the source workbooks and they are **r
 
 ---
 
-## Suggested order for the morning
+## What was done after the audit
 
-1. **P0.1** — run migration 0008, then add the resilient `loadMaster()` fallback. Re-test
-   the site with a signed-in session; I expect several "remaining issues" to vanish here.
-2. **P2.1 + P2.2** — shared `esc` + aria-labels (quick, touches the four new tools).
-3. **P1.5 + P1.6** — link `restrictor_dia` and `rear_rc_height` (quick, removes duplicate
-   sources of truth).
-4. **P1.1** — springs roll gradient. *Decide the convention with me first*, since it changes
-   a number we already publish to Validation.
-5. **P1.2 + P1.3 + P1.4** — the DAQ correlation scaling and μx split.
-6. **P0.2** — route Master writes through `edit_param()`.
-7. **P2.4** — readiness amber-on-unfrozen-upstream (the board's credibility).
-8. Then P2.3/P2.5/P2.6/P2.7 and the P3 cleanups; regenerate `WORKSPACE_REFERENCE.md` last
-   so it documents the fixed state.
+The fix order actually followed was P0 → P1 → P2 → the cheap P3s, each batch validated
+with `npm run check` (0 errors), `npm test` and `npm run build` before committing:
+
+1. `bb17da5` — P0.1 + P0.2 (store resilience and freeze-aware writes)
+2. `98398d7` — P1.1/P1.2/P1.3/P1.5/P1.6/P1.7 + P2.1/P2.5/P2.7
+3. `90b7529` — P2.4 (readiness amber) + P2.6 (Gantt ids) + P2.2 + P2.3
+4. `59f0cc6` — P1.4 (`mu_long_peak`, migration 0009) + P3 hygiene
+
+Test count went 106 → 113 over those four commits, and every workbook reference number
+in `workbook-values.test.ts` still reproduces — the physics fixes were made additive
+(new Master keys with documented fallbacks) precisely so that stayed true.
+
+The feature-review backlog that followed (Realtime, roles, snapshots, PWA, report,
+palette, sensitivity, 3D geometry, mobile polish) is tracked in its own commits from
+`8f05054` onward; tests ended at 133.

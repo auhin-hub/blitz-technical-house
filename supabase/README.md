@@ -78,6 +78,26 @@ move domains (base-aware paths mean no code change).
 - **No automatic backups** — so the Excel Master stays the authoritative archive;
   export a snapshot of `vehicle_spec` periodically.
 
-## Deferred to the Gates/freeze step (BRIEF §E5)
-A trigger that **requires a `change_log` row when a frozen parameter is edited**.
-The tables and columns are already shaped for it; it is added when Gates is built.
+## 5. Migrations added after the first release
+
+Run them in order; each is idempotent and safe to re-run.
+
+| Migration | What it adds | If you skip it |
+|---|---|---|
+| `0007_vehicle_spec_blank` | the Master starts blank | old inherited numbers linger |
+| `0008_promote_keys` | `text_value` + `edit_param_text()` + promoted rules/procurement keys | the Master loads in legacy mode and every page shows an amber banner |
+| `0009_mu_long` | `mu_long_peak` | traction and brake cases keep using the lateral μ (the old behaviour) |
+| `0010_realtime` | realtime publication + `replica identity full` | no live updates; refresh to see a teammate's work |
+| `0011_roles` | `members`, `is_lead()`, lead-only gates/freezes | governance stays advisory: anyone can freeze or sign off |
+| `0012_snapshots` | `spec_snapshots` | `/snapshots` cannot save a baseline |
+
+**After `0011`:** sign in and set yourself to **lead** on **Gates → Members**.
+While no lead exists every member has lead rights, so nothing is locked out — but
+nothing is protected either.
+
+## Freeze enforcement (BRIEF §E5) — done
+
+`0004` added the guard trigger and `edit_param()`; `0008` extended both to text
+values; `0011` restricted a frozen edit to leads. A frozen `vehicle_spec` value
+can only change through `edit_param`/`edit_param_text`, which require a reason and
+write a `change_log` row — any other path raises.
