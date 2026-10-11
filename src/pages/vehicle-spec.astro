@@ -136,7 +136,8 @@ const SOURCING: Record<string, string> = {
 </Base>
 
 <script>
-  import { loadMaster, setMasterValue, setFrozen, editFrozenParam, setMasterText, editFrozenText, fmt, debounce, loadPresets, saveNamedPreset, deletePreset } from '../lib/store';
+  import { loadMaster, setMasterValue, setFrozen, editFrozenParam, setMasterText, editFrozenText, fmt, debounce, loadPresets, saveNamedPreset, deletePreset, currentUserId } from '../lib/store';
+  import { subscribeLive, liveToast, describeBurst } from '../lib/realtime';
   import { COUPLING_BY_KEY } from '../lib/config';
 
   const G = 9.81;
@@ -180,23 +181,53 @@ const SOURCING: Record<string, string> = {
     await Promise.all(updates.map(([k, v]) => setMasterValue(k, v)));
   }
 
-  (async () => {
-    const master = await loadMaster();
-    if (Object.keys(master).length === 0) return;
-
+  /**
+   * Paint the table from a Master snapshot. Skips whatever the member is typing
+   * in right now, so a teammate's change never yanks a half-typed number out
+   * from under them (it lands as soon as they leave the field).
+   */
+  function applyMaster(master: Record<string, any>, only?: Set<string>) {
+    const focused = document.activeElement as HTMLElement | null;
     for (const key of Object.keys(master)) {
+      if (only && !only.has(key)) continue;
       const row = master[key]; const tr = cell(key); if (!tr) continue;
       frozenState[key] = row.frozen;
       const input = tr.querySelector('[data-input]') as HTMLInputElement | null;
       const textInput = tr.querySelector('[data-input-text]') as HTMLInputElement | null;
+      const live = textInput ?? input;
+      if (live && live === focused) continue;
       if (textInput) textInput.value = (row as any).text_value ?? '';
       else if (input) input.value = row.value === null || row.value === undefined ? '' : String(row.value);
       else setComputed(key, row.value as number | null);
       const fz = tr.querySelector('[data-freeze]') as HTMLInputElement | null;
-      if (fz) fz.checked = row.frozen;
+      if (fz && fz !== focused) fz.checked = row.frozen;
       renderBadges(tr, row.frozen, row.frozen_gate, row.confidence);
     }
+  }
+
+  (async () => {
+    const master = await loadMaster();
+    if (Object.keys(master).length === 0) return;
+
+    applyMaster(master);
     if (note) note.innerHTML = 'Showing <strong>live shared values</strong> from the Master store. Edits save for the whole team.';
+
+    // Someone else editing the Master is the most consequential thing that can
+    // happen behind your back, so this page tracks it live and says who moved
+    // what (feature review Tier 1 #1). The field you are typing in is left alone.
+    const myUid = await currentUserId();
+    subscribeLive({
+      name: 'vehicle-spec',
+      tables: ['vehicle_spec'],
+      onChange: async (events) => {
+        const theirs = events.filter((e) => (e.row?.updated_by ?? null) !== myUid);
+        if (!theirs.length) return;
+        const keys = new Set(theirs.map((e) => (e.row?.key ?? e.old?.key) as string).filter(Boolean));
+        applyMaster(await loadMaster(), keys);
+        await recomputeDerived();
+        liveToast(`Master updated by another member: ${describeBurst(theirs)}.`, 'warn');
+      },
+    });
 
     // ---- Baseline presets (P1.3) ----
     const PRESET_TOOL = 'vehicle_spec_master';

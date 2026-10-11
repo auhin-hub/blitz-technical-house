@@ -114,6 +114,7 @@ import logo from '../assets/blitz-logo.png';
 <script>
   import Chart from 'chart.js/auto';
   import { loadMaster, loadToolOutputsMap, loadToolJson, fmt } from '../lib/store';
+  import { subscribeLive, describeBurst, liveToast } from '../lib/realtime';
   import { ggCurve, type GgInput } from '../lib/calc/gg';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
@@ -140,8 +141,9 @@ import logo from '../assets/blitz-logo.png';
     if (ggChart) { ggChart.data = cfg.data; ggChart.update(); } else { const cv = document.getElementById('dash-gg') as HTMLCanvasElement | null; if (cv) ggChart = new Chart(cv, cfg); }
   }
 
-  (async () => {
-    applyChartDefaults();
+  let ggInput: GgInput | null = null;
+
+  async function refresh(): Promise<void> {
     const m = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
     const o = await loadToolOutputsMap();
     setKpi('mass', m.mass_total, 1); setKpi('ff', m.mass_frac_front, 3); setKpi('cog', m.cog_height, 1);
@@ -152,12 +154,24 @@ import logo from '../assets/blitz-logo.png';
     // numbers are required — without them there is nothing honest to draw.
     const g = await loadToolJson<Record<string, number>>('gg', {});
     const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : NaN; };
-    const ggInput: GgInput | null = Number.isFinite(m.mu_lat_peak) && Number.isFinite(m.mass_total)
+    ggInput = Number.isFinite(m.mu_lat_peak) && Number.isFinite(m.mass_total)
       ? { muY: m.mu_lat_peak, mass: m.mass_total,
           muX: num(g.muX) || m.mu_lat_peak, accelLimit: num(g.accelLimit) || 0, brakeLimit: num(g.brakeLimit) || 0,
           rho: num(g.rho) || 1.225, clA: num(g.clA) || 0, speedKmh: 0 }
       : null;
     renderGg(ggInput);
+  }
+
+  (async () => {
+    applyChartDefaults();
+    await refresh();
     watchTheme(() => { applyChartDefaults(); renderGg(ggInput); });
+    // The dashboard is the one page people leave open on a second screen, so it
+    // follows the shared store live (feature review Tier 1 #1).
+    subscribeLive({
+      name: 'dashboard',
+      tables: ['vehicle_spec', 'tool_outputs'],
+      onChange: async (events) => { await refresh(); liveToast(`Dashboard updated: ${describeBurst(events)}.`); },
+    });
   })();
 </script>

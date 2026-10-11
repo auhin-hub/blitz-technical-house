@@ -67,6 +67,7 @@ import { url } from '../lib/config';
   import { PARAM_SEED } from '../lib/master';
   import { TOOL_OUTPUT_KEYS, url } from '../lib/config';
   import { componentReadiness, blockingSummary, unfrozenUpstream, type Component, type Prereq, type MasterCell, type Bin } from '../lib/calc/readiness';
+  import { subscribeLive, liveToast, describeBurst } from '../lib/realtime';
   import { loadMaster, loadToolOutputsMap, loadToolJson, saveToolJson, debounce } from '../lib/store';
   import { mountListControls } from '../lib/list-controls';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
@@ -206,6 +207,20 @@ import { url } from '../lib/config';
       components = rebuild(rows, headers);
     }
     render();
+
+    // The board exists to answer "can I start this part yet", so it must not go
+    // stale while it is open on a workshop screen (feature review Tier 1 #1).
+    subscribeLive({
+      name: 'readiness',
+      tables: ['vehicle_spec', 'tool_outputs'],
+      onChange: async (events) => {
+        const [mr, om] = await Promise.all([loadMaster(), loadToolOutputsMap()]);
+        master = Object.fromEntries(Object.entries(mr).map(([k, v]) => [k, { value: (v as any).value ?? null, text_value: (v as any).text_value ?? null, frozen: !!(v as any).frozen }]));
+        outputs = Object.fromEntries(Object.entries(om).map(([k, v]) => [k, { value: (v as any).value ?? null }]));
+        render();
+        liveToast(`Readiness re-evaluated: ${describeBurst(events)}.`);
+      },
+    });
 
     // Controls
     document.getElementById('rd-filter')!.addEventListener('change', render);

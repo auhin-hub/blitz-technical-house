@@ -59,25 +59,99 @@ export async function loadToolState(
   tool: string,
   defaults: Record<string, number>,
 ): Promise<Record<string, number>> {
-  const { data, error } = await supabase
-    .from('tool_state')
-    .select('data')
-    .eq('tool', tool)
-    .maybeSingle();
-  if (error || !data || !data.data) return { ...defaults };
-  return { ...defaults, ...(data.data as Record<string, number>) };
+  return (await loadToolStateVersioned(tool, defaults)).data;
 }
 
-/** Upsert a tool's shared editable inputs. */
+/**
+ * The row's `updated_at` as the client last saw it — the optimistic-concurrency
+ * token for `saveToolState` (feature review Tier 1 #2). `null` means "no row
+ * yet"; a save then expects to create one.
+ */
+export type StateVersion = string | null;
+
+/** Load a tool's inputs with the version token and who last wrote them. */
+export async function loadToolStateVersioned(
+  tool: string,
+  defaults: Record<string, number>,
+): Promise<{ data: Record<string, number>; version: StateVersion; updatedBy: string | null }> {
+  const { data, error } = await supabase
+    .from('tool_state')
+    .select('data,updated_at,updated_by')
+    .eq('tool', tool)
+    .maybeSingle();
+  if (error || !data) return { data: { ...defaults }, version: null, updatedBy: null };
+  return {
+    data: { ...defaults, ...((data.data ?? {}) as Record<string, number>) },
+    version: (data as any).updated_at ?? null,
+    updatedBy: (data as any).updated_by ?? null,
+  };
+}
+
+/** A save that lost a race: somebody else wrote the row after we read it. */
+export const STATE_CONFLICT = 'STATE_CONFLICT';
+
+let cachedUid: string | null | undefined;
+/** The signed-in member's id (cached) — used to tell my writes from theirs. */
+export async function currentUserId(): Promise<string | null> {
+  if (cachedUid !== undefined) return cachedUid;
+  const { data } = await supabase.auth.getUser();
+  cachedUid = data.user?.id ?? null;
+  return cachedUid;
+}
+
+/**
+ * Save a tool's shared inputs. With `expected`, the write only lands if the row
+ * is still the version we read — otherwise it returns STATE_CONFLICT and the
+ * caller offers a choice instead of silently flattening a teammate's edit. Pass
+ * no `expected` for the old last-write-wins behaviour.
+ *
+ * Returns the new version in `version` so a caller can keep saving.
+ */
+export async function saveToolStateVersioned(
+  tool: string,
+  data: Record<string, number>,
+  expected?: StateVersion,
+): Promise<{ error: string | null; version: StateVersion }> {
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id ?? null;
+
+  if (expected === undefined) {
+    const { data: up, error } = await supabase
+      .from('tool_state')
+      .upsert({ tool, data, updated_by: uid }, { onConflict: 'tool' })
+      .select('updated_at')
+      .maybeSingle();
+    return { error: error ? error.message : null, version: (up as any)?.updated_at ?? null };
+  }
+
+  if (expected === null) {
+    // We believe no row exists. A unique violation means one appeared meanwhile.
+    const { data: ins, error } = await supabase
+      .from('tool_state')
+      .insert({ tool, data, updated_by: uid })
+      .select('updated_at')
+      .maybeSingle();
+    if (error) return { error: error.code === '23505' ? STATE_CONFLICT : error.message, version: null };
+    return { error: null, version: (ins as any)?.updated_at ?? null };
+  }
+
+  const { data: rows, error } = await supabase
+    .from('tool_state')
+    .update({ data, updated_by: uid })
+    .eq('tool', tool)
+    .eq('updated_at', expected)
+    .select('updated_at');
+  if (error) return { error: error.message, version: expected };
+  if (!rows || !rows.length) return { error: STATE_CONFLICT, version: expected };
+  return { error: null, version: (rows[0] as any).updated_at ?? null };
+}
+
+/** Upsert a tool's shared editable inputs (last write wins). */
 export async function saveToolState(
   tool: string,
   data: Record<string, number>,
 ): Promise<string | null> {
-  const { data: u } = await supabase.auth.getUser();
-  const { error } = await supabase
-    .from('tool_state')
-    .upsert({ tool, data, updated_by: u.user?.id ?? null }, { onConflict: 'tool' });
-  return error ? error.message : null;
+  return (await saveToolStateVersioned(tool, data)).error;
 }
 
 /** Change a FROZEN parameter through the enforced, change-logged path (BRIEF §E5). */
