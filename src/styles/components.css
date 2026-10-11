@@ -280,3 +280,9 @@
   padding: 0.8rem 1rem; font-size: var(--fs-300); color: var(--ink-2);
 }
 .notice-heritage { border-left-color: var(--heritage); }
+
+/* Out-of-typical-range Master input (feature review Tier 3 #9). Advisory only:
+   a dotted amber underline, not an error state — the value is still saved. */
+.field-out-of-range {
+  box-shadow: inset 0 -2px 0 0 var(--amber);
+}

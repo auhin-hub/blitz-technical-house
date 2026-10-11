@@ -1,0 +1,183 @@
+---
+/**
+ * Command palette (feature review Tier 3 #8).
+ *
+ * The workspace now has ~32 pages, 40-odd calculators and ~70 Master keys. The
+ * nav can't hold that, and "which page has the roll-centre tool?" is the most
+ * common question a new member asks. Ctrl/⌘-K (or "/") opens a search over every
+ * page, every tool anchor and every Master parameter, and Enter goes there.
+ *
+ * The index is built at build time from config + the Master seed, so it costs one
+ * small JSON blob and no requests. Keyboard-first by design: arrows, Enter, Esc,
+ * and a focus trap while it is open.
+ */
+import { TOP_NAV, DISCIPLINES, url } from '../lib/config';
+import { PARAM_SEED } from '../lib/master';
+
+type Entry = { label: string; hint: string; href: string; kind: string };
+
+const entries: Entry[] = [
+  ...TOP_NAV.map((n) => ({ label: n.label, hint: 'page', href: url(n.href), kind: 'page' })),
+  { label: 'Snapshots', hint: 'design baselines · diff · restore', href: url('snapshots'), kind: 'page' },
+  { label: 'Season Gantt', hint: 'page · schedule', href: url('gantt'), kind: 'page' },
+  { label: 'Budget', hint: 'page · cost', href: url('budget'), kind: 'page' },
+  { label: 'Cost report (FSAE-J)', hint: 'page · cost', href: url('cost'), kind: 'page' },
+  { label: 'Mass budget', hint: 'page · mass & CoG', href: url('massbudget'), kind: 'page' },
+  { label: 'Lap simulator', hint: 'page · performance', href: url('lapsim'), kind: 'page' },
+  { label: 'Points / events', hint: 'page · competition', href: url('points'), kind: 'page' },
+  { label: 'g–g diagram', hint: 'page · envelope', href: url('gg'), kind: 'page' },
+  { label: 'DAQ log interpretation', hint: 'page · validation', href: url('daq'), kind: 'page' },
+  { label: 'Setup sheet', hint: 'page · trackside', href: url('setup-sheet'), kind: 'page' },
+  { label: 'Measurement', hint: 'page · yaw inertia, CoG', href: url('measurement'), kind: 'page' },
+  { label: 'Balance pair', hint: 'page · understeer, TLLTD', href: url('balance'), kind: 'page' },
+  { label: 'Suspension geometry', hint: 'page · RC, camber, synthesis', href: url('geometry'), kind: 'page' },
+  { label: 'Springs & dampers', hint: 'page · ride frequency', href: url('springs'), kind: 'page' },
+  { label: 'Brakes', hint: 'page · bias, torque', href: url('brakes'), kind: 'page' },
+  ...DISCIPLINES.map((d) => ({ label: d.title, hint: 'discipline', href: url(d.slug), kind: 'discipline' })),
+  ...DISCIPLINES.flatMap((d) =>
+    d.tools.map((t) => ({ label: t.title, hint: `tool · ${d.title}`, href: `${url(d.slug)}#${t.anchor}`, kind: 'tool' })),
+  ),
+  ...PARAM_SEED.map((p) => ({
+    label: p.label,
+    hint: `parameter · ${p.key}${p.unit ? ` (${p.unit})` : ''}`,
+    href: `${url('vehicle-spec')}#row-${p.key}`,
+    kind: 'param',
+  })),
+];
+
+// De-duplicate by href+label so a page listed twice doesn't show twice.
+const seen = new Set<string>();
+const index = entries.filter((e) => { const k = `${e.href}|${e.label}`; if (seen.has(k)) return false; seen.add(k); return true; });
+---
+
+<div id="cmdk" hidden role="dialog" aria-modal="true" aria-label="Search the workspace">
+  <div id="cmdk-backdrop"></div>
+  <div id="cmdk-panel">
+    <input id="cmdk-input" type="search" autocomplete="off" spellcheck="false"
+      placeholder="Search pages, tools and parameters…" aria-label="Search pages, tools and parameters"
+      aria-controls="cmdk-results" aria-expanded="true" role="combobox" />
+    <ul id="cmdk-results" role="listbox" aria-label="Results"></ul>
+    <p id="cmdk-foot" class="mono">
+      <kbd>↑</kbd><kbd>↓</kbd> move · <kbd>↵</kbd> open · <kbd>esc</kbd> close
+    </p>
+  </div>
+</div>
+
+<style>
+  #cmdk { position: fixed; inset: 0; z-index: 80; }
+  #cmdk-backdrop { position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(2px); }
+  #cmdk-panel {
+    position: relative; margin: 10vh auto 0; width: min(92vw, 560px);
+    background: var(--surface); border: 1px solid var(--rule-strong);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden;
+  }
+  #cmdk-input {
+    width: 100%; border: 0; border-bottom: 1px solid var(--rule); background: var(--surface);
+    color: var(--ink); font: inherit; font-size: var(--fs-400); padding: 0.75rem 0.9rem;
+  }
+  #cmdk-input:focus { outline: 2px solid var(--amber); outline-offset: -2px; }
+  #cmdk-results { list-style: none; margin: 0; padding: 0.3rem; max-height: min(52vh, 420px); overflow-y: auto; }
+  #cmdk-results li { padding: 0.45rem 0.6rem; border-radius: var(--radius-sm); cursor: pointer; display: flex; gap: 0.6rem; align-items: baseline; }
+  #cmdk-results li[aria-selected='true'] { background: var(--surface-2); outline: 1px solid var(--amber); }
+  #cmdk-results .cmdk-label { color: var(--ink); font-size: var(--fs-300); }
+  #cmdk-results .cmdk-hint { color: var(--ink-3); font-family: var(--font-mono); font-size: var(--fs-100); margin-left: auto; text-align: right; }
+  #cmdk-foot { margin: 0; padding: 0.4rem 0.7rem; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: var(--fs-100); }
+  #cmdk-foot kbd {
+    border: 1px solid var(--rule); border-radius: 3px; padding: 0 0.25rem; margin-right: 0.2rem; color: var(--ink-2);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    #cmdk-panel { animation: cmdk-in 120ms ease-out; }
+    @keyframes cmdk-in { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+  }
+</style>
+
+<script is:inline define:vars={{ INDEX: index }}>
+  (function () {
+    var wrap = document.getElementById('cmdk');
+    var input = document.getElementById('cmdk-input');
+    var list = document.getElementById('cmdk-results');
+    if (!wrap || !input || !list) return;
+    var active = 0;
+    var shown = [];
+
+    // Score: a prefix match beats a word-start match beats a substring. Keeps
+    // "mass" showing "Total mass" before "Unsprung mass per corner".
+    function score(entry, q) {
+      var hay = (entry.label + ' ' + entry.hint).toLowerCase();
+      var i = hay.indexOf(q);
+      if (i < 0) return -1;
+      var label = entry.label.toLowerCase();
+      if (label.indexOf(q) === 0) return 0;
+      if (hay.indexOf(' ' + q) >= 0) return 1;
+      return 2 + i / 100;
+    }
+
+    function render(q) {
+      var query = (q || '').trim().toLowerCase();
+      shown = query
+        ? INDEX.map(function (e) { return { e: e, s: score(e, query) }; })
+            .filter(function (r) { return r.s >= 0; })
+            .sort(function (a, b) { return a.s - b.s; })
+            .slice(0, 40)
+            .map(function (r) { return r.e; })
+        : INDEX.slice(0, 12);
+      active = 0;
+      list.innerHTML = shown.length
+        ? shown.map(function (_, i) {
+            return '<li role="option" data-i="' + i + '" aria-selected="' + (i === 0) + '">'
+              + '<span class="cmdk-label"></span><span class="cmdk-hint"></span></li>';
+          }).join('')
+        : '<li role="option" aria-selected="false"><span class="cmdk-label">No match</span></li>';
+      // Fill text content separately so a label can never inject markup.
+      Array.prototype.forEach.call(list.querySelectorAll('li[data-i]'), function (li) {
+        var e = shown[+li.getAttribute('data-i')];
+        li.querySelector('.cmdk-label').textContent = e.label;
+        li.querySelector('.cmdk-hint').textContent = e.hint;
+        li.addEventListener('click', function () { go(e); });
+      });
+    }
+
+    function mark() {
+      Array.prototype.forEach.call(list.querySelectorAll('li[data-i]'), function (li, i) {
+        li.setAttribute('aria-selected', String(i === active));
+        if (i === active) li.scrollIntoView({ block: 'nearest' });
+      });
+    }
+
+    function go(entry) { if (entry) { close(); window.location.href = entry.href; } }
+
+    var lastFocus = null;
+    function open() {
+      lastFocus = document.activeElement;
+      wrap.hidden = false;
+      render('');
+      input.value = '';
+      input.focus();
+    }
+    function close() {
+      wrap.hidden = true;
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    input.addEventListener('input', function () { render(input.value); });
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); active = Math.min(active + 1, shown.length - 1); mark(); }
+      else if (ev.key === 'ArrowUp') { ev.preventDefault(); active = Math.max(active - 1, 0); mark(); }
+      else if (ev.key === 'Enter') { ev.preventDefault(); go(shown[active]); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); close(); }
+    });
+    document.getElementById('cmdk-backdrop').addEventListener('click', close);
+
+    document.addEventListener('keydown', function (ev) {
+      var typing = /^(INPUT|TEXTAREA|SELECT)$/.test((ev.target && ev.target.tagName) || '')
+        || (ev.target && ev.target.isContentEditable);
+      if ((ev.key === 'k' || ev.key === 'K') && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); wrap.hidden ? open() : close(); return; }
+      if (ev.key === '/' && !typing && wrap.hidden) { ev.preventDefault(); open(); }
+    });
+
+    // Anything with data-cmdk-open (the masthead button) opens it too, for touch.
+    Array.prototype.forEach.call(document.querySelectorAll('[data-cmdk-open]'), function (b) {
+      b.addEventListener('click', open);
+    });
+  })();
+</script>

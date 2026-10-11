@@ -95,7 +95,7 @@ const SOURCING: Record<string, string> = {
       </thead>
       <tbody>
         {rows.map((p) => (
-          <tr data-key={p.key} data-state={p.state} style="border-bottom:1px solid var(--rule);">
+          <tr id={`row-${p.key}`} data-key={p.key} data-state={p.state} style="border-bottom:1px solid var(--rule);">
             <td style={td}>{p.label}{SOURCING[p.key] && (
               <span class="mono" title={SOURCING[p.key]} aria-label={`Where ${p.label} comes from: ${SOURCING[p.key]}`}
                 style="margin-left:0.35rem;color:var(--sky);cursor:help;border:1px solid var(--rule-strong);border-radius:50%;padding:0 0.32rem;font-size:var(--fs-200);">i</span>
@@ -110,12 +110,16 @@ const SOURCING: Record<string, string> = {
                   style="width:160px;font-family:var(--font-mono);" />
               ) : (
                 <input type="number" step="any" data-input value={p.value ?? ''} placeholder={p.ref?.typ ?? ''}
+                  data-typ={p.ref?.typ ?? ''} data-unit={p.unit ?? ''}
                   class={`field ${stateClass[p.state]}`} aria-label={p.label}
                   style="width:104px;text-align:right;font-family:var(--font-mono);" />
               )}
             </td>
             <td style={td} class="mono">{p.unit}</td>
-            <td style={td}>{p.ref && <span class="ct-ref" title={p.ref.src ?? ''}>{p.ref.typ}</span>}</td>
+            <td style={td}>
+              {p.ref && <span class="ct-ref" title={p.ref.src ?? ''}>{p.ref.typ}</span>}
+              <span data-range-note hidden style="display:block;margin-top:0.15rem;font-size:var(--fs-100);color:var(--amber-text);max-width:26ch;"></span>
+            </td>
             <td style={td + 'color:var(--ink-3);'} class="mono">{p.source}</td>
             <td style={td}><span data-badges><span class="badge badge-est">Est</span></span></td>
             <td style={td}>
@@ -139,6 +143,7 @@ const SOURCING: Record<string, string> = {
   import { loadMaster, setMasterValue, setFrozen, editFrozenParam, setMasterText, editFrozenText, fmt, debounce, loadPresets, saveNamedPreset, deletePreset, currentUserId } from '../lib/store';
   import { subscribeLive, liveToast, describeBurst } from '../lib/realtime';
   import { myRole, gateToLead, roleNote } from '../lib/roles';
+  import { rangeNote } from '../lib/calc/ranges';
   import { COUPLING_BY_KEY } from '../lib/config';
 
   const G = 9.81;
@@ -156,6 +161,22 @@ const SOURCING: Record<string, string> = {
   function inputVal(key: string): number {
     const el = cell(key)?.querySelector('[data-input]') as HTMLInputElement | null;
     return el && el.value.trim() !== '' ? Number(el.value) : NaN;
+  }
+
+  /**
+   * Typical-range advisory (feature review Tier 3 #9). Never blocks and never
+   * changes the value — a deliberate outlier is a design decision; a mistyped
+   * one should just not sail through silently.
+   */
+  function checkRow(input: HTMLInputElement) {
+    const noteEl = input.closest('tr')?.querySelector<HTMLElement>('[data-range-note]');
+    if (!noteEl) return;
+    const raw = input.value.trim();
+    const msg = raw === '' ? '' : rangeNote(Number(raw), input.dataset.typ, input.dataset.unit);
+    noteEl.textContent = msg;
+    noteEl.hidden = !msg;
+    input.classList.toggle('field-out-of-range', !!msg);
+    input.title = msg || input.title.replace(/^(above|below|Quoted).*$/s, '');
   }
 
   function renderBadges(tr: Element, frozen: boolean, gate: string | null, conf: string) {
@@ -202,8 +223,23 @@ const SOURCING: Record<string, string> = {
       else setComputed(key, row.value as number | null);
       const fz = tr.querySelector('[data-freeze]') as HTMLInputElement | null;
       if (fz && fz !== focused) fz.checked = row.frozen;
+      if (input && input.dataset.typ) checkRow(input);
       renderBadges(tr, row.frozen, row.frozen_gate, row.confidence);
     }
+  }
+
+  /** Arriving with #row-<key> (from the command palette): focus that row. */
+  function focusHashRow() {
+    const key = decodeURIComponent(location.hash.replace(/^#row-/, ''));
+    if (!key || !location.hash.startsWith('#row-')) return;
+    const tr = cell(key) as HTMLElement | null;
+    if (!tr) return;
+    tr.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    tr.style.outline = '2px solid var(--amber)';
+    tr.style.outlineOffset = '-2px';
+    const field = tr.querySelector<HTMLInputElement>('[data-input],[data-input-text]');
+    field?.focus();
+    setTimeout(() => { tr.style.outline = ''; }, 2600);
   }
 
   (async () => {
@@ -211,6 +247,12 @@ const SOURCING: Record<string, string> = {
     if (Object.keys(master).length === 0) return;
 
     applyMaster(master);
+    document.querySelectorAll<HTMLInputElement>('[data-input][data-typ]').forEach((el) => {
+      checkRow(el);
+      el.addEventListener('input', () => checkRow(el));
+    });
+    focusHashRow();
+    window.addEventListener('hashchange', focusHashRow);
     if (note) note.innerHTML = 'Showing <strong>live shared values</strong> from the Master store. Edits save for the whole team.';
 
     // Someone else editing the Master is the most consequential thing that can

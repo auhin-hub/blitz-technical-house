@@ -51,6 +51,20 @@ import logo from '../assets/blitz-logo.png';
     </div>
   </section>
 
+  <!-- Activity feed: who moved what, latest first (feature review Tier 3 #6).
+       The Change Log is the record; this is the glance that makes people open it. -->
+  <section style="margin-top:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;">
+      <div class="annot-dim">Recent activity</div>
+      <a href={url('change-log')} style="font-size:var(--fs-200);">full change log →</a>
+    </div>
+    <div class="card" style="margin-top:0.6rem;">
+      <ul id="dash-activity" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.5rem;">
+        <li class="mono" style="color:var(--ink-3);font-size:var(--fs-200);">Loading…</li>
+      </ul>
+    </div>
+  </section>
+
   <!-- Gate/phase status + latest results. -->
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));margin:1.5rem 0 2.5rem;">
     <div class="card">
@@ -113,7 +127,8 @@ import logo from '../assets/blitz-logo.png';
 
 <script>
   import Chart from 'chart.js/auto';
-  import { loadMaster, loadToolOutputsMap, loadToolJson, fmt } from '../lib/store';
+  import { loadMaster, loadToolOutputsMap, loadToolJson, loadChangeLog, fmt } from '../lib/store';
+  import { esc } from '../lib/html';
   import { subscribeLive, describeBurst, liveToast } from '../lib/realtime';
   import { ggCurve, type GgInput } from '../lib/calc/gg';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
@@ -143,6 +158,32 @@ import logo from '../assets/blitz-logo.png';
 
   let ggInput: GgInput | null = null;
 
+  /** Human line for one change_log row: who, what, old → new, when. */
+  function activityLine(r: { param_key: string | null; field: string; old_value: string | null; new_value: string | null; reason: string | null; actor_email: string | null; changed_at: string }): string {
+    const who = r.actor_email ? r.actor_email.split('@')[0] : 'someone';
+    const when = new Date(r.changed_at);
+    const key = r.param_key ?? '(spec)';
+    const from = r.old_value === null || r.old_value === '' ? '—' : r.old_value;
+    const to = r.new_value === null || r.new_value === '' ? '—' : r.new_value;
+    const what = r.field === 'frozen'
+      ? (r.new_value === 'true' ? 'froze' : 'unfroze') + ` <strong>${esc(key)}</strong>`
+      : `changed <strong>${esc(key)}</strong> <span class="mono">${esc(from)} → ${esc(to)}</span>`;
+    return `<li style="border-bottom:1px solid var(--rule);padding-bottom:0.45rem;font-size:var(--fs-300);color:var(--ink-2);">
+      <span style="color:var(--ink);">${esc(who)}</span> ${what}
+      <span class="mono" style="color:var(--ink-3);font-size:var(--fs-100);"> · ${when.toLocaleString()}</span>
+      ${r.reason ? `<br><span style="color:var(--ink-3);font-size:var(--fs-200);">“${esc(r.reason)}”</span>` : ''}
+    </li>`;
+  }
+
+  async function renderActivity(): Promise<void> {
+    const el = document.getElementById('dash-activity');
+    if (!el) return;
+    const rows = await loadChangeLog(8);
+    el.innerHTML = rows.length
+      ? rows.map(activityLine).join('')
+      : '<li class="mono" style="color:var(--ink-3);font-size:var(--fs-200);">No changes recorded yet. Freezing a parameter or editing a frozen one writes a line here.</li>';
+  }
+
   async function refresh(): Promise<void> {
     const m = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
     const o = await loadToolOutputsMap();
@@ -165,13 +206,18 @@ import logo from '../assets/blitz-logo.png';
   (async () => {
     applyChartDefaults();
     await refresh();
+    await renderActivity();
     watchTheme(() => { applyChartDefaults(); renderGg(ggInput); });
     // The dashboard is the one page people leave open on a second screen, so it
     // follows the shared store live (feature review Tier 1 #1).
     subscribeLive({
       name: 'dashboard',
       tables: ['vehicle_spec', 'tool_outputs'],
-      onChange: async (events) => { await refresh(); liveToast(`Dashboard updated: ${describeBurst(events)}.`); },
+      onChange: async (events) => {
+        await refresh();
+        await renderActivity();
+        liveToast(`Dashboard updated: ${describeBurst(events)}.`);
+      },
     });
   })();
 </script>

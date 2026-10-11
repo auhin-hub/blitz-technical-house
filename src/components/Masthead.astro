@@ -43,6 +43,14 @@ function isCurrent(href: string): boolean {
         ))}
       </nav>
 
+      <!-- Search. The palette itself lives in Base so it is on every page; this
+           is the touch-friendly way in (Ctrl/⌘-K and "/" also open it). -->
+      <button class="btn btn-ghost nav-search" type="button" data-cmdk-open
+        aria-label="Search pages, tools and parameters" title="Search (Ctrl/⌘ K)"
+        style="font-size:var(--fs-200);display:inline-flex;gap:0.4rem;align-items:center;">
+        <span aria-hidden="true">⌕</span> Search
+      </button>
+
       <!-- Auth status: filled client-side by the auth island. -->
       <span class="nav nav-auth" data-auth-status hidden>
         <span class="mono" data-auth-email style="font-size:var(--fs-200);color:var(--ink-3)"></span>
