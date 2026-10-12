@@ -16,16 +16,16 @@ const MASTER = {
 const INPUTS = {
   vd_loads: { f_pushrodAngle: 45, r_pushrodAngle: 45, f_share: 0.65, r_share: 1, f_ay: 1.4, r_ay: 1.4, f_decel: 1.4, r_decel: 1.4 },
   pt_traction: { peakTorque: 35.3, peakPower: 32, peakRpm: 9500, primary: 3, firstGear: 2.5, finalDrive: 3, drivelineEff: 0.9 },
-  aero_balance: { clA: 0.8, cdA: 0.5, rho: 1.18, aeroBalance: 0.45 },
+  aero: { clA: 0.8, cdA: 0.5, rho: 1.18, aeroBalance: 0.45 },
   vd_steering: { turningRadius: 9, pinionPitchDia: 25, teeth: 12 },
-  vd_steering_effort: { caster: 5, pneumaticTrail: 30, scrubRadius: 10, fx: 0, steeringArm: 90, steeringRatio: 5, efficiency: 0.9 },
+  vd_steereffort: { caster: 5, pneumaticTrail: 30, scrubRadius: 10, fx: 0, steeringArm: 90, steeringRatio: 5, efficiency: 0.9 },
 };
 
 it('only reports calculations that actually read the key', () => {
   const rows = sensitivity('rolling_radius', MASTER, { inputsByTool: INPUTS });
   const tools = new Set(rows.map((r) => r.tool));
   expect(tools.has('pt_traction')).toBe(true);
-  expect(tools.has('vd_steering_effort')).toBe(true);
+  expect(tools.has('vd_steereffort')).toBe(true);
   expect(tools.has('vd_loads')).toBe(false);          // loads never reads it
 });
 
@@ -54,11 +54,11 @@ it('rack force scales linearly with front axle load', () => {
 it('raising the CoG moves the brake bias and the roll gradient, in the right directions', () => {
   const rows = sensitivity('cog_height', MASTER, { inputsByTool: {
     ...INPUTS,
-    vd_brakes: {
+    brakes: {
       f_pedalForce: 400, f_pedalRatio: 5, f_mcBore: 15.875, f_circuits: 2, f_caliperBore: 25, f_pistons: 2, f_padMu: 0.4, f_rotorOd: 220, f_padDepth: 20,
       r_pedalForce: 400, r_pedalRatio: 5, r_mcBore: 15.875, r_circuits: 2, r_caliperBore: 25, r_pistons: 2, r_padMu: 0.4, r_rotorOd: 220, r_padDepth: 20,
     },
-    vd_springs: {
+    springs: {
       f_targetFreq: 2.6, f_unsprung: 12, f_motionRatio: 0.9, f_chosenSpringRate: 0, f_bump: 30, f_droop: 25, f_dampingRatio: 0.65, f_rcHeight: 30,
       r_targetFreq: 2.8, r_unsprung: 12, r_motionRatio: 0.9, r_chosenSpringRate: 0, r_bump: 25, r_droop: 25, r_dampingRatio: 0.65, r_rcHeight: 45,
     },
@@ -80,4 +80,10 @@ it('rows come back tornado-ordered, biggest relative mover first', () => {
 it('every declared read is a key some adapter really consumes', () => {
   expect(SENSITIVE_KEYS.length).toBeGreaterThan(8);
   for (const d of DOWNSTREAM) expect(d.reads.length).toBeGreaterThan(0);
+});
+
+it('downstream tool ids are the real page tool_state keys (P1-2 regression guard)', () => {
+  expect(new Set(DOWNSTREAM.map((d) => d.tool))).toEqual(new Set([
+    'brakes', 'vd_loads', 'vd_steering', 'vd_steereffort', 'pt_traction', 'aero', 'springs', 'vd_loadtransfer',
+  ]));
 });
