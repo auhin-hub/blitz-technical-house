@@ -34,3 +34,15 @@ it('reports missing required columns (order-independent)', () => {
   expect(missingColumns(['b', 'a'], ['a', 'b'])).toEqual([]);
   expect(missingColumns(['component'], ['component', 'mass_kg'])).toEqual(['mass_kg']);
 });
+
+it('neutralises spreadsheet formula injection on text cells only (P3-5)', () => {
+  const csv = toCsv(['name', 'qty'], [['=SUM(A1:A9)', 5], ['+cmd', 3], ['@ref', 2], ['-7', 1], ['normal', 4]]);
+  const lines = csv.trim().split('\r\n');
+  expect(lines[1]).toBe("'=SUM(A1:A9),5");   // leading = prefixed
+  expect(lines[2]).toBe("'+cmd,3");          // leading + prefixed
+  expect(lines[3]).toBe("'@ref,2");          // leading @ prefixed
+  expect(lines[4]).toBe('-7,1');             // leading - (likely a number) left alone
+  expect(lines[5]).toBe('normal,4');
+  // A number that happens to be negative is passed through untouched.
+  expect(toCsv(['x'], [[-0.5]]).trim().split('\r\n')[1]).toBe('-0.5');
+});

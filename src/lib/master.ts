@@ -49,6 +49,8 @@ export const PARAM_SEED: SpecParam[] = [
   { key: 'mu_lat_peak',       label: 'Peak lateral μ',           symbol: 'μ',   unit: '-',     value: null, source: 'Tyre',       ref: { typ: '1.4–1.7 (belt ≠ track)', src: HB } },
   { key: 'mu_long_peak',      label: 'Peak longitudinal μ',      symbol: 'μx',  unit: '-',     value: null, source: 'Tyre',       ref: { typ: '1.4–1.7 (belt ≠ track)', src: HB } },
   { key: 'corner_stiffness',  label: 'Cornering stiffness',      symbol: 'Cα',  unit: 'N/deg', value: null, source: 'Tyre' },
+  // slip_peak is recorded from the tyre fit for reference/display; no tool reads
+  // it (workbook-faithful — kept intentionally, audit P3-12).
   { key: 'slip_peak',         label: 'Peak slip angle',          symbol: '',    unit: 'deg',   value: null, source: 'Tyre',       ref: { typ: '6–10', src: HB } },
   { key: 'rolling_radius',    label: 'Loaded rolling radius',    symbol: 'Re',  unit: 'mm',    value: null, source: 'Tyre',       ref: { typ: '220–235 (13")', src: FS } },
   { key: 'tyre_vert_stiffness', label: 'Tyre vertical stiffness', symbol: 'Kt', unit: 'N/mm',  value: null, source: 'Tyre',       ref: { typ: '90–130 (verify)', src: FS } },

@@ -7,7 +7,12 @@
 /** Serialise headers + rows to a CSV string (Excel-friendly CRLF + BOM). */
 export function toCsv(headers: string[], rows: (string | number | null | undefined)[][]): string {
   const esc = (v: string | number | null | undefined) => {
-    const s = v === null || v === undefined ? '' : String(v);
+    let s = v === null || v === undefined ? '' : String(v);
+    // Neutralise spreadsheet formula injection on TEXT cells only (audit P3-5):
+    // a user-typed value beginning = + @ (or a control char) is prefixed with '
+    // so Excel/Sheets treat it as text. Numbers pass through untouched, so a
+    // negative value (which is a number, not a leading-"-" string) is unaffected.
+    if (typeof v === 'string' && /^[=+@\t\r]/.test(s)) s = "'" + s;
     return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   };
   const lines = [headers.map(esc).join(',')];
