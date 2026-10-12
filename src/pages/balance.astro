@@ -117,8 +117,15 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
     if (chart) { chart.data = cfg.data; chart.update(); } else { const cv = document.getElementById('yaw-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
   }
 
+  // Axle cornering stiffness seeds from 2×(tyre Cα in the Master), but a team may
+  // legitimately enter a measured axle value. So we track whether caF/caR are
+  // still the auto-seed: while they are, a changed Master re-seeds them; once a
+  // member edits them they're an override and the Master leaves them alone
+  // (revision P1-6). `caAuto` rides along in the tool's saved state.
+  let caAuto = true;
+
   const persist = debounce(async () => {
-    const data: Record<string, number> = {};
+    const data: Record<string, number> = { caAuto: caAuto ? 1 : 0 };
     document.querySelectorAll('[data-in]').forEach((el) => { data[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
     saveStatus.textContent = 'Saving…';
     const err = await saveToolJson(TOOL, data);
@@ -131,10 +138,18 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
     const rows = await loadMaster();
     master = Object.fromEntries(Object.entries(rows).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
     decorateLinkedCells(document, rows);
-    // Prefill axle Cα from the per-tyre Master value (×2).
-    if (Number.isFinite(master.corner_stiffness)) { (document.querySelector('[data-in="caF"]') as HTMLInputElement).value = String(master.corner_stiffness * 2); (document.querySelector('[data-in="caR"]') as HTMLInputElement).value = String(master.corner_stiffness * 2); }
     const saved = await loadToolJson<Record<string, number>>(TOOL, {});
-    for (const [k, v] of Object.entries(saved)) { const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v); }
+    for (const [k, v] of Object.entries(saved)) { if (k === 'caAuto') continue; const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v); }
+
+    // caAuto defaults true (nothing saved yet, or an old save without the flag
+    // that still equals the old seed). While auto, caF/caR track 2×corner_stiffness.
+    const caFEl = document.querySelector('[data-in="caF"]') as HTMLInputElement;
+    const caREl = document.querySelector('[data-in="caR"]') as HTMLInputElement;
+    const seed = Number.isFinite(master.corner_stiffness) ? master.corner_stiffness * 2 : NaN;
+    caAuto = saved.caAuto === undefined ? true : saved.caAuto === 1;
+    if (caAuto && Number.isFinite(seed)) { caFEl.value = String(seed); caREl.value = String(seed); }
+    // A manual edit to either axle Cα turns off auto-seeding.
+    [caFEl, caREl].forEach((el) => el.addEventListener('input', () => { caAuto = false; }));
 
     recompute();
     document.querySelectorAll('[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));

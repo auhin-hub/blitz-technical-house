@@ -193,19 +193,19 @@ const SOURCING: Record<string, string> = {
   }
 
   // weight = m·g · avg_track = (tf+tr)/2 · axle_load_front = W·ff · rear = W·(1−ff)
-  async function recomputeDerived() {
+  // Display only. The stored derived values are owned by a DB trigger
+  // (migration 0015 recompute_derived), which keeps them correct no matter which
+  // page writes mass/track/ff — the client no longer writes them, which also
+  // removes the two-member Realtime write-loop (revision P1-3/P1-4). This just
+  // mirrors the maths locally for instant feedback while you type.
+  function recomputeDerived() {
     const m = inputVal('mass_total'), ff = inputVal('mass_frac_front');
     const tf = inputVal('track_front'), tr = inputVal('track_rear');
-    const updates: [string, number][] = [];
-    if (Number.isFinite(tf) && Number.isFinite(tr)) { const v = (tf + tr) / 2; setComputed('avg_track', v); updates.push(['avg_track', v]); }
-    let W = NaN;
-    if (Number.isFinite(m)) { W = m * G; setComputed('weight', W); updates.push(['weight', W]); }
-    if (Number.isFinite(W) && Number.isFinite(ff)) {
-      const af = W * ff, ar = W * (1 - ff);
-      setComputed('axle_load_front', af); setComputed('axle_load_rear', ar);
-      updates.push(['axle_load_front', af], ['axle_load_rear', ar]);
-    }
-    await Promise.all(updates.map(([k, v]) => setMasterValue(k, v)));
+    setComputed('avg_track', Number.isFinite(tf) && Number.isFinite(tr) ? (tf + tr) / 2 : null);
+    const W = Number.isFinite(m) ? m * G : NaN;
+    setComputed('weight', Number.isFinite(W) ? W : null);
+    setComputed('axle_load_front', Number.isFinite(W) && Number.isFinite(ff) ? W * ff : null);
+    setComputed('axle_load_rear', Number.isFinite(W) && Number.isFinite(ff) ? W * (1 - ff) : null);
   }
 
   /**
@@ -272,7 +272,7 @@ const SOURCING: Record<string, string> = {
         if (!theirs.length) return;
         const keys = new Set(theirs.map((e) => (e.row?.key ?? e.old?.key) as string).filter(Boolean));
         applyMaster(await loadMaster(), keys);
-        await recomputeDerived();
+        recomputeDerived();
         liveToast(`Master updated by another member: ${describeBurst(theirs)}.`, 'warn');
       },
     });
@@ -326,7 +326,7 @@ const SOURCING: Record<string, string> = {
       setStatus('Saving…');
       const err = await setMasterValue(key, value);
       if (err) return setStatus('Save failed: ' + err, 'var(--heritage)');
-      await recomputeDerived();
+      recomputeDerived();
       setStatus('Saved ✓', 'var(--state-linked)');
     }, 500);
 
@@ -341,7 +341,7 @@ const SOURCING: Record<string, string> = {
       setStatus('Saving…');
       const err = await editFrozenParam(key, value, reason.trim());
       if (err) { setStatus('Save failed: ' + err, 'var(--heritage)'); return false; }
-      await recomputeDerived();
+      recomputeDerived();
       setStatus('Saved & logged ✓', 'var(--state-linked)');
       return true;
     }
