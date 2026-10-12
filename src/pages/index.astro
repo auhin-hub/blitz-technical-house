@@ -40,12 +40,10 @@ import logo from '../assets/blitz-logo.png';
         </div>
         <div style="height:250px;position:relative;margin-top:0.4rem;">
           <canvas id="dash-gg"></canvas>
-          <p id="dash-gg-empty" hidden style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;margin:0;padding:0 1rem;font-size:var(--fs-300);color:var(--ink-3);">
-            No envelope yet — set <strong style="color:var(--ink-2);font-weight:600;">peak lateral μ</strong> and
-            <strong style="color:var(--ink-2);font-weight:600;">total mass</strong> in
-            <a href={url('vehicle-spec')}>Vehicle Spec</a>, then open the
-            <a href={url('gg')}>g–g tool</a> to set the longitudinal limits.
-          </p>
+          <div id="dash-gg-empty" hidden style="position:absolute;inset:0;display:flex;flex-direction:column;gap:0.35rem;align-items:center;justify-content:center;text-align:center;padding:0 1.25rem;">
+            <span style="font-size:var(--fs-400);color:var(--ink-2);font-weight:600;">No g–g envelope yet</span>
+            <span style="font-size:var(--fs-200);color:var(--ink-3);max-width:28ch;line-height:1.4;">Set peak lateral μ and total mass in <a href={url('vehicle-spec')}>Vehicle Spec</a>.</span>
+          </div>
         </div>
       </div>
     </div>
