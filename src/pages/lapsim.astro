@@ -98,7 +98,7 @@ const PARAMS = [
 <script>
   import Chart from 'chart.js/auto';
   import { simulateLap, SEED_TRACK, type Segment, type LapParams } from '../lib/calc/lapsim';
-  import { loadMaster, loadToolJson, saveToolJson, saveToolOutputs, debounce } from '../lib/store';
+  import { loadMaster, loadToolOutputsMap, loadToolJson, saveToolJson, saveToolOutputs, debounce } from '../lib/store';
   import { decorateLinkedCells } from '../lib/linked';
   import { mountListControls } from '../lib/list-controls';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
@@ -119,7 +119,9 @@ const PARAMS = [
 
   const persist = debounce(async () => {
     const p: Record<string, number> = {};
-    document.querySelectorAll<HTMLInputElement>('[data-in]').forEach((el) => { p[el.dataset.in!] = Number(el.value); });
+    // Never save a private copy of a value that is linked from the shared store
+    // (P2-14): those inputs are read-only mirrors, not this tool's own numbers.
+    document.querySelectorAll<HTMLInputElement>('[data-in]').forEach((el) => { if (!el.dataset.shared) p[el.dataset.in!] = Number(el.value); });
     saveEl.textContent = 'Saving…';
     const err = await saveToolJson(TOOL, { params: p, track });
     saveEl.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
@@ -191,6 +193,26 @@ const PARAMS = [
     decorateLinkedCells(document, rows);
     const saved = await loadToolJson<any>(TOOL, {});
     if (saved?.params) for (const [k, v] of Object.entries(saved.params)) { const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v); }
+
+    // Use the shared store, not private copies (P2-14): grip from the Master,
+    // power and aero from the tools that contribute them. Where a shared value
+    // exists the matching input becomes a read-only linked mirror (and is not
+    // saved); where it doesn't, the local input stays an editable fallback.
+    const outs = await loadToolOutputsMap();
+    const mnum = (k: string) => { const v = rows[k]?.value; return v == null ? NaN : Number(v); };
+    const onum = (k: string) => { const v = outs[k]?.value; return v == null ? NaN : Number(v); };
+    const link = (inKey: string, val: number, src: string) => {
+      const el = document.querySelector(`[data-in="${inKey}"]`) as HTMLInputElement | null;
+      if (!el || !Number.isFinite(val)) return;
+      el.value = String(val); el.readOnly = true; el.dataset.shared = '1';
+      el.classList.add('field-linked'); el.title = `Linked from ${src} — set it there, not here.`;
+    };
+    link('muLat', mnum('mu_lat_peak'), 'Vehicle Spec · mu_lat_peak');
+    link('muLong', mnum('mu_long_peak'), 'Vehicle Spec · mu_long_peak');
+    link('clA', onum('cl_a'), 'Aerodynamics · Cl·A');
+    link('cdA', onum('cd_a'), 'Aerodynamics · Cd·A');
+    link('power', onum('engine_peak_power'), 'Powertrain · engine peak power');
+
     track = Array.isArray(saved?.track) && saved.track.length ? saved.track : SEED_TRACK.map((s) => ({ ...s }));
     renderTrack();
     recompute();

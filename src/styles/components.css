@@ -286,3 +286,43 @@
 .field-out-of-range {
   box-shadow: inset 0 -2px 0 0 var(--amber);
 }
+
+/* ---- Iteration / scenario manager (mountIterations) ---------------------
+   A per-calculator working set: save tuning setups, compare, finalise. Styled
+   to sit quietly under a tool until opened. */
+.iters { margin: 0.6rem 0; }
+.iters-box { border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface-2); }
+.iters-box > summary {
+  cursor: pointer; padding: 0.5rem 0.7rem; font-family: var(--font-mono);
+  font-size: var(--fs-300); color: var(--ink-2); list-style: none;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.iters-box > summary::-webkit-details-marker { display: none; }
+.iters-box > summary::before { content: '▸'; color: var(--ink-3); }
+.iters-box[open] > summary::before { content: '▾'; }
+.iters-title { font-weight: 600; color: var(--ink); }
+.iters-count { color: var(--ink-3); }
+.iters-body { padding: 0 0.7rem 0.7rem; }
+.iters-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.5rem; }
+.iters-status { font-size: var(--fs-200); }
+.iters-empty { color: var(--ink-3); font-size: var(--fs-200); margin: 0.3rem 0; }
+.iters-list { display: flex; flex-direction: column; gap: 0.3rem; }
+.iters-row {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  padding: 0.3rem 0.45rem; border: 1px solid var(--rule); border-radius: var(--radius-sm);
+  background: var(--surface); font-size: var(--fs-300);
+}
+.iters-row.is-final { border-color: var(--amber); box-shadow: inset 2px 0 0 0 var(--amber); }
+.iters-star { background: none; border: 0; cursor: pointer; font-size: 1.05rem; color: var(--amber-text); line-height: 1; padding: 0 0.1rem; }
+.iters-name { background: none; border: 0; cursor: pointer; color: var(--ink); font: inherit; font-weight: 600; text-align: left; flex: 1; min-width: 7rem; }
+.iters-name:hover { text-decoration: underline dotted; }
+.iters-when { color: var(--ink-3); font-size: var(--fs-100); }
+.iters-compare { margin-top: 0.6rem; border-top: 1px solid var(--rule); padding-top: 0.6rem; }
+.iters-metric { font-size: var(--fs-200); color: var(--ink-2); margin-bottom: 0.4rem; }
+.iters-metric select { font-family: var(--font-mono); font-size: var(--fs-200); background: var(--surface); border: 1px solid var(--rule-strong); border-radius: var(--radius-sm); color: var(--ink); padding: 0.15rem 0.35rem; }
+.iters-chart { height: 220px; position: relative; margin-bottom: 0.6rem; }
+.iters-cmp { border-collapse: collapse; font-size: var(--fs-300); min-width: 320px; }
+.iters-cmp th, .iters-cmp td { border-bottom: 1px solid var(--rule); padding: 0.25rem 0.5rem; text-align: left; }
+.iters-cmp thead th { color: var(--ink-3); font-family: var(--font-mono); font-size: var(--fs-100); text-transform: uppercase; letter-spacing: 0.06em; }
+.iters-cmp .ct-num { text-align: right; }
+@media (pointer: coarse) { .iters-row .btn, .iters-star { min-height: 40px; } }
