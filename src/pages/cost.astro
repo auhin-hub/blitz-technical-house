@@ -227,8 +227,18 @@ import { url } from '../lib/config';
   }
 
   // ---- CSV (BOM) — round-trips the simple + the official seed columns ----
-  const BOM_COLS = ['system', 'component', 'subassembly', 'team', 'qty', 'unit_cost', 'total'];
-  function getCsv() { return toCsv(BOM_COLS, parts.map((p) => [p.system, p.name, p.subassembly, p.team, p.qty ?? '', partUnit(p).toFixed(2), partTotal(p).toFixed(2)])); }
+  // Export the columns the importer round-trips, including the per-block costs
+  // and the official fields — otherwise an FCA/block-costed part came back as a
+  // flat manual cost (audit P2-10). The full FCA line detail travels via presets.
+  const BOM_COLS = ['system', 'system_code', 'asm_prt', 'rev', 'component', 'description', 'subassembly', 'team', 'qty', 'material_cost', 'process_cost', 'fastener_cost', 'tooling_cost', 'unit_cost', 'total'];
+  function getCsv() {
+    const money = (v: number | null | undefined) => (v == null || !Number.isFinite(v)) ? '' : (+v).toFixed(2);
+    return toCsv(BOM_COLS, parts.map((p) => {
+      const b = partBlocks(p);
+      return [p.system, p.sysCode ?? '', p.asmPrt ?? '', p.rev ?? '', p.name, p.description ?? '', p.subassembly, p.team, p.qty ?? '',
+        money(b.mat), money(b.proc), money(b.fast), money(b.tool), partUnit(p).toFixed(2), partTotal(p).toFixed(2)];
+    }));
+  }
   function buildParts(text: string): Part[] {
     const { headers, rows } = parseCsv(text);
     const idx = (h: string) => headers.indexOf(h); const g = (r: string[], h: string) => { const i = idx(h); return i < 0 ? '' : (r[i] ?? '').trim(); };

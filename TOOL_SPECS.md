@@ -165,7 +165,9 @@ per point, one corner) to **freeze at G3**. Table + a few derived angles.
 - % anti-dive/anti-squat = `share·tan(θ_svsa)·L/h`
 
 **7f. Steering** (Ackermann + rack&pinion):
-- Ackermann split δin−δout = `DEGREES(ATAN(L/(L−t/2)) − ATAN(L/(L+t/2)))`
+- Ackermann split δin−δout = `DEGREES(ATAN(L/(R−t/2)) − ATAN(L/(R+t/2)))` where
+  R = turning radius (mm). (Earlier drafts wrote `L` in the denominator; the code
+  and the pinned workbook value 7.41° both use R — audit P3-2.)
 - Rack & pinion geometry: module = `d/N`, circular pitch = `π·m`, base dia =
   `PCD·cos20°`, addendum `0.8m`, dedendum `1.0m`, tooth thk `1.5708m`,
   rack travel/rev = `π·d`.

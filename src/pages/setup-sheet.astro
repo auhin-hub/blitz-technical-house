@@ -40,6 +40,7 @@ import { url } from '../lib/config';
 
 <script>
   import { loadMaster, loadToolOutputsMap, loadToolState, loadToolJson, saveToolJson, fmt, debounce } from '../lib/store';
+  import { showMasterAlert } from '../lib/linked';
   import { toCsv, downloadText } from '../lib/csv';
 
   const bodyEl = document.getElementById('ss-body')!;
@@ -58,6 +59,7 @@ import { url } from '../lib/config';
 
   (async () => {
     const master = await loadMaster();
+    showMasterAlert();
     if (!Object.keys(master).length) return;
     const outs = await loadToolOutputsMap();
     const setup = await loadToolState('vd_setup', {});

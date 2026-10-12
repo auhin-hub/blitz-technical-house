@@ -54,12 +54,14 @@ const cmpText = { approx: '≈ target', max: '≤ limit', min: '≥ limit' };
 
 <script>
   import { loadMaster, loadToolOutputsMap, fmt } from '../lib/store';
+  import { showMasterAlert } from '../lib/linked';
   import { VALIDATION_ROWS } from '../lib/config';
 
   const note = document.querySelector('[data-note]') as HTMLElement;
 
   (async () => {
     const master = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
+    showMasterAlert();
     const outputs = await loadToolOutputsMap();
     if (!Object.keys(master).length) return;
     note.innerHTML = 'Live targets (Master / EDP limits) vs achieved (tool contributions). Predicted — cross-check measured on the car.';

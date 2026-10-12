@@ -17,7 +17,7 @@
  *
  * The cache name carries a version; bump it to retire old entries.
  */
-const VERSION = 'blitz-v1';
+const VERSION = 'blitz-v2';  // bumped for the P2-8 cache-strategy change
 const SCOPE = new URL(self.registration.scope);
 const BASE = SCOPE.pathname.replace(/\/+$/, '');
 const p = (path) => `${BASE}/${path.replace(/^\/+/, '')}`;
@@ -48,8 +48,14 @@ self.addEventListener('message', (event) => {
   if (event.data === 'skip-waiting') self.skipWaiting();
 });
 
-const isAsset = (url) =>
-  url.pathname.startsWith(`${BASE}/_astro/`) ||
+// /_astro/* is content-hashed, so a new build gets a new URL — safe to serve
+// cache-first forever. Everything else static (data seeds, templates, the
+// cooling tool, icons) keeps a STABLE path, so caching it first-and-forever
+// meant a device never saw an update (audit P2-8). Those are served
+// stale-while-revalidate instead: instant from cache, refreshed in the
+// background for next time.
+const isHashed = (url) => url.pathname.startsWith(`${BASE}/_astro/`);
+const isRevalidate = (url) =>
   url.pathname.startsWith(`${BASE}/icons/`) ||
   url.pathname.startsWith(`${BASE}/data/`) ||
   url.pathname.startsWith(`${BASE}/templates/`) ||
@@ -79,7 +85,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (isAsset(url)) {
+  if (isHashed(url)) {
+    // Cache-first: the filename changes when the content does.
     event.respondWith((async () => {
       const cache = await caches.open(VERSION);
       const hit = await cache.match(req);
@@ -87,6 +94,18 @@ self.addEventListener('fetch', (event) => {
       const fresh = await fetch(req);
       if (fresh.ok) cache.put(req, fresh.clone());
       return fresh;
+    })());
+    return;
+  }
+
+  if (isRevalidate(url)) {
+    // Stale-while-revalidate: serve the cache immediately, update it in the
+    // background so the next load has the newer file.
+    event.respondWith((async () => {
+      const cache = await caches.open(VERSION);
+      const hit = await cache.match(req);
+      const network = fetch(req).then((fresh) => { if (fresh.ok) cache.put(req, fresh.clone()); return fresh; }).catch(() => null);
+      return hit ?? (await network) ?? new Response('Offline and not cached.', { status: 503, headers: { 'content-type': 'text/plain' } });
     })());
   }
 });

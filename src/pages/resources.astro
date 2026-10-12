@@ -65,6 +65,9 @@ const fieldCss = 'width:100%;margin-top:0.3rem;padding:0.5rem 0.6rem;background:
   const form = document.getElementById('res-form') as HTMLFormElement;
   const status = document.getElementById('res-status')!;
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  // Only http(s)/mailto survive as a clickable href — a planted javascript: URL
+  // becomes '#' (audit P2-7).
+  const safeUrl = (u: string | null | undefined) => { const r = (u ?? '').trim(); return /^(https?:|mailto:)/i.test(r) ? esc(r) : '#'; };
 
   let folders: ResourceFolder[] = [];
   let current: ResourceFolder | null = null;
@@ -108,7 +111,7 @@ const fieldCss = 'width:100%;margin-top:0.3rem;padding:0.5rem 0.6rem;background:
 
   async function resourceRow(r: ResourceItem): Promise<string> {
     const action = r.kind === 'link'
-      ? `<a href="${esc(r.url ?? '#')}" target="_blank" rel="noopener">Open link ↗</a>`
+      ? `<a href="${safeUrl(r.url)}" target="_blank" rel="noopener">Open link ↗</a>`
       : `<button class="btn btn-ghost" data-dl="${esc(r.path ?? '')}" style="font-size:var(--fs-200);">Download</button>`;
     return `<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;border-bottom:1px solid var(--rule);padding-bottom:0.6rem;flex-wrap:wrap;">
       <div>

@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
 import { url } from '../lib/config';
 
 const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
@@ -19,6 +20,8 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
     </p>
   </header>
 
+  <LegendKey />
+
   <div class="card" style="margin-bottom:1rem;">
     <span class="annot">From Master</span>
     <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:0.4rem;font-size:var(--fs-300);">
@@ -35,8 +38,8 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
       <div class="ct-col">
         <h3 class="ct-h3">Understeer (bicycle model)</h3>
         <div class="ct-wrap"><table class="ct-table"><tbody>
-          <tr><td>Front axle cornering stiffness Cαf</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="caF" value="2200" /></td><td class="ct-unit">N/deg</td></tr>
-          <tr><td>Rear axle cornering stiffness Cαr</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="caR" value="2200" /></td><td class="ct-unit">N/deg</td></tr>
+          <tr><td>Front axle cornering stiffness Cαf</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="caF" value="2200" aria-label="Front axle cornering stiffness Cαf" /></td><td class="ct-unit">N/deg</td></tr>
+          <tr><td>Rear axle cornering stiffness Cαr</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="caR" value="2200" aria-label="Rear axle cornering stiffness Cαr" /></td><td class="ct-unit">N/deg</td></tr>
         </tbody></table></div>
         <div class="ct-stats" style="margin-top:0.6rem;">
           <div class="ct-stat"><span class="annot">Understeer gradient K</span><div class="val"><span data-out="K">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> deg/g</span></div></div>
@@ -49,8 +52,8 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
         <p style="color:var(--ink-2);font-size:var(--fs-300);">Front roll-rate fraction (springs + ARBs). Aim near the target TLLTD; the ARB is the balance knob.</p>
         <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Roll rate (N·m/deg)</th><th class="ct-num">Front</th><th class="ct-num">Rear</th></tr></thead>
           <tbody>
-            <tr><td>From springs</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="ksF" value="176.8" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="ksR" value="176.8" /></td></tr>
-            <tr><td>ARB contribution</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="arbF" value="0" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="arbR" value="0" /></td></tr>
+            <tr><td>From springs</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="ksF" value="176.8" aria-label="From springs" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="ksR" value="176.8" aria-label="From springs" /></td></tr>
+            <tr><td>ARB contribution</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="arbF" value="0" aria-label="ARB contribution" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="arbR" value="0" aria-label="ARB contribution" /></td></tr>
           </tbody></table></div>
         <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem;flex-wrap:wrap;">
           <span class="mono" style="font-size:var(--fs-300);">Target front fraction <input type="number" step="any" style={ni} data-in="targetFrac" value="0.5" /></span>
@@ -117,8 +120,15 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
     if (chart) { chart.data = cfg.data; chart.update(); } else { const cv = document.getElementById('yaw-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
   }
 
+  // Axle cornering stiffness seeds from 2×(tyre Cα in the Master), but a team may
+  // legitimately enter a measured axle value. So we track whether caF/caR are
+  // still the auto-seed: while they are, a changed Master re-seeds them; once a
+  // member edits them they're an override and the Master leaves them alone
+  // (revision P1-6). `caAuto` rides along in the tool's saved state.
+  let caAuto = true;
+
   const persist = debounce(async () => {
-    const data: Record<string, number> = {};
+    const data: Record<string, number> = { caAuto: caAuto ? 1 : 0 };
     document.querySelectorAll('[data-in]').forEach((el) => { data[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
     saveStatus.textContent = 'Saving…';
     const err = await saveToolJson(TOOL, data);
@@ -131,10 +141,18 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
     const rows = await loadMaster();
     master = Object.fromEntries(Object.entries(rows).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
     decorateLinkedCells(document, rows);
-    // Prefill axle Cα from the per-tyre Master value (×2).
-    if (Number.isFinite(master.corner_stiffness)) { (document.querySelector('[data-in="caF"]') as HTMLInputElement).value = String(master.corner_stiffness * 2); (document.querySelector('[data-in="caR"]') as HTMLInputElement).value = String(master.corner_stiffness * 2); }
     const saved = await loadToolJson<Record<string, number>>(TOOL, {});
-    for (const [k, v] of Object.entries(saved)) { const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v); }
+    for (const [k, v] of Object.entries(saved)) { if (k === 'caAuto') continue; const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v); }
+
+    // caAuto defaults true (nothing saved yet, or an old save without the flag
+    // that still equals the old seed). While auto, caF/caR track 2×corner_stiffness.
+    const caFEl = document.querySelector('[data-in="caF"]') as HTMLInputElement;
+    const caREl = document.querySelector('[data-in="caR"]') as HTMLInputElement;
+    const seed = Number.isFinite(master.corner_stiffness) ? master.corner_stiffness * 2 : NaN;
+    caAuto = saved.caAuto === undefined ? true : saved.caAuto === 1;
+    if (caAuto && Number.isFinite(seed)) { caFEl.value = String(seed); caREl.value = String(seed); }
+    // A manual edit to either axle Cα turns off auto-seeding.
+    [caFEl, caREl].forEach((el) => el.addEventListener('input', () => { caAuto = false; }));
 
     recompute();
     document.querySelectorAll('[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));

@@ -164,7 +164,11 @@ const OUTPUTS = [
     ],
   });
 
-  mountCalculator({ root: 'gearspeed', tool: 'pt_gearspeed', compute: gearSpeedCompute, digits: { wheelRpm: 0, speed: 1 } });
+  // Rolling radius is linked from the Master; the engine passes it as the second
+  // arg, but gearSpeedCompute reads it from its input (audit P1-1 — speed was NaN).
+  const gearSpeedWithMaster = (inp: Record<string, number>, m: Record<string, number>) =>
+    gearSpeedCompute({ ...inp, rollingRadius: m.rolling_radius });
+  mountCalculator({ root: 'gearspeed', tool: 'pt_gearspeed', compute: gearSpeedWithMaster, digits: { wheelRpm: 0, speed: 1 } });
   // Restrictor Ø is a rules value: prefer the Master key, fall back to the local
   // input while it is unset (audit P1.5 — no private copies of a shared number).
   const restrictorWithMaster = (inp: Record<string, number>, m: Record<string, number>) =>

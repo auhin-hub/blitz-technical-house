@@ -6,6 +6,17 @@ no code was changed in this pass.
 
 > **Decisions & first changes applied (2026-10-12, branch `feat-iterations`).** Tahmid's calls: P0-2 sign-up **turned off** (done in the dashboard); **P1-8 points** and **P2-11 Task Map CSV** deferred; **P2-13** settled as *only frozen edits are change-logged* (current behaviour — no code change, recorded as the convention); **P2-14 lap sim → shared values done**. Plus a **new feature** (outside the freeze, explicitly requested): a per-calculator **iteration/scenario manager** — save up to 15 setups, compare them (table + chart), download, delete, and mark one *final* to load + share. See the note at the end of §5.
 
+> **Execution status (2026-10-12, branches `sec-rpc-lockdown` + `audit-fixes`).**
+> **Done:** P0-1 (migration 0014), P1-1, P1-2, P1-3, P1-4, P1-5, P1-6, P1-7, P1-9,
+> P1-10, P2-1, P2-2, P2-3, P2-4, P2-5, P2-6, P2-7, P2-9, P2-10, P2-14, P3-1, P3-2,
+> P3-3, P3-5, P3-6, P3-9, P3-10, P3-12 — plus the iteration-manager list bug.
+> **Done earlier / config:** P0-2 (sign-up toggled off). **Settled, no code:** P2-13.
+> **Deferred by Tahmid:** P1-8 (points), P2-11 (Task Map CSV).
+> **Deferred, need browser/session to verify or a larger rework:** P3-4 (chart.js
+> registration — runtime-only failure mode), P3-7 (cooling iframe esm.sh bridge),
+> P3-8 (prompt/alert → inline UI). New migrations: 0014 (RPC lockdown), 0015
+> (derived-key trigger) — run both in the SQL editor.
+
 **Feature freeze honoured.** Every finding below is a bug, correctness error,
 data-integrity issue, security gap, UX/consistency/accessibility problem, performance
 issue or code-health item *inside an existing feature*. Anything that would add a tool,

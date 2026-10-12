@@ -16,7 +16,7 @@
 import Chart from 'chart.js/auto';
 import {
   loadMaster, loadToolStateVersioned, saveToolStateVersioned, saveToolOutputs,
-  currentUserId, STATE_CONFLICT, OFFLINE_WRITE, isOffline, fmt, debounce, type StateVersion,
+  STATE_CONFLICT, OFFLINE_WRITE, isOffline, fmt, debounce, type StateVersion,
 } from '../store';
 import { decorateLinkedCells } from '../linked';
 import { subscribeLive, liveToast, describeBurst } from '../realtime';
@@ -86,7 +86,10 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
   const first = await loadToolStateVersioned(spec.tool, defaults);
   let version: StateVersion = first.version;
   applyState(first.data);
-  const myUid = await currentUserId();
+  // Versions THIS tab wrote, so an incoming realtime echo of our own save is
+  // recognised by the stamp — not by user id, which can't tell two tabs of the
+  // same member apart (audit P3-11).
+  const myVersions = new Set<string>();
 
   const charts = new Map<string, Chart>();
   let lastOut: Out = {};
@@ -170,6 +173,7 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
       return;
     }
     version = res.version;
+    if (res.version) myVersions.add(res.version);
     unsaved = !!res.error;
     if (saveStatus) {
       saveStatus.textContent = res.error ? 'Save failed: ' + res.error : 'Saved ✓';
@@ -231,10 +235,9 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
       }
       const stateEvent = events.find((e) => e.table === 'tool_state' && (e.row?.tool ?? e.old?.tool) === spec.tool);
       if (stateEvent && stateEvent.row) {
-        const theirs = stateEvent.row.updated_by ?? null;
         const stamp = stateEvent.row.updated_at ?? null;
-        if (theirs && theirs === myUid) version = stamp ?? version;      // our own write landing back
-        else if (stamp !== version) showConflict();
+        if (stamp && myVersions.has(stamp)) version = stamp;             // our own write landing back
+        else if (stamp !== version) showConflict();                     // someone else (or our other tab)
       }
     },
   });

@@ -64,10 +64,10 @@ const STEER_LINKED = [
 ];
 const STEER_INPUTS = [
   { key: 'turningRadius', label: 'Target turning radius', unit: 'm', vals: [3.5] },
-  { key: 'kingpinDist', label: 'Kingpin-to-kingpin distance', unit: 'mm', vals: [1100] },
-  { key: 'steeringArm', label: 'Steering-arm length', unit: 'mm', vals: [90] },
-  { key: 'rackTravel', label: 'Rack travel (lock-to-lock)', unit: 'mm', vals: [120] },
-  { key: 'swTurns', label: 'Steering-wheel turns (lock-to-lock)', unit: '-', vals: [1.5] },
+  { key: 'kingpinDist', label: 'Kingpin-to-kingpin distance', unit: 'mm', vals: [1100], note: 'reference — not used in this calc' },
+  { key: 'steeringArm', label: 'Steering-arm length', unit: 'mm', vals: [90], note: 'reference — not used in this calc' },
+  { key: 'rackTravel', label: 'Rack travel (lock-to-lock)', unit: 'mm', vals: [120], note: 'reference — not used in this calc' },
+  { key: 'swTurns', label: 'Steering-wheel turns (lock-to-lock)', unit: '-', vals: [1.5], note: 'reference — not used in this calc' },
   { key: 'pinionPitchDia', label: 'Pinion pitch diameter', unit: 'mm', vals: [50] },
   { key: 'teeth', label: 'Number of teeth', unit: '-', vals: [18] },
 ];
@@ -244,12 +244,12 @@ const STEER_OUTPUTS = [
       <div>
         <h3 class="ct-h3">Inputs</h3>
         <table class="ct-table"><tbody>
-          <tr><td>Lateral accel ay</td><td class="ct-num"><input type="number" step="any" data-in="ay" value="1.5" style={ltNi} /></td><td class="ct-unit">g</td></tr>
-          <tr><td>RC height front</td><td class="ct-num"><input type="number" step="any" data-in="rcFront" value="30" style={ltNi} /></td><td class="ct-unit">mm</td></tr>
-          <tr><td>RC height rear</td><td class="ct-num"><input type="number" step="any" data-in="rcRear" value="45" style={ltNi} /></td><td class="ct-unit">mm</td></tr>
-          <tr><td>Roll stiffness front</td><td class="ct-num"><input type="number" step="any" data-in="kRollFront" value="450" style={ltNi} /></td><td class="ct-unit">N·m/deg</td></tr>
-          <tr><td>Roll stiffness rear</td><td class="ct-num"><input type="number" step="any" data-in="kRollRear" value="350" style={ltNi} /></td><td class="ct-unit">N·m/deg</td></tr>
-          <tr><td>Unsprung CG height</td><td class="ct-num"><input type="number" step="any" data-in="unsprungCog" value="228" style={ltNi} /></td><td class="ct-unit">mm</td></tr>
+          <tr><td>Lateral accel ay</td><td class="ct-num"><input type="number" step="any" data-in="ay" value="1.5" style={ltNi} aria-label="Lateral accel ay" /></td><td class="ct-unit">g</td></tr>
+          <tr><td>RC height front</td><td class="ct-num"><input type="number" step="any" data-in="rcFront" value="30" style={ltNi} aria-label="RC height front" /></td><td class="ct-unit">mm</td></tr>
+          <tr><td>RC height rear</td><td class="ct-num"><input type="number" step="any" data-in="rcRear" value="45" style={ltNi} aria-label="RC height rear" /></td><td class="ct-unit">mm</td></tr>
+          <tr><td>Roll stiffness front</td><td class="ct-num"><input type="number" step="any" data-in="kRollFront" value="450" style={ltNi} aria-label="Roll stiffness front" /></td><td class="ct-unit">N·m/deg</td></tr>
+          <tr><td>Roll stiffness rear</td><td class="ct-num"><input type="number" step="any" data-in="kRollRear" value="350" style={ltNi} aria-label="Roll stiffness rear" /></td><td class="ct-unit">N·m/deg</td></tr>
+          <tr><td>Unsprung CG height</td><td class="ct-num"><input type="number" step="any" data-in="unsprungCog" value="228" style={ltNi} aria-label="Unsprung CG height" /></td><td class="ct-unit">mm</td></tr>
         </tbody></table>
         <p class="ct-ref" style="margin-top:0.4rem;">RC heights from Geometry; roll stiffness from Springs (roll gradient / rates).</p>
       </div>

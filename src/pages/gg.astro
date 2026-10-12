@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
 import { url } from '../lib/config';
 
 const LINKED = [
@@ -32,6 +33,8 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:
       Powertrain, Brakes and Aero tools.
     </p>
   </header>
+
+  <LegendKey />
 
   <div class="card" style="margin-bottom:1rem;">
     <span class="annot">From Master</span>
@@ -129,7 +132,8 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:
 
   const persist = debounce(async () => {
     const data: Record<string, number> = { speed: Number((document.getElementById('speed') as HTMLInputElement).value) };
-    document.querySelectorAll('[data-in]').forEach((el) => { data[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
+    // Don't save a private copy of a value that is linked from the Master (P1-5).
+    document.querySelectorAll('[data-in]').forEach((el) => { if (!(el as HTMLElement).dataset.shared) data[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
     saveStatus.textContent = 'Saving…';
     const err = await saveToolJson(TOOL, data);
     saveStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
@@ -141,13 +145,20 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:
     const rows = await loadMaster();
     master = Object.fromEntries(Object.entries(rows).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
     decorateLinkedCells(document, rows);
-    // Prefill lateral μ from the Master if set.
-    if (Number.isFinite(master.mu_lat_peak)) (document.querySelector('[data-in="muY"]') as HTMLInputElement).value = String(master.mu_lat_peak);
 
     const saved = await loadToolJson<Record<string, number>>(TOOL, {});
     for (const [k, v] of Object.entries(saved)) {
       if (k === 'speed') { (document.getElementById('speed') as HTMLInputElement).value = String(v); continue; }
       const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v);
+    }
+
+    // Lateral μ is a shared number: the Master wins over any saved local copy and
+    // the field becomes a read-only linked mirror (audit P1-5). Local stays a
+    // fallback only while the Master is unset.
+    if (Number.isFinite(master.mu_lat_peak)) {
+      const muY = document.querySelector('[data-in="muY"]') as HTMLInputElement;
+      muY.value = String(master.mu_lat_peak); muY.readOnly = true; muY.dataset.shared = '1';
+      muY.classList.add('field-linked'); muY.title = 'Linked from Vehicle Spec · mu_lat_peak — set it there.';
     }
     (document.getElementById('speed-val') as HTMLElement).textContent = (document.getElementById('speed') as HTMLInputElement).value;
 

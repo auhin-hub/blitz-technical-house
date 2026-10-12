@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
 import ToolTabs from '../components/ToolTabs.astro';
 import { url } from '../lib/config';
 import { MC_PRESETS, CALIPER_PRESETS } from '../lib/calc/brakes';
@@ -29,7 +30,7 @@ const OUTPUTS = [
   { key: 'linePressureKpa', label: 'Line pressure', unit: 'kPa' },
   { key: 'clamp', label: 'Clamp force', unit: 'N' },
   { key: 'friction', label: 'Friction force', unit: 'N' },
-  { key: 'effRadius', label: 'Effective radius', unit: 'm' },
+  { key: 'effRadius', label: 'Effective radius', unit: 'mm' },
   { key: 'brakeTorque', label: 'Brake torque / wheel', unit: 'N·m' },
 ];
 const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
@@ -48,6 +49,8 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
       Formula + rolling/skidding + thermal) lands in a follow-up.
     </p>
   </header>
+
+  <LegendKey />
 
   <div class="card" style="margin-bottom:1rem;">
     <span class="annot">From Master</span>
@@ -140,21 +143,21 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
             <h3 class="ct-h3">Longitudinal tyre (Magic Formula)</h3>
             <p style="color:var(--ink-2);font-size:var(--fs-300);">Fx vs slip ratio κ (−1 = locked → 0 = rolling). Grip peaks near κ ≈ −0.1 then falls toward lock. Enter B, C, peak μx and E from your TTC longitudinal fit; Fz is the wheel's vertical load.</p>
             <div class="ct-wrap"><table class="ct-table"><tbody>
-              <tr><td>Stiffness B</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_B" value="10" /></td><td class="ct-ref" title="longitudinal TTC fit">your fit</td></tr>
-              <tr><td>Shape C</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_C" value="1.6" /></td><td class="ct-ref">1.5–1.8</td></tr>
-              <tr><td>Peak μx (D = μx·Fz)</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_muX" value="1.5" /></td><td class="ct-ref">1.4–1.6 (belt)</td></tr>
-              <tr><td>Curvature E</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_E" value="0.95" /></td><td class="ct-ref">~1.0</td></tr>
-              <tr><td>Wheel vertical load Fz</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_Fz" value="1500" /></td><td class="ct-unit">N</td></tr>
+              <tr><td>Stiffness B</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_B" value="10" aria-label="Stiffness B" /></td><td class="ct-ref" title="longitudinal TTC fit">your fit</td></tr>
+              <tr><td>Shape C</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_C" value="1.6" aria-label="Shape C" /></td><td class="ct-ref">1.5–1.8</td></tr>
+              <tr><td>Peak μx (D = μx·Fz)</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_muX" value="1.5" aria-label="Peak μx (D = μx·Fz)" /></td><td class="ct-ref">1.4–1.6 (belt)</td></tr>
+              <tr><td>Curvature E</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_E" value="0.95" aria-label="Curvature E" /></td><td class="ct-ref">~1.0</td></tr>
+              <tr><td>Wheel vertical load Fz</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_Fz" value="1500" aria-label="Wheel vertical load Fz" /></td><td class="ct-unit">N</td></tr>
             </tbody></table></div>
 
             <h3 class="ct-h3">Thermal — one stop</h3>
             <p style="color:var(--ink-2);font-size:var(--fs-300);">KE lost → rotor heat. ΔT = energy ÷ (rotor mass × specific heat). Keep peak temp below the pad/rotor fade limit.</p>
             <div class="ct-wrap"><table class="ct-table"><tbody>
-              <tr><td>Speed before / after</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_v1" value="100" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_v2" value="30" /></td><td class="ct-unit">km/h</td></tr>
-              <tr><td>Rotors</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_nRotors" value="4" /></td><td></td><td class="ct-unit">-</td></tr>
-              <tr><td>Rotor mass (each)</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_rotorMass" value="0.8" /></td><td></td><td class="ct-unit">kg</td></tr>
-              <tr><td>Specific heat cp</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_cp" value="460" /></td><td class="ct-ref">steel ~460</td><td class="ct-unit">J/kg·K</td></tr>
-              <tr><td>Ambient / fade limit</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_ambient" value="40" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_maxTemp" value="600" /></td><td class="ct-unit">°C</td></tr>
+              <tr><td>Speed before / after</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_v1" value="100" aria-label="Speed before / after" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_v2" value="30" aria-label="Speed before / after" /></td><td class="ct-unit">km/h</td></tr>
+              <tr><td>Rotors</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_nRotors" value="4" aria-label="Rotors" /></td><td></td><td class="ct-unit">-</td></tr>
+              <tr><td>Rotor mass (each)</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_rotorMass" value="0.8" aria-label="Rotor mass (each)" /></td><td></td><td class="ct-unit">kg</td></tr>
+              <tr><td>Specific heat cp</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_cp" value="460" aria-label="Specific heat cp" /></td><td class="ct-ref">steel ~460</td><td class="ct-unit">J/kg·K</td></tr>
+              <tr><td>Ambient / fade limit</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_ambient" value="40" aria-label="Ambient / fade limit" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="adv_maxTemp" value="600" aria-label="Ambient / fade limit" /></td><td class="ct-unit">°C</td></tr>
             </tbody></table></div>
           </div>
 
@@ -222,8 +225,12 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
     const r = computeBrakeSystem(side('f'), side('r'), m, targetDecel);
     last = r;
     (['pushrodForce', 'linePressureKpa', 'clamp', 'friction', 'effRadius', 'brakeTorque'] as const).forEach((k) => {
-      put(`f_${k}`, r[`f_${k}`] as number, k === 'effRadius' ? 4 : 2);
-      put(`r_${k}`, r[`r_${k}`] as number, k === 'effRadius' ? 4 : 2);
+      // effRadius is metres internally (brake torque = friction·Re needs SI);
+      // shown in mm to match the rotor OD / pad depth inputs (audit P3-1).
+      const scale = k === 'effRadius' ? 1000 : 1;
+      const digits = k === 'effRadius' ? 1 : 2;
+      put(`f_${k}`, (r[`f_${k}`] as number) * scale, digits);
+      put(`r_${k}`, (r[`r_${k}`] as number) * scale, digits);
     });
     put('achievedFrontBias', r.achievedFrontBias as number, 3);
     put('optimalBiasTarget', r.optimalBiasTarget as number, 3);

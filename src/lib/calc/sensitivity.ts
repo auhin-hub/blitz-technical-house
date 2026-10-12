@@ -55,7 +55,7 @@ const springSide = (inp: Flat, p: 'f' | 'r'): SpringSide => ({
 
 export const DOWNSTREAM: Downstream[] = [
   {
-    tool: 'vd_brakes',
+    tool: 'brakes',
     label: 'Brakes',
     reads: ['mass_total', 'mass_frac_front', 'cog_height', 'wheelbase', 'mu_long_peak', 'mu_lat_peak'],
     outputs: {
@@ -84,7 +84,7 @@ export const DOWNSTREAM: Downstream[] = [
     run: (m, inp) => steeringCompute(inp, m),
   },
   {
-    tool: 'vd_steering_effort',
+    tool: 'vd_steereffort',
     label: 'Steering effort',
     reads: ['mu_lat_peak', 'axle_load_front', 'rolling_radius'],
     outputs: {
@@ -105,14 +105,14 @@ export const DOWNSTREAM: Downstream[] = [
     run: (m, inp) => tractionCompute(inp, m),
   },
   {
-    tool: 'aero_balance',
-    label: 'Aero balance',
+    tool: 'aero',
+    label: 'Aerodynamics (downforce %)',
     reads: ['mass_total', 'mass_frac_front'],
     outputs: { pct_100: { label: 'Downforce at 100 km/h, % of weight', unit: '%' } },
     run: (m, inp) => aeroCompute(inp, m),
   },
   {
-    tool: 'vd_springs',
+    tool: 'springs',
     label: 'Springs & dampers',
     reads: ['mass_total', 'mass_frac_front', 'cog_height', 'track_front', 'track_rear', 'tyre_vert_stiffness'],
     outputs: {

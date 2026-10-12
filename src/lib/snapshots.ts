@@ -14,7 +14,7 @@
  * bulk overwrite.
  */
 import { supabase } from './supabase';
-import { loadMaster, editFrozenParam, setMasterValue, editFrozenText, setMasterText } from './store';
+import { loadMaster, editFrozenParam, editFrozenText } from './store';
 import type { SpecRow } from './master';
 
 export interface SnapshotSpecRow {
@@ -131,15 +131,17 @@ export async function restoreSnapshot(
   const errors: { key: string; error: string }[] = [];
   let applied = 0;
 
-  const nowRows = await loadMaster();
+  // Always go through the change-logged RPC path (edit_param / edit_param_text),
+  // frozen or not: it records every value change in the Change Log (a reason is
+  // only *required* when the key is frozen). So a restore is always auditable —
+  // which is what the page promises (audit P1-9).
   for (const d of wanted) {
     const t = snap.payload.spec.find((r) => r.key === d.key)!;
-    const frozen = !!nowRows[d.key]?.frozen;
     let err: string | null = null;
     if (t.text_value != null) {
-      err = frozen ? await editFrozenText(d.key, t.text_value, reason) : await setMasterText(d.key, t.text_value);
+      err = await editFrozenText(d.key, t.text_value, reason);
     } else if (t.value != null && Number.isFinite(Number(t.value))) {
-      err = frozen ? await editFrozenParam(d.key, Number(t.value), reason) : await setMasterValue(d.key, Number(t.value));
+      err = await editFrozenParam(d.key, Number(t.value), reason);
     } else {
       continue;   // the snapshot had no value for this key; leave the live one alone
     }

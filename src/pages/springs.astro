@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
 import { url } from '../lib/config';
 import { DAMPER_PRESETS } from '../lib/calc/springs';
 
@@ -19,7 +20,7 @@ const INPUTS = [
   { key: 'bump', label: 'Wheel travel — bump', unit: 'mm', f: 30, r: 25, ref: '' },
   { key: 'droop', label: 'Wheel travel — droop', unit: 'mm', f: 25, r: 25, ref: '' },
   { key: 'dampingRatio', label: 'Target damping ratio ζ', unit: '-', f: 0.65, r: 0.65, ref: '0.6–0.7' },
-  { key: 'rcHeight', label: 'Roll-centre height (from Geometry)', unit: 'mm', f: 30, r: 45, ref: '40–60' },
+  { key: 'rcHeight', label: 'Roll-centre height (rear links to Geometry)', unit: 'mm', f: 30, r: 45, ref: '40–60' },
 ];
 const OUTPUTS = [
   { key: 'sprungCorner', label: 'Sprung corner mass', unit: 'kg' },
@@ -47,6 +48,8 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
       from ζ; plus roll stiffness and roll gradient. Shared inputs come from the Master.
     </p>
   </header>
+
+  <LegendKey />
 
   <div class="card" style="margin-bottom:1rem;">
     <span class="annot">From Master</span>
@@ -159,7 +162,8 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
 
   const persist = debounce(async () => {
     const data: Record<string, number> = {};
-    document.querySelectorAll('[data-in]').forEach((el) => { data[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
+    // Skip inputs that mirror a shared Master value (P1-10 rear RC).
+    document.querySelectorAll('[data-in]').forEach((el) => { if (!(el as HTMLElement).dataset.shared) data[(el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
     saveStatus.textContent = 'Saving…';
     const err = await saveToolJson(TOOL, data);
     saveStatus.textContent = err ? 'Save failed: ' + err : 'Saved ✓';
@@ -173,6 +177,15 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
     decorateLinkedCells(document, rows);
     const saved = await loadToolJson<Record<string, number>>(TOOL, {});
     for (const [k, v] of Object.entries(saved)) { const el = document.querySelector(`[data-in="${k}"]`) as HTMLInputElement | null; if (el && v != null) el.value = String(v); }
+
+    // Rear roll-centre height is written to the Master by Geometry — link it so
+    // the roll gradient uses the frozen geometry, not a stale local copy (P1-10).
+    // Front has no Master key, so it stays an editable local input.
+    if (Number.isFinite(master.rear_rc_height)) {
+      const r = document.querySelector('[data-in="r_rcHeight"]') as HTMLInputElement;
+      r.value = String(master.rear_rc_height); r.readOnly = true; r.dataset.shared = '1';
+      r.classList.add('field-linked'); r.title = 'Linked from Geometry · rear_rc_height — set it there.';
+    }
 
     recompute(); recomputeMr();
     document.querySelectorAll('[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));

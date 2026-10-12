@@ -410,7 +410,9 @@ export async function deletePreset(tool: string, name: string): Promise<string |
 
 /** Format a number for display: trim noise, keep sensible precision. */
 export function fmt(v: number | null | undefined, digits = 3): string {
-  if (v === null || v === undefined || Number.isNaN(v)) return '—';
+  // Non-finite (NaN or ±Infinity, e.g. a divide-by-zero) renders as "—", never
+  // the literal "Infinity" (audit P2-1 — the never-a-silent-0/garbage rule).
+  if (v === null || v === undefined || !Number.isFinite(v)) return '—';
   if (Number.isInteger(v)) return String(v);
   return String(parseFloat(v.toFixed(digits)));
 }
