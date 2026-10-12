@@ -74,6 +74,12 @@ code, kbd, samp, .mono {
 
 img, svg { display: block; max-width: 100%; height: auto; }
 
+/* The `hidden` attribute must actually hide, even on an element that also carries
+   an inline display (e.g. a collapsed form with display:flex). Without this the
+   UA's [hidden]{display:none} loses to the inline style and the element stays
+   visible — the bug behind the always-open add-forms and the stuck g–g overlay. */
+[hidden] { display: none !important; }
+
 button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Visible, consistent focus for keyboard users (WCAG AA). */
