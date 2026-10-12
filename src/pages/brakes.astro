@@ -29,7 +29,7 @@ const OUTPUTS = [
   { key: 'linePressureKpa', label: 'Line pressure', unit: 'kPa' },
   { key: 'clamp', label: 'Clamp force', unit: 'N' },
   { key: 'friction', label: 'Friction force', unit: 'N' },
-  { key: 'effRadius', label: 'Effective radius', unit: 'm' },
+  { key: 'effRadius', label: 'Effective radius', unit: 'mm' },
   { key: 'brakeTorque', label: 'Brake torque / wheel', unit: 'N·m' },
 ];
 const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
@@ -222,8 +222,12 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
     const r = computeBrakeSystem(side('f'), side('r'), m, targetDecel);
     last = r;
     (['pushrodForce', 'linePressureKpa', 'clamp', 'friction', 'effRadius', 'brakeTorque'] as const).forEach((k) => {
-      put(`f_${k}`, r[`f_${k}`] as number, k === 'effRadius' ? 4 : 2);
-      put(`r_${k}`, r[`r_${k}`] as number, k === 'effRadius' ? 4 : 2);
+      // effRadius is metres internally (brake torque = friction·Re needs SI);
+      // shown in mm to match the rotor OD / pad depth inputs (audit P3-1).
+      const scale = k === 'effRadius' ? 1000 : 1;
+      const digits = k === 'effRadius' ? 1 : 2;
+      put(`f_${k}`, (r[`f_${k}`] as number) * scale, digits);
+      put(`r_${k}`, (r[`r_${k}`] as number) * scale, digits);
     });
     put('achievedFrontBias', r.achievedFrontBias as number, 3);
     put('optimalBiasTarget', r.optimalBiasTarget as number, 3);

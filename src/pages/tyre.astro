@@ -133,6 +133,9 @@ const R8_COLS = ['Run', 'Tyre (anon)', 'Size', 'Rim width', 'Test', 'Notes'];
   const form = document.getElementById('tyre-form') as HTMLFormElement | null;
   const status = document.getElementById('tyre-form-status');
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  // Only http(s)/mailto survive as a clickable href — a planted javascript: URL
+  // becomes '#' (audit P2-7).
+  const safeUrl = (u: string | null | undefined) => { const r = (u ?? '').trim(); return /^(https?:|mailto:)/i.test(r) ? esc(r) : '#'; };
 
   async function card(r: TyreResult): Promise<string> {
     let plot = '';
@@ -150,7 +153,7 @@ const R8_COLS = ['Run', 'Tyre (anon)', 'Size', 'Rim width', 'Test', 'Notes'];
       <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.6rem;">
         ${stat('R²', r.r_squared)}${stat('RMS', r.rms)}${stat('LMUX', r.lmux)}${stat('LMUY', r.lmuy)}
       </div>
-      ${r.tir_link ? `<p style="margin-top:0.6rem;font-size:var(--fs-300);"><a href="${esc(r.tir_link)}" target="_blank" rel="noopener">.tir link ↗</a></p>` : ''}
+      ${r.tir_link ? `<p style="margin-top:0.6rem;font-size:var(--fs-300);"><a href="${safeUrl(r.tir_link)}" target="_blank" rel="noopener">.tir link ↗</a></p>` : ''}
       ${r.notes ? `<p style="margin-top:0.4rem;font-size:var(--fs-300);color:var(--ink-2);">${esc(r.notes)}</p>` : ''}
       ${plot}
     </article>`;

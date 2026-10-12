@@ -168,7 +168,9 @@ export const TOOL_OUTPUT_KEYS: { key: string; label: string; team: string; upstr
   { key: 'understeer_gradient', label: 'Understeer gradient', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'wheelbase', 'corner_stiffness'] },
   { key: 'static_margin', label: 'Static margin', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'wheelbase', 'corner_stiffness'] },
   { key: 'arb_front_needed', label: 'Front ARB needed', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'wheelbase', 'corner_stiffness'] },
-  { key: 'tlltd_front', label: 'Front TLLTD (derived)', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'cog_height', 'track_front', 'track_rear', 'rear_rc_height', 'unsprung_corner'] },
+  // tlltd_front is NOT a tool_output — it's a Master key written by Load transfer,
+  // so it stays selectable in the Readiness picker under "Master", not here, where
+  // it could never go green (audit P1-7).
   { key: 'pushrod_force_front', label: 'Pushrod force (front)', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'wheelbase', 'cog_height'] },
   { key: 'pushrod_force_rear', label: 'Pushrod force (rear)', team: 'VD', upstream: ['mass_total', 'mass_frac_front', 'wheelbase', 'cog_height'] },
   { key: 'anti_pct_front', label: 'Anti-dive (front)', team: 'VD', upstream: ['wheelbase', 'cog_height'] },
@@ -178,8 +180,9 @@ export const TOOL_OUTPUT_KEYS: { key: string; label: string; team: string; upstr
   { key: 'rack_force', label: 'Rack force', team: 'VD', upstream: ['mu_lat_peak', 'axle_load_front', 'rolling_radius'] },
   { key: 'lap_time_s', label: 'Lap time', team: 'VD', upstream: ['mass_total', 'mu_lat_peak'] },
   { key: 'endurance_fuel_l', label: 'Endurance fuel', team: 'Powertrain', upstream: ['mass_total', 'mu_lat_peak'] },
-  { key: 'radiator_area', label: 'Radiator area', team: 'Powertrain' },
-  { key: 'heat_rejection_kw', label: 'Heat rejection', team: 'Powertrain' },
+  // radiator_area / heat_rejection_kw were registered for the Cooling tool, which
+  // is an embedded iframe that contributes nothing — removed so the Readiness
+  // picker only offers keys the workspace actually produces (audit P1-7).
 ];
 
 /**

@@ -116,7 +116,7 @@ export function mountIterations(opts: IterationOpts): void {
 
   host.innerHTML = `
     <details class="iters-box">
-      <summary><span class="iters-title">Iterations</span> <span class="iters-count mono"></span></summary>
+      <summary><span class="iters-title">Iterations</span> <span class="iters-count mono" data-it="count"></span></summary>
       <div class="iters-body">
         <div class="iters-actions">
           <button class="btn btn-halftone" type="button" data-it="save">＋ Save current setup</button>

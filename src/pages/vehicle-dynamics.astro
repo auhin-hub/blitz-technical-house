@@ -64,10 +64,10 @@ const STEER_LINKED = [
 ];
 const STEER_INPUTS = [
   { key: 'turningRadius', label: 'Target turning radius', unit: 'm', vals: [3.5] },
-  { key: 'kingpinDist', label: 'Kingpin-to-kingpin distance', unit: 'mm', vals: [1100] },
-  { key: 'steeringArm', label: 'Steering-arm length', unit: 'mm', vals: [90] },
-  { key: 'rackTravel', label: 'Rack travel (lock-to-lock)', unit: 'mm', vals: [120] },
-  { key: 'swTurns', label: 'Steering-wheel turns (lock-to-lock)', unit: '-', vals: [1.5] },
+  { key: 'kingpinDist', label: 'Kingpin-to-kingpin distance', unit: 'mm', vals: [1100], note: 'reference — not used in this calc' },
+  { key: 'steeringArm', label: 'Steering-arm length', unit: 'mm', vals: [90], note: 'reference — not used in this calc' },
+  { key: 'rackTravel', label: 'Rack travel (lock-to-lock)', unit: 'mm', vals: [120], note: 'reference — not used in this calc' },
+  { key: 'swTurns', label: 'Steering-wheel turns (lock-to-lock)', unit: '-', vals: [1.5], note: 'reference — not used in this calc' },
   { key: 'pinionPitchDia', label: 'Pinion pitch diameter', unit: 'mm', vals: [50] },
   { key: 'teeth', label: 'Number of teeth', unit: '-', vals: [18] },
 ];

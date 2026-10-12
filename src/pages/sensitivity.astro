@@ -67,7 +67,9 @@ import { url } from '../lib/config';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
   import { subscribeLive, liveToast } from '../lib/realtime';
 
-  const TOOLS = ['vd_brakes', 'vd_loads', 'vd_steering', 'vd_steering_effort', 'pt_traction', 'aero_balance', 'vd_springs', 'vd_loadtransfer'];
+  // Must match the tool ids in DOWNSTREAM (lib/calc/sensitivity.ts) — i.e. the
+  // real tool_state keys the pages save under (audit P1-2).
+  const TOOLS = ['brakes', 'vd_loads', 'vd_steering', 'vd_steereffort', 'pt_traction', 'aero', 'springs', 'vd_loadtransfer'];
 
   const keyEl = document.getElementById('sv-key') as HTMLSelectElement;
   const stepEl = document.getElementById('sv-step') as HTMLInputElement;

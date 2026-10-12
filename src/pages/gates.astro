@@ -69,7 +69,7 @@ import { url } from '../lib/config';
           <span class="annot">${g.id}</span>
           <span class="${STATUS_BADGE[g.status]}">${STATUS_LABEL[g.status]}</span>
         </div>
-        <h3 style="font-size:var(--fs-500);margin-top:0.4rem;">${g.name}</h3>
+        <h3 style="font-size:var(--fs-500);margin-top:0.4rem;">${esc(g.name)}</h3>
         ${meta}
         <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.9rem;">
           ${g.status !== 'signed_off' ? `<button class="btn btn-heritage" data-act="sign" data-id="${g.id}">Sign off</button>` : `<button class="btn btn-ghost" data-act="reopen" data-id="${g.id}">Reopen</button>`}
@@ -116,9 +116,9 @@ import { url } from '../lib/config';
     }
     const rows = frozen.map((r) => `
       <tr style="border-bottom:1px solid var(--rule);">
-        <td style="padding:0.5rem 0.75rem;">${r.label}</td>
-        <td style="padding:0.5rem 0.75rem;text-align:right;" class="mono">${fmt(r.value as number)} ${r.unit}</td>
-        <td style="padding:0.5rem 0.75rem;"><span class="badge badge-frozen">${r.frozen_gate ?? '—'}</span></td>
+        <td style="padding:0.5rem 0.75rem;">${esc(r.label)}</td>
+        <td style="padding:0.5rem 0.75rem;text-align:right;" class="mono">${fmt(r.value as number)} ${esc(r.unit)}</td>
+        <td style="padding:0.5rem 0.75rem;"><span class="badge badge-frozen">${esc(r.frozen_gate ?? '—')}</span></td>
       </tr>`).join('');
     freezeList.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:var(--fs-300);">
       <thead><tr style="text-align:left;border-bottom:1px solid var(--rule-strong);">

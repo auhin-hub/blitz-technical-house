@@ -154,9 +154,9 @@ import { url } from '../lib/config';
     if (chart) { chart.data = cfg.data; chart.options = cfg.options; chart.update(); } else { const cv = document.getElementById('bd-chart') as HTMLCanvasElement | null; if (cv) chart = new Chart(cv, cfg); }
 
     const over = topOvershoots(rows);
-    document.getElementById('bd-over')!.innerHTML = over.length ? over.map((o) => `<li>${o.item} <span class="mono" style="color:var(--heritage)">+${o.over.toFixed(0)}</span> <span style="color:var(--ink-3)">(${o.team})</span></li>`).join('') : '<li style="color:var(--state-linked);">No line is over plan.</li>';
+    document.getElementById('bd-over')!.innerHTML = over.length ? over.map((o) => `<li>${esc(o.item)} <span class="mono" style="color:var(--heritage)">+${o.over.toFixed(0)}</span> <span style="color:var(--ink-3)">(${esc(o.team)})</span></li>`).join('') : '<li style="color:var(--state-linked);">No line is over plan.</li>';
 
-    document.getElementById('bd-log')!.innerHTML = log.length ? log.slice(0, 30).map((l) => `<div>${new Date(l.at).toLocaleDateString()} — <strong>${l.item}</strong>: ${l.old ?? '—'} → ${l.new ?? '—'} · ${l.reason}</div>`).join('') : '<span style="color:var(--ink-3);">No committed-plan changes yet.</span>';
+    document.getElementById('bd-log')!.innerHTML = log.length ? log.slice(0, 30).map((l) => `<div>${new Date(l.at).toLocaleDateString()} — <strong>${esc(l.item)}</strong>: ${esc(l.old ?? '—')} → ${esc(l.new ?? '—')} · ${esc(l.reason)}</div>`).join('') : '<span style="color:var(--ink-3);">No committed-plan changes yet.</span>';
   }
 
   const CSV_COLS = ['item', 'subassembly', 'team', 'category', 'planned_cost', 'actual_cost', 'status', 'date', 'notes'];
