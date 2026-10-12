@@ -23,7 +23,7 @@
 
   /* ---- Brand constants (identical in both themes) --------------------- */
   --amber: #E8A33D;        /* amber fill            */
-  --amber-deep: #A86A12;   /* amber "as-text" (AA)  */
+  --amber-deep: #9A6210;   /* amber "as-text" (AA)  */
   --maroon: #9B1E22;       /* Blitz heritage marker */
 
   /* ---- Geometry & motion ---------------------------------------------- */
@@ -51,7 +51,7 @@
 
   --ink: #17222B;          /* primary text                */
   --ink-2: #44555F;        /* secondary                   */
-  --ink-3: #6B7C86;        /* muted / meta                */
+  --ink-3: #5F6F79;        /* muted / meta (AA on bg)     */
 
   --sky: #4A6D82;          /* data lines / accents        */
   --hairline: #9FC3DB;     /* decorative sky hairline     */
@@ -90,7 +90,7 @@
 
     --ink: #E8EEF2;
     --ink-2: #AEBFCB;
-    --ink-3: #7E919F;
+    --ink-3: #8A9DAB;
 
     --sky: #7FA8C2;
     --hairline: #2B4B63;
@@ -98,7 +98,7 @@
     --rule-strong: #35546C;
 
     --amber-text: #F0B860;
-    --heritage: #D14B4F;     /* maroon → brighter on night-shift */
+    --heritage: #E87478;     /* maroon → brighter on night-shift (AA) */
 
     --state-input: #6FA8DC;
     --state-input-fill: rgba(111, 168, 220, 0.10);

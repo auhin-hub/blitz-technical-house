@@ -146,6 +146,7 @@ const SOURCING: Record<string, string> = {
 
 <script>
   import { loadMaster, setMasterValue, setFrozen, editFrozenParam, setMasterText, editFrozenText, fmt, debounce, loadPresets, saveNamedPreset, deletePreset, currentUserId } from '../lib/store';
+  import { showMasterAlert } from '../lib/linked';
   import { subscribeLive, liveToast, describeBurst } from '../lib/realtime';
   import { myRole, gateToLead, roleNote } from '../lib/roles';
   import { rangeNote } from '../lib/calc/ranges';
@@ -249,6 +250,7 @@ const SOURCING: Record<string, string> = {
 
   (async () => {
     const master = await loadMaster();
+    showMasterAlert();
     if (Object.keys(master).length === 0) return;
 
     applyMaster(master);

@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
 import { url } from '../lib/config';
 import { DAMPER_PRESETS } from '../lib/calc/springs';
 
@@ -47,6 +48,8 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
       from ζ; plus roll stiffness and roll gradient. Shared inputs come from the Master.
     </p>
   </header>
+
+  <LegendKey />
 
   <div class="card" style="margin-bottom:1rem;">
     <span class="annot">From Master</span>

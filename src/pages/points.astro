@@ -91,15 +91,15 @@ import { url } from '../lib/config';
       const c = cellFor(ev);
       const pts = eventPoints(ev, c);
       const timeCells = ev.kind === 'time'
-        ? `<td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="tTeam" value="${v(c.tTeam)}" style="${inpS}"></td>
-           <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="tMin" value="${v(c.tMin)}" style="${inpS}"></td>
-           <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="tMax" value="${v(c.tMax)}" style="${inpS}"></td>
+        ? `<td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="tTeam" aria-label="${ev.label} team time" value="${v(c.tTeam)}" style="${inpS}"></td>
+           <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="tMin" aria-label="${ev.label} best time" value="${v(c.tMin)}" style="${inpS}"></td>
+           <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="tMax" aria-label="${ev.label} max time" value="${v(c.tMax)}" style="${inpS}"></td>
            <td style="padding:0.2rem 0.4rem;text-align:right;color:var(--ink-3);">—</td>`
         : `<td style="padding:0.2rem 0.4rem;text-align:right;color:var(--ink-3);">—</td><td style="padding:0.2rem 0.4rem;text-align:right;color:var(--ink-3);">—</td><td style="padding:0.2rem 0.4rem;text-align:right;color:var(--ink-3);">—</td>
-           <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="score" value="${v(c.score)}" style="${inpS}"></td>`;
+           <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="score" aria-label="${ev.label} score" value="${v(c.score)}" style="${inpS}"></td>`;
       return `<tr style="border-bottom:1px solid var(--rule);">
         <td style="padding:0.2rem 0.5rem;">${ev.label} <span class="mono" style="color:var(--ink-3);font-size:var(--fs-100)">${ev.kind}</span></td>
-        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="pMax" value="${c.pMax}" style="${inpS}width:58px;"></td>
+        <td style="padding:0.2rem 0.4rem;text-align:right;"><input type="number" step="any" data-k="${ev.key}" data-f="pMax" aria-label="${ev.label} max points" value="${c.pMax}" style="${inpS}width:58px;"></td>
         ${timeCells}
         <td style="padding:0.2rem 0.5rem;text-align:right;" class="mono">${Number.isFinite(pts) ? pts.toFixed(1) : '—'}</td>
       </tr>`;

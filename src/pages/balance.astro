@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
 import { url } from '../lib/config';
 
 const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
@@ -19,6 +20,8 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
     </p>
   </header>
 
+  <LegendKey />
+
   <div class="card" style="margin-bottom:1rem;">
     <span class="annot">From Master</span>
     <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:0.4rem;font-size:var(--fs-300);">
@@ -35,8 +38,8 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
       <div class="ct-col">
         <h3 class="ct-h3">Understeer (bicycle model)</h3>
         <div class="ct-wrap"><table class="ct-table"><tbody>
-          <tr><td>Front axle cornering stiffness Cαf</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="caF" value="2200" /></td><td class="ct-unit">N/deg</td></tr>
-          <tr><td>Rear axle cornering stiffness Cαr</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="caR" value="2200" /></td><td class="ct-unit">N/deg</td></tr>
+          <tr><td>Front axle cornering stiffness Cαf</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="caF" value="2200" aria-label="Front axle cornering stiffness Cαf" /></td><td class="ct-unit">N/deg</td></tr>
+          <tr><td>Rear axle cornering stiffness Cαr</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="caR" value="2200" aria-label="Rear axle cornering stiffness Cαr" /></td><td class="ct-unit">N/deg</td></tr>
         </tbody></table></div>
         <div class="ct-stats" style="margin-top:0.6rem;">
           <div class="ct-stat"><span class="annot">Understeer gradient K</span><div class="val"><span data-out="K">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> deg/g</span></div></div>
@@ -49,8 +52,8 @@ const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:
         <p style="color:var(--ink-2);font-size:var(--fs-300);">Front roll-rate fraction (springs + ARBs). Aim near the target TLLTD; the ARB is the balance knob.</p>
         <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Roll rate (N·m/deg)</th><th class="ct-num">Front</th><th class="ct-num">Rear</th></tr></thead>
           <tbody>
-            <tr><td>From springs</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="ksF" value="176.8" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="ksR" value="176.8" /></td></tr>
-            <tr><td>ARB contribution</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="arbF" value="0" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="arbR" value="0" /></td></tr>
+            <tr><td>From springs</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="ksF" value="176.8" aria-label="From springs" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="ksR" value="176.8" aria-label="From springs" /></td></tr>
+            <tr><td>ARB contribution</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="arbF" value="0" aria-label="ARB contribution" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="arbR" value="0" aria-label="ARB contribution" /></td></tr>
           </tbody></table></div>
         <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem;flex-wrap:wrap;">
           <span class="mono" style="font-size:var(--fs-300);">Target front fraction <input type="number" step="any" style={ni} data-in="targetFrac" value="0.5" /></span>

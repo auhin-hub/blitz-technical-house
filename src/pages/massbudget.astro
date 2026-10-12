@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
 import { url } from '../lib/config';
 
 const LINKED = [
@@ -24,6 +25,8 @@ const LINKED = [
       y from centreline (+ right), z from ground — all mm.
     </p>
   </header>
+
+  <LegendKey />
 
   <!-- From Master -->
   <div class="card" style="margin-bottom:1rem;">

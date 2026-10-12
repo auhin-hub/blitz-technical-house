@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
 import { url } from '../lib/config';
 
 const LINKED = [
@@ -32,6 +33,8 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:
       Powertrain, Brakes and Aero tools.
     </p>
   </header>
+
+  <LegendKey />
 
   <div class="card" style="margin-bottom:1rem;">
     <span class="annot">From Master</span>

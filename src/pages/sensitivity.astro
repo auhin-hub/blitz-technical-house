@@ -63,6 +63,7 @@ import { url } from '../lib/config';
   import { sensitivity, SENSITIVE_KEYS } from '../lib/calc/sensitivity';
   import { COUPLING_BY_KEY } from '../lib/config';
   import { loadMaster, loadToolState, fmt } from '../lib/store';
+  import { showMasterAlert } from '../lib/linked';
   import { esc } from '../lib/html';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
   import { subscribeLive, liveToast } from '../lib/realtime';
@@ -141,6 +142,7 @@ import { url } from '../lib/config';
 
   async function reload(announce = false) {
     const rows = await loadMaster();
+    showMasterAlert();
     master = Object.fromEntries(Object.entries(rows).map(([k, v]) => {
       const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)];
     }));

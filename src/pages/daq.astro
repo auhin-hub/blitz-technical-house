@@ -55,6 +55,7 @@ import { url } from '../lib/config';
   import Chart from 'chart.js/auto';
   import { interpretLog, type LogRow } from '../lib/calc/daq-interp';
   import { loadMaster, loadToolOutputsMap, fmt } from '../lib/store';
+  import { showMasterAlert } from '../lib/linked';
   import { parseCsv, readFileText } from '../lib/csv';
   import { applyChartDefaults, palette } from '../lib/chart-theme';
 
@@ -76,6 +77,7 @@ import { url } from '../lib/config';
   async function run() {
     if (!lastRows.length) return;
     const master = await loadMaster();
+    showMasterAlert();
     const outs = await loadToolOutputsMap();
     const mv = (k: string) => { const v = master[k]?.value; return v == null ? NaN : Number(v); };
     const ov = (k: string) => outs[k]?.value ?? null;

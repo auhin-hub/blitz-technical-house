@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import LegendKey from '../components/LegendKey.astro';
 import { url } from '../lib/config';
 
 // Hardpoints (one corner). Coordinate convention (SolidWorks-friendly):
@@ -46,6 +47,8 @@ const SYNTH = [
       <strong>Freeze the hardpoints at G3.</strong>
     </p>
   </header>
+
+  <LegendKey />
 
   <div class="card" style="margin-bottom:1rem;">
     <span class="annot">From Master</span>
@@ -118,8 +121,8 @@ const SYNTH = [
         <p style="color:var(--ink-2);font-size:var(--fs-300);">% anti = share · tan(θ_svsa) · L / h (L, h from Master).</p>
         <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Parameter</th><th class="ct-num">Front</th><th class="ct-num">Rear</th><th>Unit</th></tr></thead>
           <tbody>
-            <tr><td>Side-view swing-arm angle θ</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="f_svsa" value="8" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="r_svsa" value="6" /></td><td class="ct-unit">deg</td></tr>
-            <tr><td>Brake / drive share on axle</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="f_share" value="0.65" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="r_share" value="1" /></td><td class="ct-unit">-</td></tr>
+            <tr><td>Side-view swing-arm angle θ</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="f_svsa" value="8" aria-label="Side-view swing-arm angle θ front" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="r_svsa" value="6" aria-label="Side-view swing-arm angle θ rear" /></td><td class="ct-unit">deg</td></tr>
+            <tr><td>Brake / drive share on axle</td><td class="ct-num"><input type="number" step="any" style={ni} data-in="f_share" value="0.65" aria-label="Brake / drive share on axle front" /></td><td class="ct-num"><input type="number" step="any" style={ni} data-in="r_share" value="1" aria-label="Brake / drive share on axle rear" /></td><td class="ct-unit">-</td></tr>
             <tr><td>% anti-dive (F) / anti-squat (R)</td><td class="ct-num"><span class="field field-computed mono" data-out="f_anti">—</span></td><td class="ct-num"><span class="field field-computed mono" data-out="r_anti">—</span></td><td class="ct-unit">%</td></tr>
           </tbody></table></div>
       </div>

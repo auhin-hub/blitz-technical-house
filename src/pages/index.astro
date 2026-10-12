@@ -142,6 +142,7 @@ import logo from '../assets/blitz-logo.png';
 <script>
   import Chart from 'chart.js/auto';
   import { loadMaster, loadToolOutputsMap, loadToolJson, loadChangeLog, fmt } from '../lib/store';
+  import { showMasterAlert } from '../lib/linked';
   import { esc } from '../lib/html';
   import { subscribeLive, describeBurst, liveToast } from '../lib/realtime';
   import { ggCurve, type GgInput } from '../lib/calc/gg';
@@ -200,6 +201,7 @@ import logo from '../assets/blitz-logo.png';
 
   async function refresh(): Promise<void> {
     const m = Object.fromEntries(Object.entries(await loadMaster()).map(([k, v]) => { const val = (v as any).value; return [k, val === null || val === undefined ? NaN : Number(val)]; }));
+    showMasterAlert();
     const o = await loadToolOutputsMap();
     setKpi('mass', m.mass_total, 1); setKpi('ff', m.mass_frac_front, 3); setKpi('cog', m.cog_height, 1);
     setKpi('izz', m.yaw_inertia, 1); setKpi('latg', m.accel_lat_target, 2);

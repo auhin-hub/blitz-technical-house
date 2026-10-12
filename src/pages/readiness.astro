@@ -101,10 +101,15 @@ import { url } from '../lib/config';
   }, 600);
 
   // ---- CSV (one row per prerequisite) ----
-  const CSV_COLS = ['component', 'owner_team', 'prerequisite', 'default_bin', 'source_type', 'source_key', 'produced_by_team', 'notes'];
+  const CSV_COLS = ['component', 'owner_team', 'subassembly', 'prerequisite', 'default_bin', 'source_type', 'source_key', 'produced_by_team', 'notes'];
   function flatten(): (string | number)[][] {
     const rows: (string | number)[][] = [];
-    for (const c of components) for (const p of c.prereqs) rows.push([c.name, c.owner_team, p.label, p.bin, p.source_type, p.source_key, p.produced_by_team, (p as any).notes ?? '']);
+    for (const c of components) {
+      // A component with no prerequisites still gets one row (blank prereq) so it
+      // survives an export → import round-trip (audit P2-9).
+      if (!c.prereqs.length) { rows.push([c.name, c.owner_team, c.subassembly ?? '', '', '', '', '', '', '']); continue; }
+      for (const p of c.prereqs) rows.push([c.name, c.owner_team, c.subassembly ?? '', p.label, p.bin, p.source_type, p.source_key, p.produced_by_team, (p as any).notes ?? '']);
+    }
     return rows;
   }
   function rebuild(rows: string[][], headers: string[]): Component[] {
@@ -113,7 +118,7 @@ import { url } from '../lib/config';
     for (const r of rows) {
       const name = (r[i('component')] ?? '').trim(); if (!name) continue;
       let c = byName.get(name);
-      if (!c) { c = { name, owner_team: (r[i('owner_team')] ?? 'VD').trim(), subassembly: '', prereqs: [] }; byName.set(name, c); }
+      if (!c) { c = { name, owner_team: (r[i('owner_team')] ?? 'VD').trim(), subassembly: i('subassembly') >= 0 ? (r[i('subassembly')] ?? '').trim() : '', prereqs: [] }; byName.set(name, c); }
       const label = (r[i('prerequisite')] ?? '').trim(); if (!label) continue;
       c.prereqs.push({
         label, bin: ((r[i('default_bin')] ?? 'blocking').trim() === 'soft' ? 'soft' : 'blocking') as Bin,
