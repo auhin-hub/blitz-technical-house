@@ -20,6 +20,7 @@ import {
 } from '../store';
 import { decorateLinkedCells } from '../linked';
 import { subscribeLive, liveToast, describeBurst } from '../realtime';
+import { mountIterations } from '../iterations';
 import { applyChartDefaults, palette, watchTheme } from '../chart-theme';
 
 export type Flat = Record<string, number>;
@@ -207,6 +208,11 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
 
   recompute();
   watchTheme(() => { applyChartDefaults(); recompute(); });
+
+  // Per-tool iteration manager: save/compare/finalise setups. Scoped to this
+  // section, so each calculator on a discipline page gets its own set. Finalising
+  // clicks this tool's Contribute button, if it has one, to share the chosen setup.
+  mountIterations({ tool: spec.tool, scope });
 
   // Live shared state. A Master move recomputes this tool with a visible note; a
   // teammate's edit to the same tool raises the conflict bar instead of landing

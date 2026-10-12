@@ -118,6 +118,7 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
   import { loadMaster, saveToolJson, loadToolJson, saveToolOutputs, fmt, debounce } from '../lib/store';
   import { decorateLinkedCells } from '../lib/linked';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
+  import { mountIterations } from '../lib/iterations';
 
   const TOOL = 'springs';
   const saveStatus = document.querySelector('[data-save-status]') as HTMLElement;
@@ -204,5 +205,6 @@ const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var
     });
 
     watchTheme(() => { applyChartDefaults(); recompute(); });
+    mountIterations({ tool: TOOL, contributeSelector: '#spr-contribute' });
   })();
 </script>
