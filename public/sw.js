@@ -17,7 +17,7 @@
  *
  * The cache name carries a version; bump it to retire old entries.
  */
-const VERSION = 'blitz-v2';  // bumped for the P2-8 cache-strategy change
+const VERSION = 'blitz-v3';  // bumped to retire any stale cached /taskmap navigation
 const SCOPE = new URL(self.registration.scope);
 const BASE = SCOPE.pathname.replace(/\/+$/, '');
 const p = (path) => `${BASE}/${path.replace(/^\/+/, '')}`;
