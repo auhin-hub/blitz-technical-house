@@ -20,10 +20,20 @@ export const SITE = {
   description: 'Internal engineering workspace for MIST Blitz Formula Student.',
 } as const;
 
+/**
+ * One tool in a team's registry. Exactly one of `anchor` / `href`:
+ *  - `anchor` — a calculator living in the team page's cockpit (`<slug>#<anchor>`;
+ *    CockpitShell opens it from the hash);
+ *  - `href`   — a tool with its own page (site-relative, e.g. 'brakes').
+ *
+ * THIS REGISTRY IS THE SINGLE SOURCE for the Teams menu, the landing cards, the
+ * command palette, each team page's "More tools" strip and the breadcrumbs —
+ * add a tool here and it is findable everywhere. Keep it in step with the pages.
+ */
 export interface Tool {
   title: string;
-  /** Anchor id within the discipline page (tools are built later). */
-  anchor: string;
+  anchor?: string;
+  href?: string;
   blurb: string;
   /** TOOL_SPECS.md section this tool ports, for traceability. */
   spec?: string;
@@ -32,6 +42,8 @@ export interface Tool {
 export interface Discipline {
   slug: string;
   title: string;
+  /** Short name for tight spots (menu, breadcrumbs). Defaults to `title`. */
+  short?: string;
   blurb: string;
   tools: Tool[];
   /** Original workbook offered as a download on the discipline page. */
@@ -40,93 +52,161 @@ export interface Discipline {
   built?: boolean;
 }
 
-/** The six landing-page disciplines and their tools (BRIEF §D, TOOL_SPECS). */
+/** The teams (BRIEF §D discipline-first nav) and every tool each one owns. */
 export const DISCIPLINES: Discipline[] = [
   {
     slug: 'vehicle-dynamics',
     title: 'Vehicle Dynamics',
-    blurb: 'Setup, suspension geometry, springs & dampers, loads, steering, brakes.',
+    short: 'VD',
+    blurb: 'Guided design sequence: geometry, springs, brakes, balance, tyre, g–g, lap sim and on-car measurement.',
     workbook: 'Blitz_Vehicle_Dynamics_WorkingFile.xlsx',
     built: true,
     tools: [
       { title: 'Setup / kinematics', anchor: 'setup', blurb: 'Kinematic targets + platform values from Master.', spec: 'TOOL_SPECS §7a' },
-      { title: 'Suspension geometry & hardpoints', anchor: 'geometry', blurb: 'RC height, VSAL, scrub, KPI, caster; hardpoint table (freeze at G3).', spec: 'TOOL_SPECS §7c' },
-      { title: 'Springs & dampers', anchor: 'springs', blurb: 'Ride-frequency sizing: wheel rate, spring rate, damping.', spec: 'TOOL_SPECS §7d' },
+      { title: 'Suspension geometry & hardpoints', href: 'geometry', blurb: 'RC height, camber, scrub, KPI, caster; hardpoint table (freeze at G3).', spec: 'TOOL_SPECS §7c' },
+      { title: 'Springs & dampers', href: 'springs', blurb: 'Ride-frequency sizing: wheel rate, spring rate, damping.', spec: 'TOOL_SPECS §7d' },
       { title: 'Suspension loads', anchor: 'loads', blurb: 'Corner verticals, pushrod force, anti-dive / anti-squat.', spec: 'TOOL_SPECS §7e' },
       { title: 'Steering', anchor: 'steering', blurb: 'Ackermann split + rack & pinion geometry.', spec: 'TOOL_SPECS §7f' },
-      { title: 'Brakes', anchor: 'brakes', blurb: 'Clamp, brake torque, achieved vs Olley-optimum bias.', spec: 'TOOL_SPECS §7b' },
+      { title: 'Steering effort', anchor: 'steereffort', blurb: 'Steering-wheel torque and rack force.' },
+      { title: 'R&P gear sweep', anchor: 'rpsweep', blurb: 'Rack-and-pinion ratio sweep.' },
+      { title: 'Load transfer', anchor: 'loadtransfer', blurb: 'Lateral / longitudinal load transfer and TLLTD.' },
+      { title: 'Brake system', href: 'brakes', blurb: 'Clamp, brake torque, achieved vs Olley-optimum bias.', spec: 'TOOL_SPECS §7b' },
+      { title: 'Balance', href: 'balance', blurb: 'Understeer gradient, static margin, TLLTD pair.' },
+      { title: 'Mass budget', href: 'massbudget', blurb: 'Mass, front fraction, CoG height, yaw inertia.' },
+      { title: 'Tyre', href: 'tyre', blurb: 'Tyre toolset download, shared fit results, guides.' },
+      { title: 'g–g diagram', href: 'gg', blurb: 'Acceleration envelope: grip ellipse, power/brake limits, aero.' },
+      { title: 'Lap-time simulator', href: 'lapsim', blurb: 'Point-mass lap sim on the shared values.' },
+      { title: 'Event predictors', href: 'events', blurb: 'Acceleration, skidpad, grip budget.' },
+      { title: 'Coupling & sensitivity', href: 'sensitivity', blurb: 'Change one Master number, see which results move.' },
+      { title: 'Measurement', href: 'measurement', blurb: 'CoG tilt-test, corner-weight, quarter-car, trifilar Izz.' },
+      { title: 'Setup sheet', href: 'setup-sheet', blurb: 'Trackside setup record.' },
+    ],
+  },
+  {
+    slug: 'chassis',
+    title: 'Chassis',
+    blurb: 'Tube stress & FoS, buckling, bolted joints, component-mass tracker.',
+    workbook: 'Blitz_Chassis_WorkingFile.xlsx',
+    built: true,
+    tools: [
+      { title: 'Tube stress & FoS', anchor: 'tube', blurb: 'Section area, axial stress, factor of safety; torsional stiffness.', spec: 'TOOL_SPECS §2a' },
+      { title: 'Component-mass tracker', anchor: 'mass', blurb: 'CAD vs measured per component → feeds MassBudget.', spec: 'TOOL_SPECS §2b' },
+      { title: 'Tube buckling', anchor: 'buckling', blurb: 'Euler critical load for a round tube.' },
+      { title: 'Bolted joint', anchor: 'bolt', blurb: 'Proof load, clamp and tightening torque.' },
+    ],
+  },
+  {
+    slug: 'aerodynamics',
+    title: 'Aerodynamics',
+    short: 'Aero',
+    blurb: 'Downforce / drag vs speed, aero balance and centre of pressure.',
+    workbook: 'Blitz_Aero_WorkingFile.xlsx',
+    built: true,
+    tools: [
+      { title: 'Downforce / drag vs speed', anchor: 'aero', blurb: 'Downforce, drag, %-of-weight, L/D across the speed range.', spec: 'TOOL_SPECS §1' },
+      { title: 'Aero balance / CoP', anchor: 'aerobalance', blurb: 'Front aero balance vs the CG front fraction.' },
     ],
   },
   {
     slug: 'powertrain',
     title: 'Powertrain',
-    blurb: 'Drivetrain & traction, plus the Cooling Dyno Analyzer.',
+    blurb: 'Drivetrain & traction, gear speeds, intake restrictor, Cooling Dyno Analyzer.',
     workbook: 'Blitz_Powertrain_WorkingFile.xlsx',
     built: true,
     tools: [
       { title: 'Drivetrain & traction', anchor: 'traction', blurb: 'Wheel torque, tractive force vs traction limit, launch accel.', spec: 'TOOL_SPECS §6' },
       { title: 'Cooling — Dyno Analyzer', anchor: 'cooling', blurb: 'Heat rejection vs speed, fan model, power/torque curves (re-skinned).', spec: 'BRIEF §E2' },
+      { title: 'Gear speed', anchor: 'gearspeed', blurb: 'Road speed per gear.' },
+      { title: 'Intake restrictor', anchor: 'restrictor', blurb: 'Restrictor sizing.' },
     ],
   },
   {
     slug: 'electronics',
     title: 'Electronics',
-    blurb: 'Power budget, wiring / harness list, DAQ & telemetry.',
+    blurb: 'Power budget, wiring / harness list, DAQ & telemetry, battery and wire sizing.',
     workbook: 'Blitz_Electronics_WorkingFile.xlsx',
     built: true,
     tools: [
       { title: 'Power budget', anchor: 'power', blurb: 'Load currents vs stator output; margin.', spec: 'TOOL_SPECS §4a' },
       { title: 'Wiring / harness list', anchor: 'wiring', blurb: 'Connection table + colour-code guide (editable grid).', spec: 'TOOL_SPECS §4b' },
       { title: 'DAQ & Telemetry', anchor: 'daq', blurb: 'CAN bus load per channel + utilisation.', spec: 'TOOL_SPECS §3' },
-    ],
-  },
-  {
-    slug: 'chassis',
-    title: 'Chassis',
-    blurb: 'Tube stress & FoS, torsional stiffness, component-mass tracker.',
-    workbook: 'Blitz_Chassis_WorkingFile.xlsx',
-    built: true,
-    tools: [
-      { title: 'Tube stress & FoS', anchor: 'tube', blurb: 'Section area, axial stress, factor of safety; torsional stiffness.', spec: 'TOOL_SPECS §2a' },
-      { title: 'Component-mass tracker', anchor: 'mass', blurb: 'CAD vs measured per component → feeds MassBudget.', spec: 'TOOL_SPECS §2b' },
-    ],
-  },
-  {
-    slug: 'aerodynamics',
-    title: 'Aerodynamics',
-    blurb: 'Downforce / drag vs speed.',
-    workbook: 'Blitz_Aero_WorkingFile.xlsx',
-    built: true,
-    tools: [
-      { title: 'Downforce / drag vs speed', anchor: 'aero', blurb: 'Downforce, drag, %-of-weight, L/D across the speed range.', spec: 'TOOL_SPECS §1' },
+      { title: 'Battery sizing', anchor: 'battery', blurb: 'Ah / Wh from load, time and depth of discharge.' },
+      { title: 'Wire voltage drop', anchor: 'wiredrop', blurb: 'Round-trip voltage drop for a run.' },
+      { title: 'DAQ log interpretation', href: 'daq', blurb: 'Read logged channels back against the plan.' },
     ],
   },
   {
     slug: 'ergonomics',
     title: 'Ergonomics',
+    short: 'Ergo',
     blurb: 'Driver fit + egress checklist.',
     workbook: 'Blitz_Ergonomics_WorkingFile.xlsx',
     built: true,
     tools: [
-      { title: 'Driver fit + egress', anchor: 'fit', blurb: '5th/95th-%ile fit, reach, egress < 5 s checklist.', spec: 'TOOL_SPECS §5' },
+      { title: 'Driver fit', anchor: 'fit', blurb: '5th/95th-%ile fit, reach, helmet margin.', spec: 'TOOL_SPECS §5' },
+      { title: 'Egress & fit checklist', anchor: 'checklist', blurb: 'Shared fit / egress < 5 s checklist.' },
+    ],
+  },
+  {
+    slug: 'business',
+    title: 'Business & Ops',
+    short: 'Business',
+    blurb: 'Cost report, team budget, season Gantt and the competition points predictor.',
+    built: true,
+    tools: [
+      { title: 'Cost report (FSAE-J)', href: 'cost', blurb: 'Cost / BOM in the FSAE-J format.' },
+      { title: 'Budget', href: 'budget', blurb: 'Team budget vs actual.' },
+      { title: 'Season Gantt', href: 'gantt', blurb: 'Schedule against the gates.' },
+      { title: 'Points predictor', href: 'points', blurb: 'Competition points by event.' },
     ],
   },
 ];
 
-/** Cross-cutting pages in the persistent top nav (BRIEF §D; MASTER_BUILD_PLAN §3). */
-export const TOP_NAV = [
+/** Site-relative link for a tool (anchor tools live on their team page). */
+export function toolHref(team: Discipline, t: Tool): string {
+  return t.href ? url(t.href) : `${url(team.slug)}#${t.anchor}`;
+}
+
+export interface NavLink { href: string; label: string; hint?: string; }
+export interface NavGroup { label: string; links: NavLink[]; }
+
+/** Programme (process & governance) and Resources — the two cross-team menus. */
+export const PROGRAMME_LINKS: NavLink[] = [
+  { href: 'gates', label: 'Gates / Phases', hint: 'G0–G9, freeze-and-log' },
+  { href: 'taskmap', label: 'Task Map', hint: 'who waits on whom' },
+  { href: 'readiness', label: 'Design Readiness', hint: 'component requirements' },
+  { href: 'validation', label: 'Validation', hint: 'targets vs achieved' },
+  { href: 'change-log', label: 'Change Log', hint: 'every frozen edit' },
+  { href: 'snapshots', label: 'Snapshots', hint: 'baselines · diff · restore' },
+  { href: 'report', label: 'Design report', hint: 'printable, whole store' },
+];
+export const RESOURCE_LINKS: NavLink[] = [
+  { href: 'resources', label: 'Resources', hint: 'reference PDFs & uploads' },
+  { href: 'tyre', label: 'Tyre', hint: 'toolset download & results' },
+];
+
+/** The masthead: plain links and dropdown groups, in order. */
+export const NAV: (NavLink | NavGroup)[] = [
   { href: '', label: 'Home' },
-  { href: 'vehicle-dynamics', label: 'VD Workspace' },
+  { label: 'Teams', links: DISCIPLINES.map((d) => ({ href: d.slug, label: d.title })) },
   { href: 'vehicle-spec', label: 'Vehicle Spec' },
-  { href: 'validation', label: 'Validation' },
-  { href: 'readiness', label: 'Design Readiness' },
-  { href: 'tyre', label: 'Tyre' },
-  { href: 'taskmap', label: 'Task Map' },
-  { href: 'gates', label: 'Gates / Phases' },
-  { href: 'report', label: 'Report' },
-  { href: 'resources', label: 'Resources' },
-  { href: 'change-log', label: 'Change Log' },
-] as const;
+  { label: 'Programme', links: PROGRAMME_LINKS },
+  { label: 'Resources', links: RESOURCE_LINKS },
+];
+
+/**
+ * Where a page sits, for breadcrumbs: the owning team (if a team tool page),
+ * else the Programme / Resources group. Team hub pages return null (they're top).
+ */
+export function pageParent(slug: string): { label: string; href?: string } | null {
+  for (const d of DISCIPLINES) {
+    if (d.slug === slug) return null;
+    if (d.tools.some((t) => t.href === slug)) return { label: d.title, href: d.slug };
+  }
+  if (PROGRAMME_LINKS.some((l) => l.href === slug)) return { label: 'Programme' };
+  if (RESOURCE_LINKS.some((l) => l.href === slug)) return { label: 'Resources' };
+  return null;
+}
 
 /**
  * Every tool_outputs key the workspace can produce, with the owning tool/team

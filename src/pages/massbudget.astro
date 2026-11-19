@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import LegendKey from '../components/LegendKey.astro';
-import { url } from '../lib/config';
 
 const LINKED = [
   { mkey: 'wheelbase', label: 'Wheelbase', sym: 'L', unit: 'mm' },
@@ -10,9 +10,7 @@ const LINKED = [
 ];
 ---
 <Base title="MassBudget">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('vehicle-dynamics')} style="color:inherit;">VD Workspace</a> / MassBudget
-  </nav>
+  <Crumbs page="massbudget" label="Mass budget" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">Stage 02 · Gate G0 · writes to Master</p>
     <h1 style="margin-top:0.4rem;">MassBudget &amp; weight / balance</h1>

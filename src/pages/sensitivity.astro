@@ -1,11 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
-import { url } from '../lib/config';
+import Crumbs from '../components/Crumbs.astro';
 ---
 <Base title="Coupling & sensitivity" description="Change one Master number and see exactly which results move, and by how much — driven by the real tool formulas.">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / Coupling &amp; sensitivity
-  </nav>
+  <Crumbs page="sensitivity" label="Coupling & sensitivity" />
   <header style="margin-bottom:1.25rem;">
     <p class="annot annot-tick">Cross-cutting · coupling</p>
     <h1 style="margin-top:0.4rem;">Coupling &amp; sensitivity</h1>

@@ -1,0 +1,19 @@
+---
+/**
+ * Breadcrumb trail: Home / <owning team or menu group> / <this page>.
+ * The middle step comes from the tool registry (pageParent), so moving a tool
+ * to another team in config.ts moves its breadcrumb too.
+ */
+import { url, pageParent } from '../lib/config';
+
+// noprint: hide the trail on paper (printable pages such as the setup sheet).
+const { page, label, noprint = false } = Astro.props as { page: string; label: string; noprint?: boolean };
+const parent = pageParent(page);
+---
+<nav class="annot" aria-label="Breadcrumb" style="margin-bottom:0.75rem;" data-noprint={noprint ? '' : undefined}>
+  <a href={url('')} style="color:inherit;">Home</a> /
+  {parent && (parent.href
+    ? <><a href={url(parent.href)} style="color:inherit;">{parent.label}</a> / </>
+    : <>{parent.label} / </>)}
+  <span aria-current="page">{label}</span>
+</nav>

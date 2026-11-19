@@ -18,6 +18,16 @@ import logo from '../assets/blitz-logo.png';
     </div>
   </section>
 
+  <!-- Teams first — the heart of the landing page (BRIEF §D). Each card lists
+       every tool the team owns, from the registry in config.ts. Programme,
+       Resources and the cross-team pages live in the masthead menus. -->
+  <section style="margin:1.5rem 0 0.5rem;">
+    <div class="annot-dim" style="margin-bottom:1rem;">Teams</div>
+    <div class="grid">
+      {DISCIPLINES.map((d) => <DisciplineCard discipline={d} />)}
+    </div>
+  </section>
+
   <!-- Dashboard — car at a glance (MASTER_BUILD_PLAN §7): KPI tiles from the
        Master + tool contributions, with the g–g as the centrepiece. -->
   <section style="margin:1.5rem 0 2rem;">
@@ -63,78 +73,12 @@ import logo from '../assets/blitz-logo.png';
     </div>
   </section>
 
-  <!-- Gate/phase status + latest results. -->
-  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));margin:1.5rem 0 2.5rem;">
-    <div class="card">
-      <span class="annot">Gate status</span>
-      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
-        G0–G9 phase tracking with freeze-and-log change control.
-      </p>
-      <p style="margin-top:0.8rem;"><a href={url('gates')}>Open Gates / Phases →</a></p>
-    </div>
-    <div class="card">
-      <span class="annot">Task Map</span>
-      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
-        The whole programme as a graph: 13 subteams across 10 phases, every
-        hand-off, and what is unblocked today.
-      </p>
-      <p style="margin-top:0.8rem;"><a href={url('taskmap')}>Open the Task Map →</a></p>
-    </div>
-    <div class="card">
-      <span class="annot">Report &amp; baselines</span>
-      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
-        One printable <a href={url('report')}>design report</a> of the whole shared
-        store, and <a href={url('snapshots')}>snapshots</a> you can diff against a gate.
-      </p>
-      <p style="margin-top:0.8rem;"><a href={url('report')}>Open the report →</a></p>
-    </div>
-    <div class="card">
-      <span class="annot">Vehicle Spec</span>
-      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
-        The shared Master store — enter a number once, read it everywhere.
-      </p>
-      <p style="margin-top:0.8rem;"><a href={url('vehicle-spec')}>Open Vehicle Spec →</a></p>
-    </div>
-    <div class="card">
-      <span class="annot">Latest tyre results</span>
-      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
-        Shared fit results + the MATLAB toolset download.
-      </p>
-      <p style="margin-top:0.8rem;"><a href={url('tyre')}>Open Tyre →</a></p>
-    </div>
-    <div class="card">
-      <span class="annot">g–g diagram</span>
-      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
-        The car's acceleration envelope — grip ellipse, truncated by power &
-        braking, expanded by aero with a speed slider.
-      </p>
-      <p style="margin-top:0.8rem;"><a href={url('gg')}>Open g–g →</a></p>
-    </div>
-    <div class="card">
-      <span class="annot">Predictors & helpers</span>
-      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
-        Lap-time sim, event predictors (accel, skidpad, grip budget) and on-car
-        measurement (CoG tilt, corner-weight, quarter-car, trifilar).
-      </p>
-      <p style="margin-top:0.8rem;"><a href={url('lapsim')}>Lap sim →</a> · <a href={url('events')}>Events →</a> · <a href={url('measurement')}>Measurement →</a> · <a href={url('setup-sheet')}>Setup sheet →</a></p>
-    </div>
-    <div class="card">
-      <span class="annot">Business &amp; ops</span>
-      <p style="margin-top:0.5rem;color:var(--ink-2);font-size:var(--fs-300);">
-        Cost / BOM (FSAE-J), team budget vs actual, the season Gantt against the
-        gates, and a competition points predictor.
-      </p>
-      <p style="margin-top:0.8rem;"><a href={url('cost')}>Cost / BOM →</a> · <a href={url('budget')}>Budget →</a> · <a href={url('gantt')}>Gantt →</a> · <a href={url('points')}>Points →</a></p>
-    </div>
-  </div>
-
-  <!-- The discipline grid — the heart of the landing page (BRIEF §D). -->
-  <section>
-    <div class="annot-dim" style="margin-bottom:1rem;">Disciplines</div>
-    <div class="grid">
-      {DISCIPLINES.map((d) => <DisciplineCard discipline={d} />)}
-    </div>
-  </section>
+  <!-- Programme pages: one quiet line, the full set is in the Programme menu. -->
+  <p class="mono" style="margin:1.25rem 0 2.5rem;font-size:var(--fs-200);color:var(--ink-3);">
+    Programme: <a href={url('gates')}>Gates</a> · <a href={url('taskmap')}>Task Map</a> ·
+    <a href={url('readiness')}>Readiness</a> · <a href={url('validation')}>Validation</a> ·
+    <a href={url('report')}>Report</a> · <a href={url('snapshots')}>Snapshots</a>
+  </p>
 </Base>
 
 <style>@media (max-width: 760px) { .dash-grid { grid-template-columns: 1fr !important; } }</style>

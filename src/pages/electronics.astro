@@ -1,5 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
+import TeamTools from '../components/TeamTools.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
@@ -18,15 +20,14 @@ const POWER_INPUTS = [
 const POWER_OUTPUTS = [{ key: 'total', label: 'Total current = SUM(loads)', unit: 'A' }];
 ---
 <Base title={el.title} description={el.blurb}>
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / {el.title}
-  </nav>
+  <Crumbs page="electronics" label={el.title} />
   <header style="margin-bottom:1.25rem;">
     <p class="annot annot-tick">Discipline</p>
     <h1 style="margin-top:0.4rem;">{el.title}</h1>
     <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{el.blurb}</p>
     <div style="margin-top:1rem;">{el.workbook && <WorkbookDownload file={el.workbook} />}</div>
   </header>
+  <TeamTools team={el} />
 
 
   <div class="notice" style="margin-bottom:1.5rem;">

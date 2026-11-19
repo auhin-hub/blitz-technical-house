@@ -1,11 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import { url } from '../lib/config';
 ---
 <Base title="Season Gantt">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / Season Gantt
-  </nav>
+  <Crumbs page="gantt" label="Season Gantt" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">Technical-team schedule vs build gates</p>
     <h1 style="margin-top:0.4rem;">Season Gantt</h1>

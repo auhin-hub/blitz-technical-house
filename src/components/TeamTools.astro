@@ -1,0 +1,34 @@
+---
+/**
+ * "More <team> tools" — the team's tools that live on their own pages, as a
+ * strip of links on the team page. Without it those pages were reachable only
+ * from search or one card on the home page. Renders nothing if there are none.
+ */
+import { url } from '../lib/config';
+import type { Discipline } from '../lib/config';
+
+const { team } = Astro.props as { team: Discipline };
+const pages = team.tools.filter((t) => t.href);
+---
+{pages.length > 0 && (
+  <section class="team-tools" aria-label={`More ${team.title} tools`}>
+    <span class="annot">More {team.short ?? team.title} tools · own pages</span>
+    <ul>
+      {pages.map((t) => (
+        <li><a href={url(t.href!)} title={t.blurb}>{t.title} <span aria-hidden="true">↗</span></a></li>
+      ))}
+    </ul>
+  </section>
+)}
+
+<style>
+  .team-tools { margin: 0 0 1.5rem; }
+  .team-tools ul { list-style: none; margin: 0.5rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .team-tools a {
+    display: inline-block; padding: 0.35em 0.7em;
+    font-family: var(--font-mono); font-size: var(--fs-200); text-decoration: none;
+    color: var(--ink-2); border: 1px solid var(--rule-strong); border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .team-tools a:hover { color: var(--ink); background: var(--surface-2); border-color: var(--amber); }
+</style>

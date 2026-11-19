@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import LegendKey from '../components/LegendKey.astro';
-import { url } from '../lib/config';
 import { DAMPER_PRESETS } from '../lib/calc/springs';
 
 const LINKED = [
@@ -36,9 +36,7 @@ const ni = 'width:82px;text-align:right;font-family:var(--font-mono);background:
 const sel = 'font-family:var(--font-mono);font-size:var(--fs-300);background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);padding:0.25rem 0.4rem;';
 ---
 <Base title="Springs & dampers">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('vehicle-dynamics')} style="color:inherit;">VD Workspace</a> / Springs &amp; dampers
-  </nav>
+  <Crumbs page="springs" label="Springs & dampers" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">Stage 06 · Gate G5 · writes spring rates to Master</p>
     <h1 style="margin-top:0.4rem;">Springs &amp; dampers</h1>

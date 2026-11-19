@@ -42,9 +42,25 @@ const { tools, railLabel = 'Tools' } = Astro.props as { tools: ToolRef[]; railLa
 
     btns.forEach((b) => b.addEventListener('click', () => show(b.dataset.tool!)));
 
-    // Initial state: show the first tool, hide the rest.
+    // Initial state: the tool named in the URL hash (search, team cards and the
+    // registry link to `page#tool`), else the first one.
+    const fromHash = () => {
+      const id = decodeURIComponent(location.hash.slice(1));
+      return ids.includes(id) ? id : null;
+    };
     if (ids.length) {
-      ids.forEach((x, i) => { const el = document.getElementById(x); if (el) el.hidden = i !== 0; });
+      const start = fromHash();
+      if (start) {
+        show(start);
+        shell.scrollIntoView({ block: 'start' });
+      } else {
+        ids.forEach((x, i) => { const el = document.getElementById(x); if (el) el.hidden = i !== 0; });
+      }
     }
+    // Same-page links (e.g. search while already on the page) only change the hash.
+    window.addEventListener('hashchange', () => {
+      const id = fromHash();
+      if (id) { show(id); shell.scrollIntoView({ block: 'start' }); }
+    });
   });
 </script>

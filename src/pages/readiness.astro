@@ -1,11 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import { url } from '../lib/config';
 ---
 <Base title="Design Readiness">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / Design Readiness
-  </nav>
+  <Crumbs page="readiness" label="Design Readiness" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">Component Readiness · what's ready to start</p>
     <h1 style="margin-top:0.4rem;">Design Readiness</h1>

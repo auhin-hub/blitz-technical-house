@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import LegendKey from '../components/LegendKey.astro';
 import { url } from '../lib/config';
 
@@ -16,9 +17,7 @@ const PARAMS = [
 ];
 ---
 <Base title="Lap-time simulator">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / Lap-time simulator
-  </nav>
+  <Crumbs page="lapsim" label="Lap-time simulator" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">Stage 01 · Targets / LapSim</p>
     <h1 style="margin-top:0.4rem;">Lap-time simulator</h1>

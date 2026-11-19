@@ -1,11 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
-import { url } from '../lib/config';
+import Crumbs from '../components/Crumbs.astro';
 ---
 <Base title="Points predictor">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / Points predictor
-  </nav>
+  <Crumbs page="points" label="Points predictor" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">FS points · relative to the field</p>
     <h1 style="margin-top:0.4rem;">Points predictor</h1>

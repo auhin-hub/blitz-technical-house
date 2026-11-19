@@ -1,11 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
-import { url } from '../lib/config';
+import Crumbs from '../components/Crumbs.astro';
 ---
 <Base title="Setup sheet">
-  <nav class="annot" style="margin-bottom:0.75rem;" data-noprint>
-    <a href={url('')} style="color:inherit;">Home</a> / Setup sheet
-  </nav>
+  <Crumbs page="setup-sheet" label="Setup sheet" noprint />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">Track setup sheet · live snapshot</p>
     <h1 style="margin-top:0.4rem;">Setup sheet</h1>
