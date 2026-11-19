@@ -24,7 +24,7 @@ import LegendKey from '../components/LegendKey.astro';
       outputs={[]}
       stats={[{ key: 'time75', label: 'Time (75 m)', unit: 's' }, { key: 'trapSpeed', label: 'Trap speed', unit: 'km/h' }]} />
     <CalcTool id="skidpad" title="Skidpad" spec="§9"
-      blurb="Steady cornering on a radius: V = √(μ·g·R)."
+      blurb="Steady cornering on a radius, no aero: V = √(μ·g·R). For the speed with downforce, see Aerodynamics → Downforce, drag & performance."
       inputs={[{ key: 'mu', label: 'Peak lateral μ', unit: '-', vals: [1.5], ref: { typ: '1.4–1.7' } }, { key: 'radius', label: 'Path radius', unit: 'm', vals: [8.5], ref: { typ: '~8.5' } }]}
       outputs={[{ key: 'speed', label: 'Speed', unit: 'km/h' }, { key: 'lapTime', label: 'Lap time', unit: 's' }]}
       stats={[{ key: 'latG', label: 'Lateral g', unit: 'g' }]} />

@@ -59,7 +59,34 @@ aero balance front = 0.45.
 - % of weight = `Downforce/(mass_total*9.81)`
 - L/D = `ClA/CdA`
 **Chart:** downforce & drag vs speed (line), + downforce-%-of-weight.
-**Writes:** Cl·A, Cd·A, aero balance (front).
+**Writes:** Cl·A, Cd·A. (Aero balance now comes from §1d, where it is computed.)
+
+**Source for §1b–§1d:** the Aero team's request,
+`reference/requests/Aero_Calculator_Requirements.docx` (equations only, no worked
+examples — the tests in `aero-request.test.ts` use hand values + physical identities).
+Its §1 (downforce, drag, L/D) is the sheet above; Cl·A is kept as one product.
+
+**§1b Performance impact** (request §4) — inside the downforce tool, so Cl·A, Cd·A
+and ρ keep one home. Reads `mass_total`, `mu_lat_peak`; input corner radius R
+(skidpad centreline ≈ 9.125 m).
+- `V0 = √(μt·g·R)`; `V = √[μt·m·g / (m/R − μt·½ρ·ClA)]`; `t = 2πR/V`;
+  `ΔV% = (V−V0)/V0·100`; `ay = V²/R` (÷ g). If `m/R ≤ μt·½ρ·ClA` the model has no
+  speed limit — shown as "downforce-limited", never a number.
+- Per speed row: drag power `P = ½ρ·CdA·V³` (kW).
+
+**§1c CFD mesh y+** (request §3) — standalone. Inputs ρ, U, L, μ_air, target y+.
+- `Re = ρUL/μ`; `Cf = 0.058·Re^−0.2`; `τw = Cf·½ρU²`; `u* = √(τw/ρ)`;
+  `y = y+·μ/(ρ·u*)` (first cell centre); `Δ1 = 2y` (first layer); `δ = 0.37·L·Re^−1/5`.
+
+**§1d Aero balance / CoP / axle loads** (request §2) — replaces the earlier
+front/rear Cl·A balance (two elements on the axles reproduce it). Reads
+`wheelbase`, `mass_total`, `mass_frac_front`. Inputs per element (front wing,
+floor/diffuser, rear wing, other): Cl·Aᵢ, xᵢ (mm from the front axle, +rearward);
+plus speed, ρ, Cd·A, drag centre height.
+- `Fᵢ = ½ρV²·ClAᵢ`; `Nf,aero = ΣFᵢ(l−xᵢ)/l`; `Nr,aero = ΣFᵢxᵢ/l`;
+  `%front = Nf,aero/(Nf,aero+Nr,aero)·100`; `x_cp = Σ(Fᵢxᵢ)/ΣFᵢ`;
+  `Nf = m·g·ff + Nf,aero − F_drag·h_drag/l`; `Nr = m·g·(1−ff) + Nr,aero + F_drag·h_drag/l`.
+**Writes:** aero balance (front fraction) → `aero_balance_front`.
 
 ## 2. Chassis  (`Blitz_Chassis_WorkingFile.xlsx`)
 **Reads:** mass_total, cog_height, wheelbase, track_front, track_rear,
