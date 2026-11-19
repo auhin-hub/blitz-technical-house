@@ -85,11 +85,13 @@ export const DISCIPLINES: Discipline[] = [
   {
     slug: 'chassis',
     title: 'Chassis',
-    blurb: 'Tube stress & FoS, buckling, bolted joints, component-mass tracker.',
+    blurb: 'Impact forces, twist-test torsional & relative stiffness, tube stress & FoS, buckling, bolted joints, mass tracker.',
     workbook: 'Blitz_Chassis_WorkingFile.xlsx',
     built: true,
     tools: [
-      { title: 'Tube stress & FoS', anchor: 'tube', blurb: 'Section area, axial stress, factor of safety; torsional stiffness.', spec: 'TOOL_SPECS §2a' },
+      { title: 'Impact forces', anchor: 'impact', blurb: 'Front / rear / side F = m·n·g from the Master mass.', spec: 'TOOL_SPECS §2c' },
+      { title: 'Torsional & relative stiffness', anchor: 'stiffness', blurb: 'Twist test → K chassis → K sus, K vehicle, K relative.', spec: 'TOOL_SPECS §2d' },
+      { title: 'Tube stress & FoS', anchor: 'tube', blurb: 'Section area, axial stress, factor of safety.', spec: 'TOOL_SPECS §2a' },
       { title: 'Component-mass tracker', anchor: 'mass', blurb: 'CAD vs measured per component → feeds MassBudget.', spec: 'TOOL_SPECS §2b' },
       { title: 'Tube buckling', anchor: 'buckling', blurb: 'Euler critical load for a round tube.' },
       { title: 'Bolted joint', anchor: 'bolt', blurb: 'Proof load, clamp and tightening torque.' },
