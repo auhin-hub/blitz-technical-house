@@ -4,13 +4,20 @@
  * once. These tests fail the build if a registered page or anchor doesn't exist.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { DISCIPLINES, PROGRAMME_LINKS, RESOURCE_LINKS, pageParent } from './config';
 
-const page = (slug: string) => resolve(__dirname, '../pages', `${slug}.astro`);
+// Page sources via Vite's glob (no Node fs/path — the project ships no Node types).
+const SOURCES = import.meta.glob('../pages/*.astro', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const pagePath = (slug: string) => `../pages/${slug}.astro`;
+const existsSync = (p: string) => p in SOURCES;
+const readFileSync = (p: string) => SOURCES[p];
+const page = pagePath;
 
 describe('tool registry', () => {
+  it('finds the page sources at all (guards the glob itself)', () => {
+    expect(Object.keys(SOURCES).length).toBeGreaterThan(20);
+  });
+
   it('every team has a page', () => {
     for (const d of DISCIPLINES) expect(existsSync(page(d.slug)), d.slug).toBe(true);
   });
@@ -32,7 +39,7 @@ describe('tool registry', () => {
 
   it('every anchor-tool exists as an id on its team page', () => {
     for (const d of DISCIPLINES) {
-      const src = readFileSync(page(d.slug), 'utf8');
+      const src = readFileSync(page(d.slug));
       for (const t of d.tools.filter((x) => x.anchor)) {
         expect(src.includes(`id="${t.anchor}"`), `${d.slug}#${t.anchor}`).toBe(true);
       }
