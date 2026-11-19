@@ -71,10 +71,10 @@ describe('helmet clearance', () => {
     expect(c.value).toBeCloseTo(150, 9);
     expect(c.status).toBe('pass');
   });
-  it('FS China uses the 2 in (50.8 mm) clearance', () => {
-    const c = helmetChecks(flat, RULES.fsc, { x: 1200, z: 1000 - 150 - 50.5 }, 150, 'X')[0];
-    expect(c.status).toBe('fail');                                         // 50.5 < 50.8
-    expect(helmetChecks(flat, RULES.fsae, { x: 1200, z: 1000 - 150 - 50.5 }, 150, 'X')[0].status).toBe('pass');
+  it('just under 50 mm fails for every rulebook (FS China 2026 is 50 mm, not the old 2 in)', () => {
+    for (const id of RULE_IDS) {
+      expect(helmetChecks(flat, RULES[id], { x: 1200, z: 1000 - 150 - 49.5 }, 150, 'X')[0].status).toBe('fail');
+    }
   });
   it('line distance + side', () => {
     const l = lineDistance({ x: 0, z: 0 }, { x: -1, z: 1 }, { x: 1, z: 1 });
@@ -116,12 +116,12 @@ describe('rules data', () => {
     }
     expect(RULES.fsae.shoulderBelt.spacing).toEqual([175, 235]);
     expect(RULES.fsuk.shoulderBelt.spacing).toEqual([180, 230]);   // FS Rules 2026 T 5.5
-    expect(RULES.fsc.helmetClearance.min).toBe(50.8);             // FSC 2023, 2 in
+    expect(RULES.fsc.helmetClearance.min).toBe(50);               // FSC 2026 T 4.10
+    expect(RULES.fsc.percy.headToRestraint).toBe(25.4);           // FSC 2026 T 4.10.6
   });
-  it('the competitions not read in full are flagged', () => {
-    expect(RULES.fsj.unverified.length).toBeGreaterThan(0);
-    expect(RULES.fsc.unverified.length).toBeGreaterThan(0);
-    expect(RULES.fsae.unverified).toEqual([]);
+  it('only the FSAE 2026-vs-2027 base for Japan is still flagged', () => {
+    expect(RULES.fsj.unverified.length).toBe(1);
+    for (const id of ['fsae', 'fsuk', 'fsc'] as const) expect(RULES[id].unverified).toEqual([]);
   });
 });
 

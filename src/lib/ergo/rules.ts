@@ -92,10 +92,10 @@ export const RULES: Record<RuleId, CockpitRules> = {
   fsj: {
     id: 'fsj',
     name: 'Formula SAE Japan (FSAEJ)',
-    edition: 'FSAEJ 2026 — runs on Formula SAE Rules 2026 + JSAE local rules',
+    edition: 'FSAEJ 2026 — Formula SAE Rules 2026 + JSAE Local Rules 4th ed. (16 Jun 2026)',
     source:
-      'JSAE states the event follows Formula SAE Rules 2026, with its participation and local rules taking precedence. ' +
-      'Values below are the FSAE values; the JSAE local-rule PDFs could not be fetched to check for overrides.',
+      'JSAE local rules read directly: none change the cockpit geometry checked here (J2026-T-02/T-03 only cover harness ' +
+      'eyebolt hardware; J2026-IN-02: judges choose which side you exit at the egress test). Cockpit values are the FSAE ones.',
     percy: {
       hipDia: 200, shoulderDia: 200, headDia: 300, hipToShoulder: 490, shoulderToHead: 280,
       minHipToPedal: 915, headToRestraint: 25, headToRestraintMode: 'max',
@@ -104,37 +104,30 @@ export const RULES: Record<RuleId, CockpitRules> = {
     helmetClearance: { min: 50, ref: 'FSAE F.5.6' },
     uprightMaxFromVertical: { deg: 30, ref: 'FSAE T.2.1' },
     lapBelt: { upright: [45, 65], reclined: [60, 80], seatBottomFwd: [0, 75], ref: 'FSAE T.2.5' },
-    shoulderBelt: { angle: [-20, 10], spacing: [175, 235], ref: 'FSAE T.2.6' },
+    shoulderBelt: { angle: [-20, 10], spacing: [175, 235], ref: 'FSAE T.2.6 (eyebolts: J2026-T-03)' },
     headRestraintGap: { max: 25, ref: 'FSAE T.2.8' },
     steeringToFrontHoop: { max: 250, ref: 'FSAE F.5.8' },
-    egress: { maxS: 5, ref: 'FSAE IN.9.3' },
-    unverified: ['JSAE local rules not checked — add the 2026 FSAEJ LocalRule PDF to confirm'],
+    egress: { maxS: 5, ref: 'FSAE IN.9.3; side chosen by the judges (J2026-IN-02)' },
+    unverified: ['Cockpit values read from FSAE Rules 2027 — FSAEJ 2026 runs on FSAE Rules 2026 (not read here; expected to match)'],
   },
   fsc: {
     id: 'fsc',
     name: 'Formula Student China (FSC)',
-    edition: 'FSC 2023 rulebook (CSAE, Chinese) — newest edition found',
-    source:
-      'CSAE 2023 edition, based on the FSAE rules with FS Germany additions. Read via text extraction; ' +
-      'Chinese characters did not extract, numbers did. Uses inch-based clearances (2 in / 1 in).',
+    edition: 'China Formula Student Series Regulations 2026 (CSAE, English translation)',
+    source: 'CSAE 2026 regulations, read directly (English edition, chief translator Li Liguang).',
     percy: {
       hipDia: 200, shoulderDia: 200, headDia: 300, hipToShoulder: 490, shoulderToHead: 280,
       minHipToPedal: 915, headToRestraint: 25.4, headToRestraintMode: 'max',
-      ref: '3.10.5–3.10.6',
+      ref: 'T 4.10.6',
     },
-    helmetClearance: { min: 50.8, ref: '3.10.5 (2 in)' },
-    uprightMaxFromVertical: { deg: 30, ref: '5.x definitions' },
-    lapBelt: { upright: [45, 65], reclined: [60, 80], seatBottomFwd: [0, 76], ref: '5.3.5–5.3.6' },
-    shoulderBelt: { angle: [-20, 10], spacing: [175, 235], ref: '5.4.4–5.4.5' },
-    headRestraintGap: { max: 25.4, ref: '5.x head restraint' },
-    steeringToFrontHoop: { max: 250, ref: '3.12.5' },
-    egress: { maxS: 5, ref: '—' },
-    unverified: [
-      'Edition is 2023 — no 2026 FSC rulebook found',
-      'Upright/reclined 30° threshold not confirmed from the text',
-      'Egress time limit not confirmed from the text',
-      'Head-restraint gap per driver not confirmed from the text',
-    ],
+    helmetClearance: { min: 50, ref: 'T 4.10' },
+    uprightMaxFromVertical: { deg: 30, ref: 'T 6.1' },
+    lapBelt: { upright: [45, 65], reclined: [60, 80], seatBottomFwd: [0, 76], ref: 'T 6.3.5–6.3.6' },
+    shoulderBelt: { angle: [-20, 10], spacing: [175, 235], ref: 'T 6.4.5–6.4.7' },
+    headRestraintGap: { max: 25, ref: 'T 6.6' },
+    steeringToFrontHoop: { max: 250, ref: 'T 4.12.5' },
+    egress: { maxS: 5, ref: 'T 5.8.1' },
+    unverified: [],
   },
 };
 

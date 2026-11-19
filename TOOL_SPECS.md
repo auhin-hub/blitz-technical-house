@@ -167,15 +167,16 @@ egress < 5 s; clear view; belts anchored per rules. Render as a checklist.
 **§5b Cockpit packaging studio** (team request, not a workbook port). Side view,
 mm, x rearward from the front axle, z up from ground (`src/lib/ergo/`).
 - **Rulebook selector:** FSAE 2027 V1.0, FS Rules 2026 v1.0 (FS UK), FSAE Japan
-  (FSAE base; JSAE local rules not yet checked), FS China 2023. Values + rule
+  2026 (FSAE base + JSAE Local Rules 4th ed. — no cockpit-geometry overrides),
+  FS China 2026 (CSAE English edition). Values + rule
   numbers in `rules.ts`; anything not confirmed from the source is listed as
   unverified and shown on the page. Rulebook PDFs are © their publishers and are
   not stored in the repo.
 - **Percy** placed per the rulebook: lower 200 mm circle on the seat bottom at
   ≥ 915 mm from the rearmost pedal face (pedals forward, seat rearmost); middle
   circle on the seat back, 490 mm on; 300 mm head circle 280 mm on, at the
-  rulebook gap (25 / 25.4 mm) from the head restraint.
-- **Checks:** helmet ≥ 50 mm (FSC 50.8) from main–front hoop line and from the
+  rulebook gap (25 mm; FSC 25.4 mm) from the head restraint.
+- **Checks:** helmet ≥ 50 mm from main–front hoop line and from the
   main hoop–rear brace line (or not behind the main hoop if braced forward);
   upright vs reclined (template back line ≤ 30° from vertical); lap belt 45–65°
   upright / 60–80° reclined, and 0–75/76 mm forward of the seat junction
