@@ -291,6 +291,37 @@ brake-torque target; achieved brake bias; spring rate F/R.
 
 ---
 
+## Cooling Dyno Analyzer  (BRIEF §E2 — native, ported from `reference/Cooling Cacl.html`)
+Two Powertrain rail tools (no iframe; `public/tools/cooling.html` deleted):
+- **Cooling — dyno & pump data** (`#cooling-data`, tool_state `cool_data`, team-shared, last save wins):
+  dyno table (rpm, kW, N·m optional), CSV paste (`parseDynoCsv` = original `parseCsv` rules), KTM 390 RC sample
+  (13 pts), pump curve table (KTM 390 default, reset / sort / clear), power-torque and pump charts.
+- **Cooling — radiator analysis** (`#cooling`, tool `pt_cooling`): all scalar inputs (radiator geometry, fin wave
+  pitch + literature correction, max safe T / ambient / ram β, sprockets / tyre / primary / 6 gear ratios, fan CFM +
+  trigger, η and heat-to-coolant %), live results (T_out, margin, Q rejected, Q peak, UA, ε, NTU, h_air, Re,
+  regime, pump flow, fan state), 4 charts (T_out vs rpm, vs speed, Q_rad vs speed, all gears), gear table and the
+  3-scenario EDR table. It recalculates live (the original had a Run button); nothing else about the maths changed.
+- **Physics** (`src/lib/calc/cooling.ts`): exact port of lerp, getPumpFlow, getGearRatios, calcSpeed, getGearSpeeds,
+  calcRad (NTU-ε, cross-flow unmixed; rho_c 961.5, Cp_c 4212, h_c 3500, kf 205, tf 8e-5; Ismael et al. 2016 factor
+  (P/2.5)^-0.63), solveSSTemp/bisect (tol 0.5 W, 80 iterations, fan OFF solve then ON if T_in > trigger) and the
+  runAnalysis number-crunching. `cooling.test.ts` evaluates the ORIGINAL source text and asserts identical results
+  for 5 input sets (defaults + sample + KTM pump, hot day + literature correction, bigger core, custom dyno/pump,
+  5 gears + empty pump), plus parseCsv cases and physical constraints (energy balance, ε in (0,1), more air ⇒ cooler).
+- **Quirks kept from the original:** the KPI margin / PASS are against a fixed 110 °C while the scenario table uses
+  the "max safe coolant temp" input; at 0 km/h with the fan off the air flow is zero and the result is NaN (gap in the
+  chart); runAnalysis' `||` fallbacks (blank sprocket → 14/42, tyre → 520, primary → 3.071, limit → 110, trigger → 96).
+- **Links to the rest of the site** (golden rule): tyre Ø used = 2 × Vehicle Spec `rolling_radius` when set (same
+  quantity: effective rolling diameter, mm), else the tool's own tyre Ø (data-master). Final drive used = Drivetrain &
+  traction's contributed `final_drive` when present (same meaning: overall ratio after the gearbox, rear ÷ front
+  sprocket), else the sprockets (data-output). Engine peak power (`engine_peak_power`) is shown only as a cross-check
+  against the dyno peak — the dyno is measured data and is not overwritten. NOT linked, kept as own inputs: primary
+  reduction and gear ratios (Drivetrain & traction does not contribute them, and its 1st gear / primary are workbook
+  placeholders), ambient T, fan, radiator geometry (no shared equivalent).
+- **ToMaster** (tool_outputs `pt_cooling`): `heat_rejection_kw` (radiator Q at peak rpm, top gear), `radiator_area`
+  (core frontal area W·H as modelled, m² — the original has no "required area" calculation, so none is invented),
+  `coolant_tout_peak`, `coolant_margin` (against 110 °C). Upstream for the temperature results and heat rejection:
+  `rolling_radius`; `final_drive` is a tool output and `upstream` only names Master keys, so it is not listed.
+
 ## Declutter (what moved / was removed — owner-approved)
 - **Removed:** Points predictor (`/points`, `calc/points.ts`) and Season Gantt
   (`/gantt`, `calc/gantt.ts`). Database tables untouched.

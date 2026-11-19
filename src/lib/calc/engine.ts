@@ -47,9 +47,12 @@ export interface CalcSpec {
   toMaster?: { key: string; label: string; unit: string; from: string }[];
 }
 
-export async function mountCalculator(spec: CalcSpec): Promise<void> {
+/** Returned so a tool with non-scalar inputs (tables) can ask for a recompute when they change. */
+export interface CalcHandle { recompute: () => void; }
+
+export async function mountCalculator(spec: CalcSpec): Promise<CalcHandle | undefined> {
   const scope = document.getElementById(spec.root);
-  if (!scope) return;
+  if (!scope) return undefined;
   applyChartDefaults();
   const inputs = Array.from(scope.querySelectorAll<HTMLInputElement>('[data-in]'));
   const saveStatus = scope.querySelector<HTMLElement>('[data-save-status]');
@@ -264,4 +267,6 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
       }
     },
   });
+
+  return { recompute: () => { recompute(); } };
 }

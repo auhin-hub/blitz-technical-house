@@ -124,12 +124,13 @@ export const DISCIPLINES: Discipline[] = [
   {
     slug: 'powertrain',
     title: 'Powertrain',
-    blurb: 'Drivetrain & traction, gear speeds, intake restrictor, Cooling Dyno Analyzer.',
+    blurb: 'Drivetrain & traction, Cooling Dyno Analyzer (dyno data, radiator thermal analysis), gear speeds, intake restrictor.',
     workbook: 'Blitz_Powertrain_WorkingFile.xlsx',
     built: true,
     tools: [
       { title: 'Drivetrain & traction', anchor: 'traction', blurb: 'Wheel torque, tractive force vs traction limit, launch accel.', spec: 'TOOL_SPECS §6' },
-      { title: 'Cooling — Dyno Analyzer', anchor: 'cooling', blurb: 'Heat rejection vs speed, fan model, power/torque curves (re-skinned).', spec: 'BRIEF §E2' },
+      { title: 'Cooling — dyno & pump data', anchor: 'cooling-data', blurb: 'Dyno power/torque curve and coolant pump curve (CSV import, sample data).', spec: 'BRIEF §E2' },
+      { title: 'Cooling — radiator analysis', anchor: 'cooling', blurb: 'Engine heat load → NTU radiator model: steady-state coolant temperature vs rpm, gear and speed; fan model; scenarios.', spec: 'BRIEF §E2' },
       { title: 'Gear speed', anchor: 'gearspeed', blurb: 'Road speed per gear.', rare: true },
       { title: 'Intake restrictor', anchor: 'restrictor', blurb: 'Restrictor sizing.', rare: true },
     ],
@@ -274,9 +275,13 @@ export const TOOL_OUTPUT_KEYS: { key: string; label: string; team: string; upstr
   { key: 'rack_force', label: 'Rack force', team: 'VD', upstream: ['mu_lat_peak', 'axle_load_front', 'rolling_radius'] },
   { key: 'lap_time_s', label: 'Lap time', team: 'VD', upstream: ['mass_total', 'mu_lat_peak'] },
   { key: 'endurance_fuel_l', label: 'Endurance fuel', team: 'Powertrain', upstream: ['mass_total', 'mu_lat_peak'] },
-  // radiator_area / heat_rejection_kw were registered for the Cooling tool, which
-  // is an embedded iframe that contributes nothing — removed so the Readiness
-  // picker only offers keys the workspace actually produces (audit P1-7).
+  // Cooling analysis (native tool, src/lib/calc/cooling.ts). Upstream: the tyre Ø behind the vehicle speed
+  // (hence ram air) is 2 × rolling_radius; the final drive is a tool output, which `upstream` (Master keys only)
+  // cannot name — see TOOL_SPECS BRIEF §E2.
+  { key: 'heat_rejection_kw', label: 'Radiator heat rejection', team: 'Powertrain', upstream: ['rolling_radius'] },
+  { key: 'radiator_area', label: 'Radiator core frontal area', team: 'Powertrain' },
+  { key: 'coolant_tout_peak', label: 'Coolant outlet temp (peak rpm)', team: 'Powertrain', upstream: ['rolling_radius'] },
+  { key: 'coolant_margin', label: 'Coolant margin below 110 °C', team: 'Powertrain', upstream: ['rolling_radius'] },
 ];
 
 /**
