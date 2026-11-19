@@ -29,8 +29,9 @@ export const AERO_ELEMENTS = [
   { key: 'ot', label: 'Body & other' },
 ] as const;
 
-/** inp: speed (km/h), rho, cdA, hDrag (mm), cla_<el>, x_<el> (mm).
- *  m: wheelbase (mm), mass_total (kg), mass_frac_front (-). */
+/** inp: speed (km/h), rho, hDrag (mm), cla_<el>, x_<el> (mm).
+ *  m: wheelbase (mm), mass_total (kg), mass_frac_front (-), and cd_a (m²) —
+ *  the Downforce tool's contributed Cd·A, linked rather than re-typed. */
 export function aeroBalanceCompute(inp: Flat, m: Flat): Out {
   const l = m.wheelbase;
   const v = inp.speed / 3.6;
@@ -49,7 +50,7 @@ export function aeroBalanceCompute(inp: Flat, m: Flat): Out {
   const nrAero = ok ? sumFx / l : NaN;
   const nfAero = ok ? sumF - nrAero : NaN;            // = Σ Fi·(l − xi)/l
   const balanceFront = ok ? nfAero / (nfAero + nrAero) : NaN;
-  const fDrag = q * inp.cdA;
+  const fDrag = q * m.cd_a;                            // NaN until Cd·A is contributed
   const pitch = l > 0 ? (fDrag * inp.hDrag) / l : NaN; // drag couple → axle loads
 
   const ff = m.mass_frac_front;

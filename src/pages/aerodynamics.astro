@@ -44,7 +44,6 @@ const BAL_LINKED = [
 const BAL_INPUTS = [
   { key: 'speed', label: 'Speed V', unit: 'km/h', val: 80 },
   { key: 'rho', label: 'Air density ρ', unit: 'kg/m³', val: 1.18 },
-  { key: 'cdA', label: 'Cd·A (as in the Downforce tool)', unit: 'm²', val: 0.6 },
   { key: 'hDrag', label: 'Drag centre height h_drag', unit: 'mm', val: 400 },
 ];
 const BAL_OUT = [
@@ -204,6 +203,15 @@ const tbl = 'border-collapse:collapse;font-size:var(--fs-300);margin-top:0.4rem;
           </tr>
         ))}
       </tbody>
+    </table>
+
+    <h3 style={h3}>From the Downforce tool</h3>
+    <table style={tbl}>
+      <tbody><tr>
+        <td style={td}>Cd·A (contributed) <span class="mono" style="color:var(--ink-3);">(cd_a)</span></td>
+        <td style={td + 'text-align:right;'}><span class="field field-linked mono" data-output="cd_a" data-output-hint="press Contribute in Downforce, drag & performance">—</span></td>
+        <td style={td} class="mono">m²</td>
+      </tr></tbody>
     </table>
 
     <h3 style={h3}>Elements</h3>

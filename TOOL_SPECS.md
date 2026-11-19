@@ -82,7 +82,9 @@ and ρ keep one home. Reads `mass_total`, `mu_lat_peak`; input corner radius R
 front/rear Cl·A balance (two elements on the axles reproduce it). Reads
 `wheelbase`, `mass_total`, `mass_frac_front`. Inputs per element (front wing,
 floor/diffuser, rear wing, other): Cl·Aᵢ, xᵢ (mm from the front axle, +rearward);
-plus speed, ρ, Cd·A, drag centre height.
+plus speed, ρ, drag centre height. Cd·A is **linked** from the Downforce tool's
+contributed `cd_a` (engine `data-output` link), not re-typed — axle loads show
+"—" until it has been contributed.
 - `Fᵢ = ½ρV²·ClAᵢ`; `Nf,aero = ΣFᵢ(l−xᵢ)/l`; `Nr,aero = ΣFᵢxᵢ/l`;
   `%front = Nf,aero/(Nf,aero+Nr,aero)·100`; `x_cp = Σ(Fᵢxᵢ)/ΣFᵢ`;
   `Nf = m·g·ff + Nf,aero − F_drag·h_drag/l`; `Nr = m·g·(1−ff) + Nr,aero + F_drag·h_drag/l`.

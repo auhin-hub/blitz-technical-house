@@ -68,13 +68,13 @@ describe('§3 mesh y+ (ρ 1.225, U 20 m/s, L 3 m, μ 1.81e-5, y+ 1)', () => {
 });
 
 describe('§2 aero balance from elements', () => {
-  const master = { wheelbase: 1550, mass_total: 300, mass_frac_front: 0.46 };
-  const base = { speed: 80, rho: 1.18, cdA: 0.6, hDrag: 400,
+  const master = { wheelbase: 1550, mass_total: 300, mass_frac_front: 0.46, cd_a: 0.6 };
+  const base = { speed: 80, rho: 1.18, hDrag: 400,
     cla_fw: 0.3, x_fw: -500, cla_fl: 0.25, x_fl: 700, cla_rw: 0.3, x_rw: 1700, cla_ot: 0, x_ot: 0 };
   const o = aeroBalanceCompute(base, master);
 
   it('reproduces the old two-number balance: elements on the axles → ClA_f / ΣClA', () => {
-    const two = aeroBalanceCompute({ speed: 80, rho: 1.18, cdA: 0, hDrag: 0,
+    const two = aeroBalanceCompute({ speed: 80, rho: 1.18, hDrag: 0,
       cla_fw: 0.36, x_fw: 0, cla_rw: 0.44, x_rw: 1550 }, { ...master, mass_frac_front: 0.456867 });
     expect(two.balanceFront as number).toBeCloseTo(0.45, 9);
     expect(two.cpMinusCg as number).toBeCloseTo(-0.006867, 6);
@@ -92,6 +92,11 @@ describe('§2 aero balance from elements', () => {
     expect((o.nf as number) + (o.nr as number)).toBeCloseTo(300 * G + (o.sumF as number), 6);
     const noDrag = aeroBalanceCompute({ ...base, hDrag: 0 }, master);
     expect((noDrag.nf as number) - (o.nf as number)).toBeCloseTo(((o.fDrag as number) * 400) / 1550, 9);
+  });
+  it('Cd·A not contributed yet → axle loads "—", balance still shown', () => {
+    const noCd = aeroBalanceCompute(base, { ...master, cd_a: NaN });
+    expect(noCd.nf).toBeNaN();
+    expect(noCd.pctFront as number).toBeCloseTo(o.pctFront as number, 12);
   });
   it('no wheelbase in Master → "—", never a fake balance', () => {
     expect(aeroBalanceCompute(base, { ...master, wheelbase: 0 }).pctFront).toBeNaN();
