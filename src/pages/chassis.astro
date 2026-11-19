@@ -7,16 +7,35 @@ import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
 import CockpitShell from '../components/CockpitShell.astro';
 import { DISCIPLINES } from '../lib/config';
+import { PARAM_SEED } from '../lib/master';
 import { MASS_COMPONENTS } from '../lib/calc/chassis-mass';
 
 const ch = DISCIPLINES.find((d) => d.slug === 'chassis')!;
+const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
+
+// ---- Impact forces (request §2–5) — mass is read from Master, never retyped.
+const IMPACT_LINKED = [{ mkey: 'mass_total', label: 'Total mass (car + driver)', sym: 'm', unit: 'kg' }];
+const IMPACT_INPUTS = [
+  { key: 'nFront', label: 'Front impact deceleration n', unit: 'g', vals: [20], note: 'design assumption' },
+  { key: 'nRear', label: 'Rear impact deceleration n', unit: 'g', vals: [10], note: 'design assumption' },
+  { key: 'nSide', label: 'Side impact deceleration n', unit: 'g', vals: [10], note: 'design assumption' },
+];
+
+// ---- Twist test → torsional + relative stiffness (request §6–7).
+const STIFF_INPUTS = [
+  { key: 'force', label: 'Force at the load points F', unit: 'N', vals: [1000] },
+  { key: 'dist', label: 'Distance between load points d', unit: 'm', vals: [0.6] },
+  { key: 'defl1', label: 'Deflection δ1 (left point)', unit: 'mm', vals: [0.8] },
+  { key: 'defl2', label: 'Deflection δ2 (right point)', unit: 'mm', vals: [0.8] },
+  { key: 'kf', label: 'Front roll stiffness Kf', unit: 'N·m/deg', vals: [133.07], note: 'springs + ARB' },
+  { key: 'kr', label: 'Rear roll stiffness Kr', unit: 'N·m/deg', vals: [221.37], note: 'springs + ARB' },
+];
+
 const TUBE_INPUTS = [
   { key: 'memberForce', label: 'Design member force (from LoadCases)', unit: 'N', vals: [1455] },
   { key: 'tubeOd', label: 'Tube OD', unit: 'mm', vals: [25] },
   { key: 'tubeWall', label: 'Tube wall', unit: 'mm', vals: [2] },
   { key: 'yield', label: 'Material yield', unit: 'MPa', vals: [435] },
-  { key: 'torsionTarget', label: 'Torsional stiffness target', unit: 'N·m/deg', vals: [1600] },
-  { key: 'torsionMeasured', label: 'Torsional stiffness measured (twist test)', unit: 'N·m/deg', vals: [0] },
 ];
 const TUBE_OUTPUTS = [
   { key: 'sectionArea', label: 'Section area = π/4·(OD²−(OD−2·wall)²)', unit: 'mm²' },
@@ -44,12 +63,49 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
   <LegendKey />
 
   <div style="margin-top:1.25rem;"></div>
-  <CockpitShell tools={[{ id: 'tube', title: 'Tube stress & FoS' }, { id: 'mass', title: 'Component-mass tracker' }, { id: 'buckling', title: 'Tube buckling' }, { id: 'bolt', title: 'Bolted joint' }]} railLabel="Chassis">
+  <CockpitShell tools={[
+    { id: 'impact', title: 'Impact forces' },
+    { id: 'stiffness', title: 'Torsional & relative stiffness' },
+    { id: 'tube', title: 'Tube stress & FoS' },
+    { id: 'mass', title: 'Component-mass tracker' },
+    { id: 'buckling', title: 'Tube buckling' },
+    { id: 'bolt', title: 'Bolted joint' },
+  ]} railLabel="Chassis">
+  <CalcTool id="impact" title="Impact forces — front / rear / side" spec="TOOL_SPECS §2c"
+    blurb="Quasi-static impact load F = m · n · 9.81. Mass is the car + driver total from Vehicle Spec; the decelerations are the team's design assumptions, not rulebook values."
+    linked={IMPACT_LINKED} seed={seed} inputs={IMPACT_INPUTS}
+    outputs={[
+      { key: 'front', label: 'Front impact force F = m·n·g', unit: 'N' },
+      { key: 'rear', label: 'Rear impact force', unit: 'N' },
+      { key: 'side', label: 'Side impact force', unit: 'N' },
+    ]}
+    stats={[
+      { key: 'frontKn', label: 'Front', unit: 'kN' },
+      { key: 'rearKn', label: 'Rear', unit: 'kN' },
+      { key: 'sideKn', label: 'Side', unit: 'kN' },
+    ]} />
+
+  <CalcTool id="stiffness" title="Torsional stiffness (twist test) → relative stiffness" spec="TOOL_SPECS §2d"
+    blurb="Twist test: T = F·d, θ = arctan((δ1+δ2)/d) with δ converted mm → m, K = T/θ. K chassis then feeds the series model Kf — K chassis — Kr. Kf and Kr are total roll stiffness (springs + anti-roll bars), all in N·m/deg."
+    inputs={STIFF_INPUTS}
+    outputs={[
+      { key: 'torque', label: 'Couple T = F·d', unit: 'N·m' },
+      { key: 'thetaDeg', label: 'Twist angle θ', unit: 'deg' },
+      { key: 'thetaRad', label: 'Twist angle θ', unit: 'rad' },
+      { key: 'kRad', label: 'K chassis', unit: 'N·m/rad' },
+      { key: 'kSus', label: 'K sus = (1/Kf + 1/Kr)⁻¹', unit: 'N·m/deg' },
+      { key: 'kVehicle', label: 'K vehicle = (1/Kf + 1/Kr + 1/K chassis)⁻¹', unit: 'N·m/deg' },
+    ]}
+    stats={[
+      { key: 'kDeg', label: 'K chassis (torsional stiffness)', unit: 'N·m/deg', ref: { typ: 'target ≥ 1600', src: 'Validation target' } },
+      { key: 'kRelative', label: 'K relative = K chassis / K sus', unit: '%' },
+    ]}
+    contribute contributeNote="Writes K chassis (N·m/deg) to the shared store as the measured torsional stiffness — checked against the 1600 N·m/deg target on the Validation page." />
+
   <CalcTool id="tube" title="Tube stress & factor of safety" spec="TOOL_SPECS §2a"
-    blurb="Axial stress and FoS for a round tube, plus the torsional-stiffness target vs measured twist test."
+    blurb="Axial stress and factor of safety for a round tube. (Torsional stiffness now comes from the twist-test tool.)"
     inputs={TUBE_INPUTS} outputs={TUBE_OUTPUTS}
-    stats={[{ key: 'fos', label: 'Factor of safety (target ≥ 1.5)' }]}
-    contribute contributeNote="Writes measured torsional stiffness to the shared store (ToMaster)." />
+    stats={[{ key: 'fos', label: 'Factor of safety (target ≥ 1.5)' }]} />
 
   <!-- Component-mass tracker: custom grid -->
   <section id="mass" class="card" style="margin-top:1.25rem;">
@@ -129,15 +185,25 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
 <script>
   import { mountCalculator } from '../lib/calc/engine';
   import { tubeCompute } from '../lib/calc/chassis-tube';
+  import { impactCompute } from '../lib/calc/chassis-impact';
+  import { stiffnessCompute } from '../lib/calc/chassis-stiffness';
   import { massCompute, MASS_COMPONENTS } from '../lib/calc/chassis-mass';
   import { tubeBucklingCompute, boltedJointCompute } from '../lib/calc/extras';
   import { mountListControls } from '../lib/list-controls';
   import { toCsv, parseCsv, missingColumns } from '../lib/csv';
 
   mountCalculator({
-    root: 'tube', tool: 'chassis_tube', compute: tubeCompute, defaultDigits: 2,
-    toMaster: [{ key: 'torsional_stiffness', label: 'Torsional stiffness (measured)', unit: 'N·m/deg', from: 'torsionMeasured' }],
+    root: 'impact', tool: 'chassis_impact', compute: impactCompute,
+    digits: { front: 0, rear: 0, side: 0, frontKn: 2, rearKn: 2, sideKn: 2 },
   });
+
+  mountCalculator({
+    root: 'stiffness', tool: 'chassis_stiffness', compute: stiffnessCompute,
+    digits: { torque: 1, thetaDeg: 4, thetaRad: 6, kRad: 0, kDeg: 0, kSus: 2, kVehicle: 2, kRelative: 2 },
+    toMaster: [{ key: 'torsional_stiffness', label: 'Torsional stiffness (twist test)', unit: 'N·m/deg', from: 'kDeg' }],
+  });
+
+  mountCalculator({ root: 'tube', tool: 'chassis_tube', compute: tubeCompute, defaultDigits: 2 });
 
   mountCalculator({
     root: 'mass', tool: 'chassis_mass', compute: massCompute, defaultDigits: 2,

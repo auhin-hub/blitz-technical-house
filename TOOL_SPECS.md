@@ -70,12 +70,35 @@ tube OD = 25 mm, wall = 2 mm, yield = 435 MPa.
 - Section area = `π/4*(OD²−(OD−2·wall)²)`
 - Axial stress = `force/area`
 - Factor of safety = `yield/stress` (target ≥ 1.5)
-- Torsional stiffness: target 1600 N·m/deg; measured (twist test) entered later.
+- Torsional stiffness: target 1600 N·m/deg; measured value now computed by the
+  twist-test tool (c/d below) rather than typed here.
 **(b) ComponentMass tracker** (CAD vs measured, per component): rows for
 front/rear upper & lower arms, pushrod, bell crank, damper, upright, hub, wheel,
 tyre, rotor, caliper, fasteners. Per row: CAD total = `unit·qty`, Δ = `meas−CAD`;
 TOTAL = sums. This feeds the MassBudget.
 **Writes:** chassis mass (as built) → MassBudget; torsional stiffness (measured).
+
+**Source for (c)–(d):** the Chassis team's request,
+`reference/requests/FSAE_Chassis_Calculator_Requirements.pdf` (not the workbook).
+Its worked examples are the unit-test expectations in `chassis-stiffness.test.ts`.
+
+**(c) Impact forces** (request §2–5). Reads `mass_total` (car + driver) from
+Master — the request's "enter mass once" is satisfied by the Master, not a
+page-local field (golden rule). Inputs: deceleration n (g) — front 20, rear 10,
+side 10 — labelled as design assumptions.
+- `F = m · n · 9.81` (N; also shown in kN). Example: 300 kg × 20 g = 58,860 N.
+
+**(d) Torsional stiffness → relative stiffness** (request §6–7). One tool, so
+K chassis flows from the twist test into the relative calc without retyping.
+Inputs: F (N), d (m), δ1, δ2 (mm), Kf, Kr (N·m/deg, total roll stiffness).
+- `T = F·d`; `θ = arctan((δ1+δ2)/1000 / d)` — δ converted mm → m (the request's
+  example does this implicitly); `K = T/θ` in N·m/rad, ÷ 57.2958 → N·m/deg.
+  Example: 1000 N, 0.6 m, 0.8 + 0.8 mm → 600 N·m, 0.1528°, ≈ 3,927 N·m/deg.
+- `1/K_sus = 1/Kf + 1/Kr`; `1/K_vehicle = 1/Kf + 1/Kr + 1/K_chassis`;
+  `K_relative = K_chassis / K_sus × 100 %`.
+  Example: 1600, 133.07, 221.37 → 83.11, 79.01, 1,925.15 %.
+**Writes:** K chassis (N·m/deg) → `torsional_stiffness` (replaces the typed
+"measured" input previously on the tube tool).
 
 ## 3. DAQ / Telemetry  (`Blitz_DAQ_Telemetry_WorkingFile.xlsx`)
 **Reads:** mass_total, accel_lat_target.

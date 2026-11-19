@@ -141,7 +141,7 @@ describe('Aerodynamics · downforce/drag (Aero sheet)', () => {
 });
 
 describe('Chassis · tube stress & FoS (Chassis sheet)', () => {
-  const out = tubeCompute({ memberForce: 1455, tubeOd: 25, tubeWall: 2, yield: 435, torsionMeasured: 0 });
+  const out = tubeCompute({ memberForce: 1455, tubeOd: 25, tubeWall: 2, yield: 435 });
   it('area/stress/FoS', () => {
     expect(out.sectionArea).toBeCloseTo(144.5132621, 5);
     expect(out.axialStress).toBeCloseTo(10.0682801, 5);

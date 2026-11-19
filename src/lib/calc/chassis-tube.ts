@@ -15,5 +15,7 @@ export function tubeCompute(inp: Flat): Out {
   const valid = sectionArea > 0;
   const axialStress = valid ? inp.memberForce / sectionArea : NaN; // MPa
   const fos = valid ? inp.yield / axialStress : NaN;
-  return { sectionArea: valid ? sectionArea : NaN, axialStress, fos, torsionMeasured: inp.torsionMeasured };
+  // Torsional stiffness moved to the twist-test tool (chassis-stiffness.ts),
+  // which computes it from F, d, δ1, δ2 instead of taking a typed value.
+  return { sectionArea: valid ? sectionArea : NaN, axialStress, fos };
 }
