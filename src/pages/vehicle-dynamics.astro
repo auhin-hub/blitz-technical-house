@@ -14,27 +14,6 @@ import { PARAM_SEED } from '../lib/master';
 const vd = DISCIPLINES.find((d) => d.slug === 'vehicle-dynamics')!;
 const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
 const FR = [{ prefix: 'f', label: 'Front' }, { prefix: 'r', label: 'Rear' }];
-const ltNi = 'width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
-
-// ---- Setup (targets; no computed outputs) --------------------------------
-const SETUP_LINKED = [
-  { mkey: 'track_front', label: 'Front track', unit: 'mm' },
-  { mkey: 'track_rear', label: 'Rear track', unit: 'mm' },
-  { mkey: 'wheelbase', label: 'Wheelbase', unit: 'mm' },
-  { mkey: 'mu_lat_peak', label: 'Peak lateral μ', unit: '-' },
-];
-const SETUP_INPUTS = [
-  { key: 'staticCamberF', label: 'Static camber front', unit: 'deg', vals: [-2] },
-  { key: 'staticCamberR', label: 'Static camber rear', unit: 'deg', vals: [-1] },
-  { key: 'dynCamberMaxRoll', label: 'Dynamic camber at max roll', unit: 'deg', vals: [-0.8] },
-  { key: 'rcHeightF', label: 'Roll-centre height front', unit: 'mm', vals: [30] },
-  { key: 'rcHeightR', label: 'Roll-centre height rear', unit: 'mm', vals: [45] },
-  { key: 'bumpSteer', label: 'Bump steer (target ≈ 0)', unit: 'deg', vals: [0] },
-  { key: 'caster', label: 'Caster', unit: 'deg', vals: [5] },
-  { key: 'toeF', label: 'Toe front', unit: 'deg', vals: [0] },
-  { key: 'toeR', label: 'Toe rear', unit: 'deg', vals: [0.1] },
-];
-
 
 // ---- Springs & dampers ---------------------------------------------------
 // ---- Suspension loads ----------------------------------------------------
@@ -115,21 +94,13 @@ const STEER_OUTPUTS = [
 
   <div style="margin-top:1.25rem;"></div>
   <CockpitShell tools={[
-    { id: 'setup', title: 'Setup / kinematics' },
     { id: 'geometry', title: 'Suspension geometry' },
     { id: 'springs', title: 'Springs & dampers' },
     { id: 'loads', title: 'Suspension loads' },
     { id: 'steering', title: 'Steering' },
-    { id: 'steereffort', title: 'Steering effort' },
-    { id: 'rpsweep', title: 'R&P gear sweep' },
     { id: 'brakes', title: 'Brakes' },
     { id: 'balance', title: 'Balance' },
-    { id: 'loadtransfer', title: 'Load transfer' },
   ]} railLabel="VD tools">
-  <CalcTool id="setup" title="Setup / kinematics" spec="TOOL_SPECS §7a"
-    blurb="Kinematic targets; platform values pulled from Master. A target sheet — no computed outputs."
-    linked={SETUP_LINKED} seed={seed} inputs={SETUP_INPUTS} />
-
   <section id="geometry" class="ct">
     <header class="ct-head"><h2>Suspension geometry</h2><span class="badge">§6.4</span></header>
     <p class="ct-sub">Roll-centre / camber / scrub through travel (instant-centre reconstruction), the hardpoint table, and anti-dive/anti-squat — on its own page. Freeze hardpoints at G3.</p>
@@ -148,7 +119,10 @@ const STEER_OUTPUTS = [
     chartId="loads-chart" chartTitle="Pushrod force & max vertical (front / rear)" chartHeight={260}
     contribute contributeNote="Writes pushrod forces and anti-dive/anti-squat % to the shared store (feeds the readiness board)." />
 
-  <CalcTool id="steering" title="Steering" spec="TOOL_SPECS §7f"
+  <!-- ONE rail entry: Ackermann + R&P geometry, steering effort and the R&P gear sweep.
+       The three calculators keep their tool-state keys (vd_steering, vd_steereffort) so saved data survives. -->
+  <section id="steering" class="steer-group">
+  <CalcTool id="steer-geom" title="Steering" spec="TOOL_SPECS §7f"
     blurb="Ackermann split (uses the target turning radius) + rack & pinion gear geometry."
     linked={STEER_LINKED} seed={seed} inputs={STEER_INPUTS} outputs={STEER_OUTPUTS}
     contribute contributeNote="Writes the Ackermann split to the shared store." />
@@ -216,6 +190,8 @@ const STEER_OUTPUTS = [
     </div>
   </section>
 
+  </section>
+
   <section id="brakes" class="ct">
     <header class="ct-head"><h2>Brakes</h2><span class="badge">§6.6</span></header>
     <p class="ct-sub">The full Brake System tool — hydraulic sizing, achieved vs Olley-optimum bias sweep, and (next) Magic-Formula + thermal — lives on its own tabbed page.</p>
@@ -228,48 +204,6 @@ const STEER_OUTPUTS = [
     <p style="margin-top:0.9rem;"><a class="btn btn-halftone" href={url('balance')}>Open Balance ↗</a></p>
   </section>
 
-  <!-- Load transfer (P2.5): geometric + elastic + unsprung → achieved TLLTD,
-       written to Master so the guessed TLLTD becomes a derived one (feeds Balance). -->
-  <section id="loadtransfer" class="ct">
-    <header class="ct-head"><h2>Lateral load transfer</h2><span class="badge">§9</span></header>
-    <p class="ct-sub">Per-corner vertical loads at a lateral accel, split into geometric (roll centre), elastic (roll stiffness) and unsprung terms → the <strong>achieved TLLTD</strong>. Writing it to Master turns the guessed front TLLTD into a derived one that Balance reads.</p>
-    <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:0.5rem;font-size:var(--fs-300);">
-      <span>Mass <span class="mono" style="color:var(--ink-3)">(m)</span> <span class="field field-linked mono" data-master="mass_total">—</span> kg</span>
-      <span>Front frac <span class="field field-linked mono" data-master="mass_frac_front">—</span></span>
-      <span>CoG h <span class="field field-linked mono" data-master="cog_height">—</span> mm</span>
-      <span>Track F/R <span class="field field-linked mono" data-master="track_front">—</span>/<span class="field field-linked mono" data-master="track_rear">—</span> mm</span>
-      <span>Unsprung/corner <span class="field field-linked mono" data-master="unsprung_corner">—</span> kg</span>
-      <span>Rear RC height <span class="field field-linked mono" data-master="rear_rc_height">—</span> mm</span>
-    </div>
-    <div class="ct-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem 1.5rem;align-items:start;margin-top:0.7rem;">
-      <div>
-        <h3 class="ct-h3">Inputs</h3>
-        <table class="ct-table"><tbody>
-          <tr><td>Lateral accel ay</td><td class="ct-num"><input type="number" step="any" data-in="ay" value="1.5" style={ltNi} aria-label="Lateral accel ay" /></td><td class="ct-unit">g</td></tr>
-          <tr><td>RC height front</td><td class="ct-num"><input type="number" step="any" data-in="rcFront" value="30" style={ltNi} aria-label="RC height front" /></td><td class="ct-unit">mm</td></tr>
-          <tr><td>RC height rear</td><td class="ct-num"><input type="number" step="any" data-in="rcRear" value="45" style={ltNi} aria-label="RC height rear" /></td><td class="ct-unit">mm</td></tr>
-          <tr><td>Roll stiffness front</td><td class="ct-num"><input type="number" step="any" data-in="kRollFront" value="450" style={ltNi} aria-label="Roll stiffness front" /></td><td class="ct-unit">N·m/deg</td></tr>
-          <tr><td>Roll stiffness rear</td><td class="ct-num"><input type="number" step="any" data-in="kRollRear" value="350" style={ltNi} aria-label="Roll stiffness rear" /></td><td class="ct-unit">N·m/deg</td></tr>
-          <tr><td>Unsprung CG height</td><td class="ct-num"><input type="number" step="any" data-in="unsprungCog" value="228" style={ltNi} aria-label="Unsprung CG height" /></td><td class="ct-unit">mm</td></tr>
-        </tbody></table>
-        <p class="ct-ref" style="margin-top:0.4rem;">RC heights from Geometry; roll stiffness from Springs (roll gradient / rates).</p>
-      </div>
-      <div>
-        <div class="ct-stats"><div class="ct-stat"><span class="annot">Achieved TLLTD (front)</span><div class="val"><span class="field field-computed mono" data-out="tlltdFront">—</span></div><span class="ct-ref">typ 0.45–0.55</span></div></div>
-        <h3 class="ct-h3" style="margin-top:0.5rem;">Load transfer / corner loads</h3>
-        <table class="ct-table"><tbody>
-          <tr><td>ΔW front / rear</td><td class="ct-num"><span class="field field-computed mono" data-out="dWFront">—</span></td><td class="ct-num"><span class="field field-computed mono" data-out="dWRear">—</span></td><td class="ct-unit">N</td></tr>
-          <tr><td>Front outer / inner</td><td class="ct-num"><span class="field field-computed mono" data-out="frontOuter">—</span></td><td class="ct-num"><span class="field field-computed mono" data-out="frontInner">—</span></td><td class="ct-unit">N</td></tr>
-          <tr><td>Rear outer / inner</td><td class="ct-num"><span class="field field-computed mono" data-out="rearOuter">—</span></td><td class="ct-num"><span class="field field-computed mono" data-out="rearInner">—</span></td><td class="ct-unit">N</td></tr>
-        </tbody></table>
-        <h3 class="ct-h3" style="margin-top:0.5rem;">Write to Master</h3>
-        <p style="color:var(--ink-2);font-size:var(--fs-300);">Sets <span class="mono">tlltd_front</span> to the achieved value (unfreeze first if locked).</p>
-        <button class="btn btn-heritage" type="button" id="lt-write" style="margin-top:0.4rem;">Write TLLTD → Master</button>
-        <span class="mono" id="lt-status" style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
-        <p class="mono" data-save-status style="margin-top:0.5rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
-      </div>
-    </div>
-  </section>
   </CockpitShell>
 </Base>
 
@@ -277,14 +211,9 @@ const STEER_OUTPUTS = [
   import { mountCalculator } from '../lib/calc/engine';
   import { loadsCompute } from '../lib/calc/vd-loads';
   import { steeringCompute, steeringEffortCompute } from '../lib/calc/vd-steering';
-  import { loadTransfer } from '../lib/calc/vd-loadtransfer';
   import { rpSweep, rackTravelPerRev } from '../lib/calc/extras';
-  import { loadMaster } from '../lib/store';
-  import { contributeMaster } from '../lib/master-write';
 
   const noOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { usePointStyle: true } } } };
-
-  mountCalculator({ root: 'setup', tool: 'vd_setup', compute: () => ({}) });
 
   // Present anti-geometry as a percentage (the workbook core returns a fraction),
   // with a per-side advisory when it exceeds 100% (over-compensated — valid, not an error).
@@ -322,7 +251,7 @@ const STEER_OUTPUTS = [
   });
 
   mountCalculator({
-    root: 'steering', tool: 'vd_steering', compute: steeringCompute, defaultDigits: 3,
+    root: 'steer-geom', tool: 'vd_steering', compute: steeringCompute, defaultDigits: 3,
     digits: { baseDia: 2, rackTravelPerRev: 2 },
     toMaster: [{ key: 'ackermann_split', label: 'Ackermann split', unit: 'deg', from: 'ackermannSplit' }],
   });
@@ -334,32 +263,6 @@ const STEER_OUTPUTS = [
       { key: 'steering_wheel_torque', label: 'Steering-wheel torque', unit: 'N·m', from: 'swTorque' },
       { key: 'rack_force', label: 'Rack force', unit: 'N', from: 'rackForce' },
     ],
-  });
-
-  // Load transfer: map Master keys + inputs into loadTransfer's shapes.
-  const ltCompute = (inp: Record<string, number>, m: Record<string, number>) => loadTransfer(
-    // Rear RC height lives in the Master (written by Geometry); the local input is
-    // only a fallback while it is unset (audit P1.6).
-    { ay: inp.ay, rcFront: inp.rcFront, rcRear: Number.isFinite(m.rear_rc_height) ? m.rear_rc_height : inp.rcRear,
-      kRollFront: inp.kRollFront, kRollRear: inp.kRollRear, unsprungCog: inp.unsprungCog },
-    { mass: m.mass_total, ff: m.mass_frac_front, cogHeight: m.cog_height, trackFront: m.track_front, trackRear: m.track_rear, unsprungCorner: m.unsprung_corner },
-  ) as unknown as Record<string, number>;
-  mountCalculator({ root: 'loadtransfer', tool: 'vd_loadtransfer', compute: ltCompute, defaultDigits: 0, digits: { tlltdFront: 3 } });
-
-  document.getElementById('lt-write')!.addEventListener('click', async () => {
-    const st = document.getElementById('lt-status')!;
-    const gi = (k: string) => Number((document.querySelector(`#loadtransfer [data-in="${k}"]`) as HTMLInputElement)?.value);
-    const mm = await loadMaster();
-    const mv = (k: string) => { const v = mm[k]?.value; return v === null || v === undefined ? NaN : Number(v); };
-    const r = loadTransfer(
-      { ay: gi('ay'), rcFront: gi('rcFront'), rcRear: gi('rcRear'), kRollFront: gi('kRollFront'), kRollRear: gi('kRollRear'), unsprungCog: gi('unsprungCog') },
-      { mass: mv('mass_total'), ff: mv('mass_frac_front'), cogHeight: mv('cog_height'), trackFront: mv('track_front'), trackRear: mv('track_rear'), unsprungCorner: mv('unsprung_corner') },
-    );
-    if (!Number.isFinite(r.tlltdFront)) { st.textContent = 'Fill in Master (mass, ff, tracks…) first.'; st.style.color = 'var(--heritage)'; return; }
-    st.textContent = 'Saving…'; st.style.color = 'var(--ink-3)';
-    const err = await contributeMaster('tlltd_front', +r.tlltdFront.toFixed(4));
-    st.textContent = err ? 'Failed (frozen?): ' + err : 'Written to Master ✓';
-    st.style.color = err ? 'var(--heritage)' : 'var(--state-linked)';
   });
 
   // ---- R&P gear sweep (local only; no shared state) ----

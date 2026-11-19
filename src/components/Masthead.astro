@@ -15,7 +15,7 @@ const isGroup = (n: NavLink | NavGroup): n is NavGroup => 'links' in n;
  *  any tool page a team owns (so /brakes lights up Teams). */
 function groupCurrent(g: NavGroup): boolean {
   if (g.links.some((l) => l.href === rel)) return true;
-  if (g.label === 'Teams') return DISCIPLINES.some((d) => d.tools.some((t) => t.href === rel));
+  if (g.label === 'Teams') return DISCIPLINES.some((d) => d.tools.some((t) => t.href?.split('#')[0] === rel));
   return false;
 }
 ---

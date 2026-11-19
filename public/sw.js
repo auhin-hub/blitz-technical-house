@@ -17,7 +17,7 @@
  *
  * The cache name carries a version; bump it to retire old entries.
  */
-const VERSION = 'blitz-v6';  // bumped: ergonomics CoG + sightline, Driver fit retired
+const VERSION = 'blitz-v7';  // bumped: declutter (Gantt/Points removed, Validation into report, tools moved)
 const SCOPE = new URL(self.registration.scope);
 const BASE = SCOPE.pathname.replace(/\/+$/, '');
 const p = (path) => `${BASE}/${path.replace(/^\/+/, '')}`;

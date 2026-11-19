@@ -77,7 +77,7 @@ own full pages and appear in the rail as a card that links out.
 - The **discipline grid** — six cards, each opens a discipline cockpit.
 
 **Persistent top navigation** (every page):
-`Home · VD Workspace · Vehicle Spec · Validation · Design Readiness · Tyre ·
+`Home · VD Workspace · Vehicle Spec · Design Readiness · Tyre ·
 Gates / Phases · Report · Resources · Change Log`, plus a **Search** button.
 
 **Command palette:** `Ctrl`/`⌘`+`K` (or `/`) searches every page, every tool
@@ -101,14 +101,13 @@ row and highlights it.
 `/measurement` (CoG tilt test, corner-weight, quarter-car ride).
 
 **Platform pages:** `/vehicle-spec` (the Master editor + freeze control) ·
-`/validation` (targets vs achieved) · `/readiness` (component readiness board) ·
-`/tyre` · `/gates` (+ the Members roster) · `/snapshots` (design baselines) ·
-`/report` (printable design report) · `/sensitivity` (quantified coupling) ·
+`/readiness` (component readiness board) ·
+`/tyre` · `/gates` (+ the Members roster; links to `/snapshots`, design baselines) ·
+`/report` (printable design report, incl. Validation: targets vs achieved) · `/sensitivity` (quantified coupling) ·
 `/resources` · `/change-log` · `/login`.
 
-**Planning / cost pages:** `/taskmap` (the programme work map) · `/gantt`
-(season Gantt) · `/budget` · `/cost` (FSAE-J cost report) · `/points` ·
-`/lapsim` · `/daq` (log interpretation) · `/setup-sheet`.
+**Planning / cost pages:** `/taskmap` (the programme work map) ·
+`/budget` · `/cost` (FSAE-J cost report) · `/lapsim` · `/daq` (log interpretation) · `/setup-sheet`.
 
 ---
 
@@ -589,7 +588,7 @@ ride_freq_rear, motion_ratio, rolling_radius, corner_stiffness`.
 
 ## Part 6 — Validation targets, gates & change control
 
-### 6.1 Validation page (`/validation`) — target vs achieved
+### 6.1 Validation (section of `/report#validation`; `/validation` redirects) — target vs achieved
 Compares each `tool_outputs` "achieved" value against a Master target or a fixed
 EDP (Engineering Design Process) limit:
 

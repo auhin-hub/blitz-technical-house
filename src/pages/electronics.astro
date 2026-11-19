@@ -36,7 +36,7 @@ const POWER_OUTPUTS = [{ key: 'total', label: 'Total current = SUM(loads)', unit
   <LegendKey />
 
   <div style="margin-top:1.25rem;"></div>
-  <CockpitShell tools={[{ id: 'power', title: 'Power budget' }, { id: 'wiring', title: 'Wiring / harness' }, { id: 'daq', title: 'DAQ & Telemetry' }, { id: 'battery', title: 'Battery sizing' }, { id: 'wiredrop', title: 'Wire voltage drop' }]} railLabel="Electronics">
+  <CockpitShell tools={[{ id: 'power', title: 'Power budget' }, { id: 'wiring', title: 'Wiring / harness' }, { id: 'daq', title: 'DAQ & Telemetry' }, { id: 'battery', title: 'Battery sizing', rare: true }, { id: 'wiredrop', title: 'Wire voltage drop', rare: true }]} railLabel="Electronics">
   <CalcTool id="power" title="Power budget" spec="TOOL_SPECS §4a"
     blurb="Load currents vs stator output; margin must stay positive."
     inputs={POWER_INPUTS} outputs={POWER_OUTPUTS}

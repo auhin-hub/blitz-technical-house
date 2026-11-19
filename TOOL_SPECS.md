@@ -245,7 +245,8 @@ motion_ratio.
 
 **7a. Setup** — kinematic targets (static/dynamic camber F/R, roll-centre heights,
 bump steer, caster, toe F/R) + platform values pulled from Master. Mostly an
-input/target sheet.
+input/target sheet. **Web:** now the *Targets* section at the bottom of the
+Suspension geometry page (`geometry#setup`); tool-state key `vd_setup` unchanged.
 
 **7b. Brakes** (front/rear columns):
 - Pushrod force = `pedal·ratio`
@@ -290,10 +291,31 @@ brake-torque target; achieved brake bias; spring rate F/R.
 
 ---
 
+## Declutter (what moved / was removed — owner-approved)
+- **Removed:** Points predictor (`/points`, `calc/points.ts`) and Season Gantt
+  (`/gantt`, `calc/gantt.ts`). Database tables untouched.
+- **Validation** → a *Validation* section of the Design report (`report#validation`,
+  same `VALIDATION_ROWS` table and status logic). `/validation` is a redirect page.
+  Removed from the Programme menu; the Readiness page still reads the same keys.
+- **Snapshots** → off the Programme menu; reached by the *Snapshots (baselines)* button
+  on the Gates page. The page is unchanged.
+- **Steering:** the VD rail has ONE *Steering* entry holding three calculators —
+  Steering (`vd_steering`), Steering effort (`vd_steereffort`) and the R&P gear
+  sweep (no saved state). Tool keys unchanged, so saved data survives.
+- **Load transfer** (`vd_loadtransfer`) → section of the Balance page
+  (`balance#loadtransfer`); it writes `tlltd_front`, which the Balance card reads.
+- **Setup / kinematics** (`vd_setup`) → *Targets* section of Suspension geometry.
+- **Rare tools** (`rare: true` in `config.ts`): Event predictors, Intake restrictor,
+  Gear speed, Battery sizing, Wire voltage drop, Bolted joint, Tube buckling. Hidden
+  from landing cards / counts / the team "More tools" strip; found by search (hint
+  "rarely used"); on a team page they sit in the rail's collapsed *More tools*.
+- **Kept as-is:** Design Readiness, Coupling & sensitivity, Budget, DAQ log interpretation.
+
 ## Build notes
 - **Navigation grouping (BRIEF §D):** tools are grouped under discipline pages,
-  not shown as one flat list. Vehicle Dynamics page = Setup + SuspensionGeom +
-  SpringsDampers + SuspensionLoads + Steering + Brakes (§7). Powertrain page =
+  not shown as one flat list. Vehicle Dynamics page = SuspensionGeom (+ Setup
+  targets) + SpringsDampers + SuspensionLoads + Steering + Brakes + Balance (+ Load
+  transfer) (§7). Powertrain page =
   Drivetrain & traction (§6) + Cooling Dyno Analyzer (re-skinned). Electronics =
   Power budget + Wiring + DAQ/Telemetry (§3, §4). Chassis = §2. Aerodynamics =
   §1. Ergonomics = §5.

@@ -2,6 +2,8 @@
 import Base from '../layouts/Base.astro';
 import Crumbs from '../components/Crumbs.astro';
 import LegendKey from '../components/LegendKey.astro';
+import CalcTool from '../components/CalcTool.astro';
+import { PARAM_SEED } from '../lib/master';
 
 // Hardpoints (one corner). Coordinate convention (SolidWorks-friendly):
 // origin = front-axle centre on the ground; x = rearward, y = right, z = up (mm).
@@ -13,6 +15,25 @@ const HP = [
   { key: 'ubj', label: 'Upper outer ball joint', x: -5, y: 560, z: 365 },
   { key: 'wc', label: 'Wheel centre', x: 0, y: 610, z: 228 },
   { key: 'cp', label: 'Contact patch', x: 0, y: 620, z: 0 },
+];
+const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
+// ---- Targets (formerly VD "Setup / kinematics"; tool key vd_setup kept so saved data survives) ----
+const TARGET_LINKED = [
+  { mkey: 'track_front', label: 'Front track', unit: 'mm' },
+  { mkey: 'track_rear', label: 'Rear track', unit: 'mm' },
+  { mkey: 'wheelbase', label: 'Wheelbase', unit: 'mm' },
+  { mkey: 'mu_lat_peak', label: 'Peak lateral μ', unit: '-' },
+];
+const TARGET_INPUTS = [
+  { key: 'staticCamberF', label: 'Static camber front', unit: 'deg', vals: [-2] },
+  { key: 'staticCamberR', label: 'Static camber rear', unit: 'deg', vals: [-1] },
+  { key: 'dynCamberMaxRoll', label: 'Dynamic camber at max roll', unit: 'deg', vals: [-0.8] },
+  { key: 'rcHeightF', label: 'Roll-centre height front', unit: 'mm', vals: [30] },
+  { key: 'rcHeightR', label: 'Roll-centre height rear', unit: 'mm', vals: [45] },
+  { key: 'bumpSteer', label: 'Bump steer (target ≈ 0)', unit: 'deg', vals: [0] },
+  { key: 'caster', label: 'Caster', unit: 'deg', vals: [5] },
+  { key: 'toeF', label: 'Toe front', unit: 'deg', vals: [0] },
+  { key: 'toeR', label: 'Toe rear', unit: 'deg', vals: [0.1] },
 ];
 const ni = 'width:72px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
 // Synthesis (target-driven) inputs — Suspension_Geometry.xlsx D11–D32.
@@ -48,6 +69,7 @@ const SYNTH = [
 
   <LegendKey />
 
+  <div id="geo-main">
   <div class="card" style="margin-bottom:1rem;">
     <span class="annot">From Master</span>
     <div style="display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:0.4rem;font-size:var(--fs-300);">
@@ -153,6 +175,14 @@ const SYNTH = [
     </div>
     <p class="mono" data-save-status style="margin-top:0.7rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
   </div>
+  </div>
+
+  <!-- Targets: kinematic targets (static / dynamic camber, RC heights, bump steer, caster, toe).
+       Moved here from the VD page; a target sheet with no computed outputs. -->
+  <h2 style="font-size:var(--fs-700);margin:1.5rem 0 0.5rem;" id="targets-heading">Targets</h2>
+  <CalcTool id="setup" title="Kinematic targets" spec="TOOL_SPECS §7a"
+    blurb="Kinematic targets; platform values pulled from Master. A target sheet — no computed outputs."
+    linked={TARGET_LINKED} seed={seed} inputs={TARGET_INPUTS} />
 </Base>
 
 <script>
@@ -164,15 +194,16 @@ const SYNTH = [
   import { contributeMaster } from '../lib/master-write';
   import { toCsv, downloadText } from '../lib/csv';
   import { decorateLinkedCells } from '../lib/linked';
+  import { mountCalculator } from '../lib/calc/engine';
   import { applyChartDefaults, palette, watchTheme } from '../lib/chart-theme';
 
   const TOOL = 'geometry';
-  const saveStatus = document.querySelector('[data-save-status]') as HTMLElement;
+  const saveStatus = document.querySelector('#geo-main [data-save-status]') as HTMLElement;
   let master: Record<string, number> = {};
   const charts = new Map<string, Chart>();
   let last: any = {};
   const gh = (k: string) => Number((document.querySelector(`[data-hp="${k}"]`) as HTMLInputElement)?.value);
-  const gi = (k: string) => Number((document.querySelector(`[data-in="${k}"]`) as HTMLInputElement)?.value);
+  const gi = (k: string) => Number((document.querySelector(`#geo-main [data-in="${k}"]`) as HTMLInputElement)?.value);
   const gsy = (k: string) => Number((document.querySelector(`[data-synth="${k}"]`) as HTMLInputElement)?.value);
   const put = (k: string, v: number, d = 1) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = Number.isFinite(v) ? fmt(v, d) : '—'; };
   const setText = (k: string, s: string) => { const el = document.querySelector(`[data-out="${k}"]`); if (el) el.textContent = s; };
@@ -386,7 +417,7 @@ const SYNTH = [
   const persist = debounce(async () => {
     const data: Record<string, any> = {};
     document.querySelectorAll('[data-hp]').forEach((el) => { data[(el as HTMLInputElement).dataset.hp!] = Number((el as HTMLInputElement).value); });
-    document.querySelectorAll('[data-in]').forEach((el) => { data['in_' + (el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
+    document.querySelectorAll('#geo-main [data-in]').forEach((el) => { data['in_' + (el as HTMLInputElement).dataset.in!] = Number((el as HTMLInputElement).value); });
     document.querySelectorAll('[data-synth]').forEach((el) => { data['sy_' + (el as HTMLInputElement).dataset.synth!] = Number((el as HTMLInputElement).value); });
     if (targets) data.targets = targets;
     saveStatus.textContent = 'Saving…';
@@ -476,7 +507,7 @@ const SYNTH = [
       svg3d.addEventListener('pointercancel', stop);
     }
 
-    document.querySelectorAll('[data-hp],[data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
+    document.querySelectorAll('#geo-main [data-hp], #geo-main [data-in]').forEach((el) => el.addEventListener('input', () => { recompute(); persist(); }));
     document.querySelectorAll('[data-synth]').forEach((el) => el.addEventListener('input', persist));
     document.getElementById('geo-generate')!.addEventListener('click', generate);
 
@@ -515,4 +546,7 @@ const SYNTH = [
 
     watchTheme(() => { applyChartDefaults(); recompute(); });
   })();
+
+  // Kinematic targets (tool key vd_setup kept from the VD page so saved values carry over).
+  mountCalculator({ root: 'setup', tool: 'vd_setup', compute: () => ({}) });
 </script>

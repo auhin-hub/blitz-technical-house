@@ -4,11 +4,11 @@
  * strip of links on the team page. Without it those pages were reachable only
  * from search or one card on the home page. Renders nothing if there are none.
  */
-import { url } from '../lib/config';
+import { url, isSectionLink } from '../lib/config';
 import type { Discipline } from '../lib/config';
 
 const { team } = Astro.props as { team: Discipline };
-const pages = team.tools.filter((t) => t.href);
+const pages = team.tools.filter((t) => t.href && !t.rare && !isSectionLink(t));
 ---
 {pages.length > 0 && (
   <section class="team-tools" aria-label={`More ${team.title} tools`}>

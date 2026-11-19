@@ -51,7 +51,7 @@ const OUTPUTS = [
   <LegendKey />
 
   <div style="margin-top:1.25rem;"></div>
-  <CockpitShell tools={[{ id: 'traction', title: 'Drivetrain & traction' }, { id: 'cooling', title: 'Cooling — Dyno Analyzer' }, { id: 'gearspeed', title: 'Gear speed' }, { id: 'restrictor', title: 'Intake restrictor' }]} railLabel="Powertrain">
+  <CockpitShell tools={[{ id: 'traction', title: 'Drivetrain & traction' }, { id: 'cooling', title: 'Cooling — Dyno Analyzer' }, { id: 'gearspeed', title: 'Gear speed', rare: true }, { id: 'restrictor', title: 'Intake restrictor', rare: true }]} railLabel="Powertrain">
   <CalcTool id="traction" title="Drivetrain & traction" spec="TOOL_SPECS §6"
     blurb="1st-gear wheel torque, tractive force vs the traction limit, and launch acceleration."
     linked={LINKED} seed={seed} inputs={INPUTS} outputs={OUTPUTS}
