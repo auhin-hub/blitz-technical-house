@@ -130,7 +130,7 @@ describe('Powertrain · Drivetrain & traction (Powertrain sheet)', () => {
 });
 
 describe('Aerodynamics · downforce/drag (Aero sheet)', () => {
-  const out = aeroCompute({ clA: 0.8, cdA: 0.6, rho: 1.18, aeroBalance: 0.45 }, { mass_total: MASS });
+  const out = aeroCompute({ clA: 0.8, cdA: 0.6, rho: 1.18, radius: 9.125 }, { mass_total: MASS });
   it('40 and 120 km/h + L/D', () => {
     expect(out.df_40).toBeCloseTo(58.2716, 3);
     expect(out.drag_40).toBeCloseTo(43.7037, 3);

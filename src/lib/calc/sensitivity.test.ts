@@ -16,7 +16,7 @@ const MASTER = {
 const INPUTS = {
   vd_loads: { f_pushrodAngle: 45, r_pushrodAngle: 45, f_share: 0.65, r_share: 1, f_ay: 1.4, r_ay: 1.4, f_decel: 1.4, r_decel: 1.4 },
   pt_traction: { peakTorque: 35.3, peakPower: 32, peakRpm: 9500, primary: 3, firstGear: 2.5, finalDrive: 3, drivelineEff: 0.9 },
-  aero: { clA: 0.8, cdA: 0.5, rho: 1.18, aeroBalance: 0.45 },
+  aero: { clA: 0.8, cdA: 0.5, rho: 1.18, radius: 9.125 },
   vd_steering: { turningRadius: 9, pinionPitchDia: 25, teeth: 12 },
   vd_steereffort: { caster: 5, pneumaticTrail: 30, scrubRadius: 10, fx: 0, steeringArm: 90, steeringRatio: 5, efficiency: 0.9 },
 };
