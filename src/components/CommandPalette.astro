@@ -11,35 +11,22 @@
  * small JSON blob and no requests. Keyboard-first by design: arrows, Enter, Esc,
  * and a focus trap while it is open.
  */
-import { TOP_NAV, DISCIPLINES, url } from '../lib/config';
+import { DISCIPLINES, PROGRAMME_LINKS, RESOURCE_LINKS, toolHref, url } from '../lib/config';
 import { PARAM_SEED } from '../lib/master';
 
 type Entry = { label: string; hint: string; href: string; kind: string };
 
+// Everything comes from the registry in config.ts, so a new tool is searchable
+// the moment it is registered — no second list to keep in step.
 const entries: Entry[] = [
-  ...TOP_NAV.map((n) => ({ label: n.label, hint: 'page', href: url(n.href), kind: 'page' })),
-  { label: 'Snapshots', hint: 'design baselines · diff · restore', href: url('snapshots'), kind: 'page' },
-  { label: 'Task Map', hint: 'programme · what is unblocked, who waits on whom', href: url('taskmap'), kind: 'page' },
-  { label: 'Coupling & sensitivity', hint: 'what-if · what moves if I change X', href: url('sensitivity'), kind: 'page' },
-  { label: 'Design report', hint: 'printable · whole shared store', href: url('report'), kind: 'page' },
-  { label: 'Season Gantt', hint: 'page · schedule', href: url('gantt'), kind: 'page' },
-  { label: 'Budget', hint: 'page · cost', href: url('budget'), kind: 'page' },
-  { label: 'Cost report (FSAE-J)', hint: 'page · cost', href: url('cost'), kind: 'page' },
-  { label: 'Mass budget', hint: 'page · mass & CoG', href: url('massbudget'), kind: 'page' },
-  { label: 'Lap simulator', hint: 'page · performance', href: url('lapsim'), kind: 'page' },
-  { label: 'Points / events', hint: 'page · competition', href: url('points'), kind: 'page' },
-  { label: 'g–g diagram', hint: 'page · envelope', href: url('gg'), kind: 'page' },
-  { label: 'DAQ log interpretation', hint: 'page · validation', href: url('daq'), kind: 'page' },
-  { label: 'Setup sheet', hint: 'page · trackside', href: url('setup-sheet'), kind: 'page' },
-  { label: 'Measurement', hint: 'page · yaw inertia, CoG', href: url('measurement'), kind: 'page' },
-  { label: 'Balance pair', hint: 'page · understeer, TLLTD', href: url('balance'), kind: 'page' },
-  { label: 'Suspension geometry', hint: 'page · RC, camber, synthesis', href: url('geometry'), kind: 'page' },
-  { label: 'Springs & dampers', hint: 'page · ride frequency', href: url('springs'), kind: 'page' },
-  { label: 'Brakes', hint: 'page · bias, torque', href: url('brakes'), kind: 'page' },
-  ...DISCIPLINES.map((d) => ({ label: d.title, hint: 'discipline', href: url(d.slug), kind: 'discipline' })),
+  { label: 'Home', hint: 'dashboard', href: url(''), kind: 'page' },
+  { label: 'Vehicle Spec', hint: 'shared Master store', href: url('vehicle-spec'), kind: 'page' },
+  ...DISCIPLINES.map((d) => ({ label: d.title, hint: 'team', href: url(d.slug), kind: 'discipline' })),
   ...DISCIPLINES.flatMap((d) =>
-    d.tools.map((t) => ({ label: t.title, hint: `tool · ${d.title}`, href: `${url(d.slug)}#${t.anchor}`, kind: 'tool' })),
+    d.tools.map((t) => ({ label: t.title, hint: `${t.href ? 'page' : 'tool'} · ${d.title}`, href: toolHref(d, t), kind: 'tool' })),
   ),
+  ...PROGRAMME_LINKS.map((l) => ({ label: l.label, hint: `programme · ${l.hint ?? ''}`, href: url(l.href), kind: 'page' })),
+  ...RESOURCE_LINKS.map((l) => ({ label: l.label, hint: `resources · ${l.hint ?? ''}`, href: url(l.href), kind: 'page' })),
   ...PARAM_SEED.map((p) => ({
     label: p.label,
     hint: `parameter · ${p.key}${p.unit ? ` (${p.unit})` : ''}`,

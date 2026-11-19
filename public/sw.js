@@ -17,7 +17,7 @@
  *
  * The cache name carries a version; bump it to retire old entries.
  */
-const VERSION = 'blitz-v3';  // bumped to retire any stale cached /taskmap navigation
+const VERSION = 'blitz-v4';  // bumped: team-based nav changed every page's masthead
 const SCOPE = new URL(self.registration.scope);
 const BASE = SCOPE.pathname.replace(/\/+$/, '');
 const p = (path) => `${BASE}/${path.replace(/^\/+/, '')}`;
