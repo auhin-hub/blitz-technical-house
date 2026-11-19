@@ -7,7 +7,7 @@
  * Last save wins for both (no merge) — the page says so.
  * The STL file itself never leaves the browser.
  */
-import { loadToolJson, saveToolJson, debounce, fmt } from '../store';
+import { loadToolJson, saveToolJson, saveToolOutputs, debounce, fmt } from '../store';
 import { esc } from '../html';
 import { RULES, type RuleId } from './rules';
 import { EXAMPLE_COCKPIT } from './defaults';
@@ -18,13 +18,15 @@ import {
 import { completeBody, estimateFromStature, MEASUREMENTS } from './estimate';
 import { parseStl, projectStl, bounds2d, type StlMapping } from './stl';
 import { toDxf, type DxfEntity } from './dxf';
+import { driverCog, DEMPSTER_SOURCE, HAND_FRACTION_OF_STATURE, type DriverCog } from './cog';
+import { eyePoint, wheelTopPoint, sightline, EYE_FORWARD_OF_HEAD_CENTRE_MM, type Sightline } from './sightline';
 
 export interface Driver { id: string; name: string; measured: Partial<DriverBody>; setup: DriverSetup; }
 type Band = [number | null, number | null];
 interface StudioState {
   rules: RuleId;
   cockpit: Cockpit;
-  show: { percy: boolean; driver: boolean; all: boolean; cad: boolean };
+  show: { percy: boolean; driver: boolean; all: boolean; cad: boolean; cog: boolean; sight: boolean };
   driverId: string | null;
   bands: Record<'hip' | 'knee' | 'ankle' | 'elbow', Band>;
   stl: StlMapping;
@@ -33,7 +35,7 @@ interface StudioState {
 const DEFAULT_STATE: StudioState = {
   rules: 'fsae',
   cockpit: EXAMPLE_COCKPIT,
-  show: { percy: true, driver: true, all: false, cad: true },
+  show: { percy: true, driver: true, all: false, cad: true, cog: true, sight: true },
   driverId: null,
   bands: { hip: [null, null], knee: [null, null], ankle: [null, null], elbow: [null, null] },
   stl: { forward: '-x', up: '+y', scale: 1, frontAxle: 0, ground: 0 },
@@ -252,7 +254,7 @@ export async function mountStudio(): Promise<void> {
   }
 
   // ---- compute + draw ------------------------------------------------------------------
-  interface Posed { d: Driver; pose: DriverPose | null; estimated: string[]; checks: Check[]; }
+  interface Posed { d: Driver; pose: DriverPose | null; estimated: string[]; checks: Check[]; cog?: DriverCog | null; eye?: Pt; sight?: Sightline; }
   let lastPercy: ReturnType<typeof percyChecks> | null = null;
   let lastPosed: Posed[] = [];
 
@@ -263,7 +265,16 @@ export async function mountStudio(): Promise<void> {
       const ok = (Object.keys(body) as (keyof DriverBody)[]).every((k) => k === 'mass' || Number.isFinite(body[k]));
       if (!ok) return { d, pose: null, estimated, checks: [] };
       const pose = poseDriver(state.cockpit, body, d.setup);
-      return { d, pose, estimated, checks: driverChecks(state.cockpit, RULES[state.rules], pose, d.name || 'Driver', upright) };
+      const mass = Number(d.measured.mass);
+      const cog = mass > 0 ? driverCog(pose, mass, HAND_FRACTION_OF_STATURE * body.stature) : null;
+      const eye = eyePoint(pose, body);
+      const c = state.cockpit;
+      const sight = sightline(eye, [
+        { name: 'steering-wheel top', pt: wheelTopPoint(c) },
+        { name: 'front-hoop top', pt: c.frontHoopTop },
+        { name: 'nose / bodywork top', pt: c.noseTop },
+      ]);
+      return { d, pose, estimated, checks: driverChecks(c, RULES[state.rules], pose, d.name || 'Driver', upright), cog, eye, sight };
     });
   }
 
@@ -291,9 +302,11 @@ export async function mountStudio(): Promise<void> {
   // View box from everything drawn (+ the CAD silhouette when shown).
   function viewBounds() {
     const c = state.cockpit;
-    const pts: Pt[] = [c.frontHoopTop, c.mainHoopTop, c.mainBraceLow, c.seatJunction, c.headRestraint, c.pedalFace, c.heel, c.wheelCentre, c.shoulderMount, c.lapMount, { x: 0, z: 0 }];
+    const pts: Pt[] = [c.frontHoopTop, c.mainHoopTop, c.mainBraceLow, c.seatJunction, c.headRestraint, c.pedalFace, c.heel, c.wheelCentre, c.shoulderMount, c.lapMount, c.noseTop, { x: 0, z: 0 }];
     if (lastPercy) { const p = lastPercy.percy; pts.push(add(p.head, { x: 160, z: 160 }), sub(p.head, { x: 160, z: 160 })); }
     for (const q of lastPosed) if (q.pose) pts.push(add(q.pose.head, { x: 160, z: 160 }), q.pose.toe, q.pose.knee);
+    const sl = lastPosed.find((q) => q.d.id === state.driverId)?.sight;
+    if (state.show.sight && sl?.groundPoint) pts.push({ x: Math.max(sl.groundPoint.x, -2500), z: 0 });
     let minX = Math.min(...pts.map((p) => p.x)), maxX = Math.max(...pts.map((p) => p.x));
     let minZ = Math.min(...pts.map((p) => p.z)), maxZ = Math.max(...pts.map((p) => p.z));
     if (state.show.cad && stlProj) { const b = bounds2d(stlProj); minX = Math.min(minX, b.minX); maxX = Math.max(maxX, b.maxX); minZ = Math.min(minZ, b.minZ); maxZ = Math.max(maxZ, b.maxZ); }
@@ -304,6 +317,7 @@ export async function mountStudio(): Promise<void> {
   const line = (a: Pt, b: Pt, cls: string) => `<line x1="${a.x.toFixed(1)}" y1="${(-a.z).toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${(-b.z).toFixed(1)}" class="${cls}"/>`;
   const circle = (c: Pt, r: number, cls: string) => `<circle cx="${c.x.toFixed(1)}" cy="${(-c.z).toFixed(1)}" r="${r}" class="${cls}"/>`;
   const dot = (c: Pt, cls: string) => `<circle cx="${c.x.toFixed(1)}" cy="${(-c.z).toFixed(1)}" r="9" class="${cls}"/>`;
+  const cogMarker = (c: Pt, cls: string) => `${circle(c, 22, cls)}${line({ x: c.x - 34, z: c.z }, { x: c.x + 34, z: c.z }, cls)}${line({ x: c.x, z: c.z - 34 }, { x: c.x, z: c.z + 34 }, cls)}`;
   const label = (p: Pt, text: string, cls = 'st-label', dx = 14, dz = 14) => `<text x="${(p.x + dx).toFixed(1)}" y="${(-(p.z + dz)).toFixed(1)}" class="${cls}">${esc(text)}</text>`;
 
   function figureSvg(pose: DriverPose, cls: string): string {
@@ -346,6 +360,7 @@ export async function mountStudio(): Promise<void> {
     parts.push(line(sub(c.wheelCentre, w), add(c.wheelCentre, w), 'st-wheel'), dot(c.wheelCentre, 'st-wheel'));
     parts.push(dot(c.shoulderMount, 'st-mount'), label(c.shoulderMount, 'shoulder belt'), dot(c.lapMount, 'st-mount'), label(c.lapMount, 'lap belt', 'st-label', 14, -40));
     parts.push(dot(c.heel, 'st-mount'));
+    parts.push(dot(c.noseTop, 'st-mount'), label(c.noseTop, 'nose top', 'st-label', 14, 30));
 
     // other drivers (faint), selected driver, Percy on top
     if (state.show.all) for (const q of lastPosed) if (q.pose && q.d.id !== state.driverId) parts.push(figureSvg(q.pose, 'st-other'));
@@ -355,6 +370,24 @@ export async function mountStudio(): Promise<void> {
       const shTop = add(sel.pose.shoulder, mul(unit(sub(sel.pose.shoulder, sel.pose.hip)), sel.pose.rHip));
       parts.push(line(c.lapMount, sel.pose.hip, 'st-belt'), line(shTop, c.shoulderMount, 'st-belt'));
       parts.push(label(sel.pose.head, sel.d.name || 'Driver', 'st-label st-drvlabel', -150, 175));
+    }
+    // CoG markers (estimate) — cross-in-circle, for the selected driver and, with "All drivers", the others.
+    if (state.show.cog) for (const q of lastPosed) {
+      if (!q.cog || !q.pose) continue;
+      const isSel = q.d.id === state.driverId;
+      if (!(isSel ? state.show.driver : state.show.all)) continue;
+      parts.push(cogMarker(q.cog.cog, isSel ? 'st-cog' : 'st-cog st-cog-other'));
+      if (isSel) parts.push(label(q.cog.cog, `CoG ≈ ${fmt(q.cog.cog.x, 0)}, ${fmt(q.cog.cog.z, 0)}`, 'st-label st-cog-label', 24, -36));
+    }
+    // Sightline (information only) for the selected driver.
+    if (state.show.sight && state.show.driver && sel?.eye && sel.sight) {
+      const sl = sel.sight, eye = sel.eye;
+      parts.push(dot(eye, 'st-eye'), label(eye, 'eye (approx.)', 'st-label st-eye-label', -300, 40));
+      if (sl.blocker) {
+        const far = sl.groundPoint ?? { x: eye.x - 4000, z: eye.z + (eye.x - sl.blocker.pt.x ? ((sl.blocker.pt.z - eye.z) / (eye.x - sl.blocker.pt.x)) * 4000 : 0) };
+        parts.push(line(eye, far, 'st-sight'), dot(sl.blocker.pt, 'st-blocker'));
+        if (sl.groundPoint) parts.push(dot(sl.groundPoint, 'st-eye'), label(sl.groundPoint, `ground ${fmt(sl.groundForwardOfAxle!, 0)} mm ahead`, 'st-label st-eye-label', 20, 40));
+      }
     }
     if (state.show.percy && lastPercy) {
       const p = lastPercy.percy;
@@ -408,6 +441,7 @@ export async function mountStudio(): Promise<void> {
       else {
         if (sel.estimated.length) html += `<p class="ct-sub">Estimated from height (measure for accuracy): ${sel.estimated.map((k) => esc(MEASUREMENTS.find((m) => m.key === k)?.label ?? k)).join(', ')}.</p>`;
         html += `<div class="ct-wrap"><table class="ct-table">${head}<tbody>${sel.checks.map(row).join('')}</tbody></table></div>`;
+        html += cogHtml(sel) + sightHtml(sel);
       }
     }
     const others = lastPosed.filter((q) => q.pose);
@@ -419,6 +453,47 @@ export async function mountStudio(): Promise<void> {
     }
     el.innerHTML = html;
   }
+
+  function cogHtml(q: Posed): string {
+    if (!q.cog) return '<p class="ct-sub">Centre of gravity: enter this driver\'s <em>mass in race gear</em> in the roster to estimate it.</p>';
+    const c = q.cog.cog;
+    return `<h3 class="ct-h3">Driver centre of gravity (estimate)</h3>
+      <div class="ct-wrap"><table class="ct-table"><tbody>
+        <tr><td>CoG x (rearward of the front axle)</td><td class="ct-num mono">${fmt(c.x, 0)} <span class="ct-unit">mm</span></td></tr>
+        <tr><td>CoG z (height above ground)</td><td class="ct-num mono">${fmt(c.z, 0)} <span class="ct-unit">mm</span></td></tr>
+        <tr><td>Mass used</td><td class="ct-num mono">${fmt(Number(q.d.measured.mass), 1)} <span class="ct-unit">kg (race gear)</span></td></tr>
+      </tbody></table></div>
+      <p class="ct-sub">Estimate: ${esc(DEMPSTER_SOURCE)}, applied to the posed stick figure with both arms and legs counted. It is not a measured CoG — check with the tilt-test / seat-fitting data.</p>`;
+  }
+  function sightHtml(q: Posed): string {
+    const s = q.sight; if (!s || !q.eye) return '';
+    const mm = (v: number) => `${fmt(v, 0)} mm`;
+    const result = !s.blocker ? 'No obstruction ahead of the eye.'
+      : `Blocked by the <strong>${esc(s.blocker.name)}</strong>; the line clears it pointing ${s.dropDeg >= 0 ? fmt(s.dropDeg, 1) + '° below' : fmt(-s.dropDeg, 1) + '° above'} horizontal` +
+        (s.groundForwardOfAxle !== null ? ` and meets the ground <strong>${mm(s.groundForwardOfAxle)}</strong> ${s.groundForwardOfAxle >= 0 ? 'ahead of' : 'behind'} the front axle.` : ' — it never meets the ground ahead (looking level or upward).');
+    return `<h3 class="ct-h3">Sightline over the bodywork (information only)</h3>
+      <p class="ct-sub">${result}</p>
+      <div class="ct-wrap"><table class="ct-table"><thead><tr><th>Obstruction</th><th class="ct-num">Clearing slope</th></tr></thead><tbody>
+        ${s.slopes.map((o) => `<tr><td>${esc(o.name)}</td><td class="ct-num mono">${fmt(-Math.atan(o.slope) * 180 / Math.PI, 1)}° below horizontal</td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="ct-sub">Eye point (approximation): on the posed neck line at the driver's <em>sitting eye height</em>, then ${EYE_FORWARD_OF_HEAD_CENTRE_MM} mm toward the front — that offset is an assumed value, not a measurement. Eye at z = ${mm(q.eye.z)}.
+        No FSAE / FS rule sets a side-view visibility limit, so this is not a pass/fail check.</p>`;
+  }
+
+  // ---- contribute selected driver → Master (tool_outputs) ---------------------------------
+  $('[data-contribute-driver]', root)?.addEventListener('click', async () => {
+    const out = $('[data-contribute-driver-status]', root!);
+    const q = lastPosed.find((x) => x.d.id === state.driverId);
+    const set = (t: string, ok: boolean) => { if (out) { out.textContent = t; out.style.color = ok ? 'var(--state-linked)' : 'var(--heritage)'; } };
+    if (!q?.pose || !q.cog) return set('Pick a driver with a height and a mass in race gear first.', false);
+    set('Contributing…', true);
+    const err = await saveToolOutputs('erg_studio', [
+      { key: 'driver_mass', label: 'Driver mass', unit: 'kg', value: Number(q.d.measured.mass) },
+      { key: 'driver_cog_height', label: 'Driver CoG height', unit: 'mm', value: q.cog.cog.z },
+      { key: 'seat_back_angle', label: 'Seat-back angle', unit: 'deg', value: state.cockpit.seatBackDeg },
+    ]);
+    set(err ? 'Failed: ' + err : `Contributed ✓ (${q.d.name || 'driver'})`, !err);
+  });
 
   function renderAngles(): void {
     const sel = lastPosed.find((q) => q.d.id === state.driverId);

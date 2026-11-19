@@ -4,28 +4,14 @@ import Crumbs from '../components/Crumbs.astro';
 import TeamTools from '../components/TeamTools.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
-import CalcTool from '../components/CalcTool.astro';
 import CockpitShell from '../components/CockpitShell.astro';
 import { DISCIPLINES } from '../lib/config';
-import { PARAM_SEED } from '../lib/master';
 import { RULES, RULE_IDS } from '../lib/ergo/rules';
 import { COCKPIT_POINTS, COCKPIT_SCALARS } from '../lib/ergo/defaults';
 import { MEASUREMENTS } from '../lib/ergo/estimate';
 
 const erg = DISCIPLINES.find((d) => d.slug === 'ergonomics')!;
-const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
 
-const LINKED = [{ mkey: 'wheelbase', label: 'Wheelbase', sym: 'L', unit: 'mm' }];
-const INPUTS = [
-  { key: 'driverHeight5', label: 'Driver height (5th %ile)', unit: 'mm', vals: [1600] },
-  { key: 'driverHeight95', label: 'Driver height (95th %ile)', unit: 'mm', vals: [1870] },
-  { key: 'driverMass', label: 'Driver mass (strapped)', unit: 'kg', vals: [75] },
-  { key: 'driverCog', label: 'Driver CoG height', unit: 'mm', vals: [300] },
-  { key: 'seatAngle', label: 'Seat-back angle', unit: 'deg', vals: [45] },
-  { key: 'pedalRange', label: 'Pedal-box adjustment range', unit: 'mm', vals: [275] },
-  { key: 'steeringReach', label: 'Steering reach', unit: 'mm', vals: [360] },
-  { key: 'helmetMargin', label: 'Helmet top to roll-hoop line', unit: 'mm', vals: [60], note: 'keep positive' },
-];
 const CHECKLIST = [
   { key: 'fit95', label: '95th-percentile driver fits with helmet' },
   { key: 'reach5', label: '5th-percentile reaches all controls' },
@@ -61,7 +47,6 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);';
   <CockpitShell tools={[
     { id: 'studio', title: 'Cockpit packaging studio' },
     { id: 'drivers', title: 'Driver roster' },
-    { id: 'fit', title: 'Driver fit' },
     { id: 'checklist', title: 'Egress & fit checklist' },
   ]} railLabel="Ergonomics">
 
@@ -90,6 +75,8 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);';
           <label><input type="checkbox" data-show="driver" /> Selected driver</label>
           <label><input type="checkbox" data-show="all" /> All drivers</label>
           <label><input type="checkbox" data-show="cad" /> CAD silhouette</label>
+          <label><input type="checkbox" data-show="cog" /> Driver CoG</label>
+          <label><input type="checkbox" data-show="sight" /> Sightline</label>
         </div>
 
         <h3 class="ct-h3">Driver</h3>
@@ -102,6 +89,9 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);';
           </tbody></table>
         </div>
         <p class="ct-sub">Saved with the driver. Measurements are in the <a href="#drivers">Driver roster</a>.</p>
+        <p style="margin-top:0.5rem;"><button type="button" class="btn btn-halftone" data-contribute-driver>Contribute selected driver to Master</button>
+          <span class="mono" data-contribute-driver-status style="margin-left:0.5rem;font-size:var(--fs-200);"></span></p>
+        <p class="ct-sub">Writes <strong>driver mass</strong> (roster, race gear), <strong>driver CoG height</strong> (estimate, see below the checks) and <strong>seat-back angle</strong> (cockpit setting above) to the shared results — they feed Component Readiness and Mass budget.</p>
 
         <details class="st-group" open>
           <summary>Cockpit points (mm)</summary>
@@ -176,6 +166,8 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);';
           <span class="st-key st-key-percy"></span> Percy (rulebook template)
           <span class="st-key st-key-driver"></span> selected driver
           <span class="st-key st-key-clear"></span> helmet clearance line
+          <span class="st-key st-key-cog"></span> driver CoG (estimate)
+          <span class="st-key st-key-sight"></span> sightline (info only)
         </p>
 
         <h3 class="ct-h3">Joint angles — selected driver</h3>
@@ -212,7 +204,7 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);';
       Each driver's name and body measurements, used to pose them in the packaging studio. Stored in the team's
       private workspace (visible to signed-in members only); remove a driver to delete their data.
       Only height is required — anything left blank is <strong>estimated from height</strong> (shown greyed) and
-      flagged in the studio. Measured values are always used over estimates.
+      flagged in the studio. Measured values are always used over estimates. <strong>Mass in race gear</strong> is not estimated — enter it to get the driver CoG.
     </p>
     <p style="margin-top:0.7rem;"><button type="button" class="btn btn-heritage" data-add-driver>Add driver</button>
       <span class="mono" data-roster-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span></p>
@@ -227,16 +219,10 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);';
         </table>
       </div>
       <p class="ct-sub">Estimates use segment-to-height ratios from Drillis &amp; Contini (1966) as given in Winter,
-        <em>Biomechanics and Motor Control of Human Movement</em>; sitting height ≈ 0.52 × height. Expect errors of a
+        <em>Biomechanics and Motor Control of Human Movement</em>; sitting height ≈ 0.52 × height; sitting eye height ≈ sitting height − 0.064 × height (eye at 0.936 × height standing). Expect errors of a
         couple of centimetres per segment — measure the people who will actually drive.</p>
     </details>
   </section>
-
-  <!-- ===================== Driver fit (existing) ===================== -->
-  <CalcTool id="fit" title="Driver fit" spec="TOOL_SPECS §5"
-    blurb="Driver envelope and cockpit dimensions. Keep the helmet-to-roll-hoop margin positive."
-    linked={LINKED} seed={seed} inputs={INPUTS}
-    contribute contributeNote="Writes driver mass (strapped), driver CoG height and seat-back angle to the shared store (ToMaster → MassBudget)." />
 
   <!-- Egress / fit checklist -->
   <section id="checklist" class="card" style="margin-top:1.25rem;">
@@ -288,6 +274,13 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);';
   #studio .st-other.st-joint { fill: var(--ink-3); }
   #studio .st-label { font: 28px var(--font-mono); fill: var(--ink-2); }
   #studio .st-dim { fill: var(--ink-3); }
+  #studio .st-cog { stroke: var(--heritage); stroke-width: 2.2; fill: none; }
+  #studio .st-cog-other { stroke: var(--ink-3); stroke-width: 1.4; }
+  #studio .st-cog-label { fill: var(--heritage); }
+  #studio .st-sight { stroke: var(--sky); stroke-width: 1.4; stroke-dasharray: 10 5; }
+  #studio .st-eye { fill: var(--sky); stroke: var(--sky); }
+  #studio .st-eye-label { fill: var(--sky); }
+  #studio .st-blocker { fill: none; stroke: var(--heritage); stroke-width: 2; }
   #studio .st-percylabel { fill: var(--amber-text); }
   #studio .st-drvlabel { fill: var(--sky); }
   #studio .st-legend { font-size: var(--fs-100); color: var(--ink-3); margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; align-items: center; }
@@ -295,6 +288,8 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);';
   #studio .st-key-percy { border-color: var(--amber); }
   #studio .st-key-driver { border-color: var(--sky); }
   #studio .st-key-clear { border-top: 2px dotted var(--heritage); }
+  #studio .st-key-cog { border-color: var(--heritage); }
+  #studio .st-key-sight { border-top: 2px dashed var(--sky); }
   .st-pill { display: inline-block; padding: 0.05rem 0.45rem; border-radius: 999px; font: 600 var(--fs-100) var(--font-mono); text-transform: uppercase; border: 1px solid; }
   .st-pass { color: var(--state-linked); border-color: var(--state-linked); }
   .st-fail { color: var(--heritage); border-color: var(--heritage); }
@@ -311,22 +306,10 @@ const ni = 'width:84px;text-align:right;font-family:var(--font-mono);';
 </style>
 
 <script>
-  import { mountCalculator } from '../lib/calc/engine';
   import { loadToolState, saveToolState, debounce } from '../lib/store';
   import { mountStudio } from '../lib/ergo/studio';
 
   mountStudio();
-
-  // Driver fit: no formulas — echo the three ToMaster values for contribution.
-  mountCalculator({
-    root: 'fit', tool: 'erg_fit', defaultDigits: 1,
-    compute: (inp) => ({ driverMass: inp.driverMass, driverCog: inp.driverCog, seatAngle: inp.seatAngle }),
-    toMaster: [
-      { key: 'driver_mass', label: 'Driver mass (strapped)', unit: 'kg', from: 'driverMass' },
-      { key: 'driver_cog_height', label: 'Driver CoG height', unit: 'mm', from: 'driverCog' },
-      { key: 'seat_back_angle', label: 'Seat-back angle', unit: 'deg', from: 'seatAngle' },
-    ],
-  });
 
   // Checklist: shared Y/N state (stored as 1/0) in its own tool row.
   (async () => {

@@ -155,14 +155,18 @@ colour-code guide. This is a data table, not a calc; make it an editable grid.
 **Writes:** battery mass → MassBudget; total current draw → ECS.
 
 ## 5. Ergonomics  (`Blitz_Ergonomics_WorkingFile.xlsx`)
-**Reads:** wheelbase, cog_height, mass_total.
-**Inputs:** driver height 5th %ile 1600 mm / 95th %ile 1870 mm; driver mass
-75 kg; driver CoG height 300 mm; seat-back angle 45°; pedal-box adj range 275 mm;
-steering reach 360 mm; helmet-to-roll-hoop 60 mm (keep positive margin).
-**Computes:** wheelbase pulled from Master (`=FromMaster!B6`).
+**Workbook (original):** driver height 5th %ile 1600 mm / 95th %ile 1870 mm;
+driver mass 75 kg; driver CoG height 300 mm; seat-back angle 45°; pedal-box adj
+range 275 mm; steering reach 360 mm; helmet-to-roll-hoop 60 mm; wheelbase from
+Master. **Web:** the old "Driver fit" calculator (CalcTool `fit`, tool `erg_fit`)
+is RETIRED — its inputs are superseded by the studio + roster, and its three
+ToMaster contributions now come from the studio's **Contribute selected driver to
+Master** button (tool `erg_studio`): `driver_mass` (kg, roster mass in race gear),
+`driver_cog_height` (mm above ground, the CoG estimate below) and
+`seat_back_angle` (deg, the cockpit's seat-back-from-vertical setting). Any saved
+`erg_fit` row is simply no longer read.
 **Checklist (Y/N):** 95th-%ile fits with helmet; 5th-%ile reaches controls;
 egress < 5 s; clear view; belts anchored per rules. Render as a checklist.
-**Writes:** driver mass (strapped) → MassBudget; driver CoG height; seat-back angle.
 
 **§5b Cockpit packaging studio** (team request, not a workbook port). Side view,
 mm, x rearward from the front axle, z up from ground (`src/lib/ergo/`).
@@ -188,6 +192,29 @@ mm, x rearward from the front axle, z up from ground (`src/lib/ergo/`).
   heel/pedal and the wheel (9-and-3 = wheel centre in side view).
 - **Joint angles** hip / knee / ankle / elbow; no comfort range assumed — team
   enters a target band.
+- **Driver CoG (estimate)** — `cog.ts`. Dempster segment parameters as tabulated
+  in Winter, *Biomechanics and Motor Control of Human Movement*, Table 4.1. Mass
+  fractions (one segment): hand 0.006, forearm 0.016, upper arm 0.028, foot 0.0145,
+  leg/shank 0.0465, thigh 0.100, head+neck 0.081, trunk 0.497; CoM from the proximal
+  end: hand 0.506, forearm 0.430, upper arm 0.436, foot 0.50, leg 0.433, thigh 0.433,
+  trunk 0.50 (hip → shoulder), head+neck at the head-circle centre. Arms and legs
+  are doubled (side view) so the fractions sum to 1.000. Total mass = roster *mass
+  in race gear*. Wrist = fist centre − ½ hand, hand length = 0.108·stature
+  (Drillis & Contini). Segment end points are the studio's posed joints (foot =
+  ankle → toe). Shown as a marker on the drawing and as x / z in the checks area;
+  labelled an estimate everywhere.
+- **Sightline (information only)** — `sightline.ts`. New roster measurement
+  *Sitting eye height* (seat → eye); estimate = sitting height − 0.064·stature
+  (Drillis & Contini: eye 0.936·H standing), flagged as estimated. Eye point = on
+  the posed neck/head line from the shoulder at (eye height − sitting shoulder
+  height), then moved `EYE_FORWARD_OF_HEAD_CENTRE_MM` = **80 mm** toward the front
+  — that constant is an ASSUMED approximation (not from a source) and is labelled
+  so in the UI. New cockpit point *Nose / bodywork top* (default x 250, z 400: an
+  example, replace with CAD). The sightline is the line from the eye that just
+  clears the highest-slope obstruction among steering-wheel top, front-hoop top and
+  nose top; reported: which part blocks, angle below horizontal, and where it meets
+  the ground (mm ahead of the front axle). **No pass/fail**: FSAE / FS rules have
+  no side-view visibility requirement and none is invented.
 - **CAD:** SolidWorks STL (binary/ASCII), read in the browser only, projected to a
   side-view silhouette with axis / unit / origin mapping. Export DXF (R12) + CSV.
 

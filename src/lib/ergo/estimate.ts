@@ -7,6 +7,8 @@
  *    foot length 0.152, ankle height 0.039, shoulder height 0.818). The authors
  *    quote errors up to ~2 cm per segment — measure the driver.
  *  - Sitting height ≈ 0.52·H (Cormic index typical of adults).
+ *  - Sitting eye height = sitting height − 0.064·H (Drillis & Contini: eye height
+ *    0.936·H standing, so the eye sits 0.064·H below the top of the head).
  *  - Fist centre taken at half the hand length past the wrist.
  *  - Helmet adds ~50 mm above the head: the gap the rulebook's own template
  *    implies; measure sitting height with the helmet on instead.
@@ -19,6 +21,7 @@ export const MEASUREMENTS: { key: keyof DriverBody; label: string; unit: string;
   { key: 'sittingHeight', label: 'Sitting height', unit: 'mm', how: 'Sitting erect on a flat seat: seat to top of head.' },
   { key: 'sittingHelmetHeight', label: 'Sitting height with helmet', unit: 'mm', how: 'Same, helmet on: seat to top of helmet.' },
   { key: 'sittingShoulderHeight', label: 'Sitting shoulder height', unit: 'mm', how: 'Seat to the bony tip of the shoulder (acromion).' },
+  { key: 'sittingEyeHeight', label: 'Sitting eye height', unit: 'mm', how: 'Sitting erect on a flat seat: seat to the eye (outer corner), ISO 7250 style.' },
   { key: 'thigh', label: 'Thigh length', unit: 'mm', how: 'Hip joint (greater trochanter, the bony bump at the side of the hip) to the knee joint line.' },
   { key: 'shank', label: 'Lower-leg length', unit: 'mm', how: 'Knee joint line to the outer ankle bone (lateral malleolus).' },
   { key: 'ankleHeight', label: 'Ankle height', unit: 'mm', how: 'Floor to the outer ankle bone, in race boots.' },
@@ -34,6 +37,7 @@ export function estimateFromStature(H: number): Partial<DriverBody> {
     sittingHeight: sitting,
     sittingHelmetHeight: sitting + 50,
     sittingShoulderHeight: sitting - (1 - 0.818) * H,
+    sittingEyeHeight: sitting - 0.064 * H,
     thigh: 0.245 * H,
     shank: 0.246 * H,
     ankleHeight: 0.039 * H,
@@ -56,5 +60,7 @@ export function completeBody(measured: Partial<DriverBody>): { body: DriverBody;
   }
   // If only helmetless sitting height was measured, keep the helmet estimate tied to it.
   if (estimated.includes('sittingHelmetHeight') && !estimated.includes('sittingHeight')) body.sittingHelmetHeight = body.sittingHeight + 50;
+  // Same for the eye: it tracks a MEASURED sitting height (eye = sitting height − 0.064·H).
+  if (estimated.includes('sittingEyeHeight') && !estimated.includes('sittingHeight') && body.stature > 0) body.sittingEyeHeight = body.sittingHeight - 0.064 * body.stature;
   return { body, estimated };
 }

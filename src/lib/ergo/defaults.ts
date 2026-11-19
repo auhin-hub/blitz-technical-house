@@ -21,6 +21,7 @@ export const EXAMPLE_COCKPIT: Cockpit = {
   wheelTiltDeg: 20,
   shoulderMount: { x: 1660, z: 640 },
   lapMount: { x: 1090, z: 20 },
+  noseTop: { x: 250, z: 400 },
 };
 
 /** Labels + order for the cockpit inputs (points as x/z pairs, then angles). */
@@ -35,6 +36,7 @@ export const COCKPIT_POINTS: { key: keyof Cockpit; label: string; hint: string }
   { key: 'wheelCentre', label: 'Steering-wheel centre', hint: '' },
   { key: 'shoulderMount', label: 'Shoulder-harness mount', hint: 'side view' },
   { key: 'lapMount', label: 'Lap-belt mount', hint: 'side view' },
+  { key: 'noseTop', label: 'Nose / bodywork top', hint: 'highest point ahead of the front hoop (sightline only)' },
 ];
 export const COCKPIT_SCALARS: { key: keyof Cockpit; label: string; unit: string }[] = [
   { key: 'seatPanDeg', label: 'Seat bottom angle (rising to the front)', unit: '°' },
