@@ -164,6 +164,39 @@ steering reach 360 mm; helmet-to-roll-hoop 60 mm (keep positive margin).
 egress < 5 s; clear view; belts anchored per rules. Render as a checklist.
 **Writes:** driver mass (strapped) → MassBudget; driver CoG height; seat-back angle.
 
+**§5b Cockpit packaging studio** (team request, not a workbook port). Side view,
+mm, x rearward from the front axle, z up from ground (`src/lib/ergo/`).
+- **Rulebook selector:** FSAE 2027 V1.0, FS Rules 2026 v1.0 (FS UK), FSAE Japan
+  (FSAE base; JSAE local rules not yet checked), FS China 2023. Values + rule
+  numbers in `rules.ts`; anything not confirmed from the source is listed as
+  unverified and shown on the page. Rulebook PDFs are © their publishers and are
+  not stored in the repo.
+- **Percy** placed per the rulebook: lower 200 mm circle on the seat bottom at
+  ≥ 915 mm from the rearmost pedal face (pedals forward, seat rearmost); middle
+  circle on the seat back, 490 mm on; 300 mm head circle 280 mm on, at the
+  rulebook gap (25 / 25.4 mm) from the head restraint.
+- **Checks:** helmet ≥ 50 mm (FSC 50.8) from main–front hoop line and from the
+  main hoop–rear brace line (or not behind the main hoop if braced forward);
+  upright vs reclined (template back line ≤ 30° from vertical); lap belt 45–65°
+  upright / 60–80° reclined, and 0–75/76 mm forward of the seat junction
+  (upright, "should"); shoulder belt +10° to −20°; front hoop top ≥ wheel top and
+  wheel ≤ 250 mm rearward of the front hoop. Each driver: helmet clearance, belts,
+  head restraint ≤ 25 mm from the helmet, reaches pedals and wheel.
+- **Drivers** drawn as the rulebook's figure scaled to their measurements (hip /
+  shoulder 200 mm circles, 300 mm helmet), legs and arms as two-link chains to the
+  heel/pedal and the wheel (9-and-3 = wheel centre in side view).
+- **Joint angles** hip / knee / ankle / elbow; no comfort range assumed — team
+  enters a target band.
+- **CAD:** SolidWorks STL (binary/ASCII), read in the browser only, projected to a
+  side-view silhouette with axis / unit / origin mapping. Export DXF (R12) + CSV.
+
+**§5c Driver roster** — name + 11 measurements (ISO-7250-style landmarks: stature,
+mass, sitting height ± helmet, sitting shoulder height, thigh, lower leg, ankle
+height, foot, upper arm, elbow-to-grip) + per-driver seat insert / pedal shift /
+head-restraint shift. Missing values estimated from stature (Drillis & Contini
+1966 via Winter; sitting height 0.52·H) and flagged. Stored in `tool_state`
+(`erg_drivers`) behind the login; the studio state is `erg_studio`.
+
 ## 6. Powertrain  (`Blitz_Powertrain_WorkingFile.xlsx`)
 **Reads:** mass_total, axle_load_rear, mu_lat_peak, rolling_radius.
 **Inputs:** engine peak torque 35.3 N·m, peak power 32 kW, peak-power rpm 9500,
