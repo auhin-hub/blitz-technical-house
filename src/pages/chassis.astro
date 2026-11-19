@@ -1,10 +1,12 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
+import TeamTools from '../components/TeamTools.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
 import CockpitShell from '../components/CockpitShell.astro';
-import { url, DISCIPLINES } from '../lib/config';
+import { DISCIPLINES } from '../lib/config';
 import { MASS_COMPONENTS } from '../lib/calc/chassis-mass';
 
 const ch = DISCIPLINES.find((d) => d.slug === 'chassis')!;
@@ -25,15 +27,14 @@ const th = 'padding:0.5rem 0.55rem;';
 const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
 ---
 <Base title={ch.title} description={ch.blurb}>
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / {ch.title}
-  </nav>
+  <Crumbs page="chassis" label={ch.title} />
   <header style="margin-bottom:1.25rem;">
     <p class="annot annot-tick">Discipline</p>
     <h1 style="margin-top:0.4rem;">{ch.title}</h1>
     <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{ch.blurb}</p>
     <div style="margin-top:1rem;">{ch.workbook && <WorkbookDownload file={ch.workbook} />}</div>
   </header>
+  <TeamTools team={ch} />
 
 
   <div class="notice" style="margin-bottom:1.5rem;">

@@ -1,11 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import { url } from '../lib/config';
 ---
 <Base title="DAQ log interpretation">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / <a href={url('electronics')} style="color:inherit;">Electronics</a> / DAQ interpretation
-  </nav>
+  <Crumbs page="daq" label="DAQ interpretation" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">Stage 09 · validate &amp; correlate</p>
     <h1 style="margin-top:0.4rem;">DAQ log interpretation</h1>

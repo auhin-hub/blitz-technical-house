@@ -1,0 +1,30 @@
+---
+/**
+ * Business & Ops — the team page for the non-engineering tools (cost report,
+ * budget, Gantt, points). They each have their own page; this hub is where the
+ * Teams menu and the landing card send you. Tool list from config.ts.
+ */
+import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
+import { url, DISCIPLINES } from '../lib/config';
+
+const biz = DISCIPLINES.find((d) => d.slug === 'business')!;
+---
+<Base title={biz.title} description={biz.blurb}>
+  <Crumbs page={biz.slug} label={biz.title} />
+  <header style="margin-bottom:1.5rem;">
+    <p class="annot annot-tick">Team</p>
+    <h1 style="margin-top:0.4rem;">{biz.title}</h1>
+    <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{biz.blurb}</p>
+  </header>
+
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));">
+    {biz.tools.map((t) => (
+      <a class="card card-link annot-frame" href={url(t.href!)}>
+        <span class="annot annot-tick">Open ↗</span>
+        <h3 style="margin-top:0.6rem;">{t.title}</h3>
+        <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">{t.blurb}</p>
+      </a>
+    ))}
+  </div>
+</Base>

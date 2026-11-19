@@ -1,11 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
-import { url } from '../lib/config';
+import Crumbs from '../components/Crumbs.astro';
 ---
 <Base title="Budget">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / Budget
-  </nav>
+  <Crumbs page="budget" label="Budget" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">Team budget · planned vs actual</p>
     <h1 style="margin-top:0.4rem;">Budget</h1>

@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import LegendKey from '../components/LegendKey.astro';
-import { url } from '../lib/config';
 
 const LINKED = [
   { k: 'mu_lat_peak', l: 'Peak lateral μ', s: 'μy', u: '-' },
@@ -18,9 +18,7 @@ const INPUTS = [
 const ni = 'width:84px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
 ---
 <Base title="g–g diagram">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / g–g diagram
-  </nav>
+  <Crumbs page="gg" label="g–g diagram" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">The acceleration envelope · g–g–V</p>
     <h1 style="margin-top:0.4rem;">g–g diagram</h1>

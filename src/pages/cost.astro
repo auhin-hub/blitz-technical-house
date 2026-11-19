@@ -1,11 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import { url } from '../lib/config';
 ---
 <Base title="Cost / BOM">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / Cost / BOM
-  </nav>
+  <Crumbs page="cost" label="Cost / BOM" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">FSAE Japan 2026 · BOM + Final Cost Analysis</p>
     <h1 style="margin-top:0.4rem;">Cost / BOM</h1>

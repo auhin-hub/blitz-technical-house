@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import LegendKey from '../components/LegendKey.astro';
-import { url } from '../lib/config';
 
 // Hardpoints (one corner). Coordinate convention (SolidWorks-friendly):
 // origin = front-axle centre on the ground; x = rearward, y = right, z = up (mm).
@@ -30,9 +30,7 @@ const SYNTH = [
 ];
 ---
 <Base title="Suspension geometry">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('vehicle-dynamics')} style="color:inherit;">VD Workspace</a> / Suspension geometry
-  </nav>
+  <Crumbs page="geometry" label="Suspension geometry" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">Stage 05 · Gate G3 · hardpoints freeze here</p>
     <h1 style="margin-top:0.4rem;">Suspension geometry</h1>

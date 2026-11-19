@@ -1,14 +1,12 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import LegendKey from '../components/LegendKey.astro';
-import { url } from '../lib/config';
 
 const ni = 'width:88px;text-align:right;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.22rem 0.4rem;';
 ---
 <Base title="Balance">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('vehicle-dynamics')} style="color:inherit;">VD Workspace</a> / Balance
-  </nav>
+  <Crumbs page="balance" label="Balance" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">Steady-state · where it pushes or gets loose</p>
     <h1 style="margin-top:0.4rem;">Balance</h1>

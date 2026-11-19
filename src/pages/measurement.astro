@@ -1,14 +1,12 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import CockpitShell from '../components/CockpitShell.astro';
 import CalcTool from '../components/CalcTool.astro';
 import LegendKey from '../components/LegendKey.astro';
-import { url } from '../lib/config';
 ---
 <Base title="Measurement">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / Measurement
-  </nav>
+  <Crumbs page="measurement" label="Measurement" />
   <header style="margin-bottom:1rem;">
     <p class="annot annot-tick">On-car measurement helpers</p>
     <h1 style="margin-top:0.4rem;">Measurement</h1>

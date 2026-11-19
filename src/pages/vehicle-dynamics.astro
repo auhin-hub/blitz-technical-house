@@ -1,5 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
+import TeamTools from '../components/TeamTools.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
@@ -85,9 +87,7 @@ const STEER_OUTPUTS = [
 // ---- Brakes --------------------------------------------------------------
 ---
 <Base title="VD Workspace" description="Guided Vehicle Dynamics workflow — the handbook design sequence, wired to the gates.">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / VD Workspace
-  </nav>
+  <Crumbs page="vehicle-dynamics" label={vd.title} />
   <header style="margin-bottom:1.25rem;">
     <p class="annot annot-tick">Guided workflow · design sequence → gates</p>
     <h1 style="margin-top:0.4rem;">VD Workspace</h1>
@@ -98,6 +98,7 @@ const STEER_OUTPUTS = [
     </p>
     <div style="margin-top:1rem;">{vd.workbook && <WorkbookDownload file={vd.workbook} />}</div>
   </header>
+  <TeamTools team={vd} />
 
   <!-- The guided design sequence (handbook Part I) + the coupling map (Part H). -->
   <VdWorkflowMap />

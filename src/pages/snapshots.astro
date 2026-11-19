@@ -1,11 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
 import { url } from '../lib/config';
 ---
 <Base title="Snapshots" description="Design baselines: capture the whole shared spec at a gate, compare it to today, export it for the Excel archive.">
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / Snapshots
-  </nav>
+  <Crumbs page="snapshots" label="Snapshots" />
   <header style="margin-bottom:1.25rem;">
     <p class="annot annot-tick">Cross-cutting · governance</p>
     <h1 style="margin-top:0.4rem;">Snapshots</h1>

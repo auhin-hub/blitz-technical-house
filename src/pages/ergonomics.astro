@@ -1,10 +1,12 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
+import TeamTools from '../components/TeamTools.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
 import CockpitShell from '../components/CockpitShell.astro';
-import { url, DISCIPLINES } from '../lib/config';
+import { DISCIPLINES } from '../lib/config';
 import { PARAM_SEED } from '../lib/master';
 
 const erg = DISCIPLINES.find((d) => d.slug === 'ergonomics')!;
@@ -30,15 +32,14 @@ const CHECKLIST = [
 ];
 ---
 <Base title={erg.title} description={erg.blurb}>
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / {erg.title}
-  </nav>
+  <Crumbs page="ergonomics" label={erg.title} />
   <header style="margin-bottom:1.25rem;">
     <p class="annot annot-tick">Discipline</p>
     <h1 style="margin-top:0.4rem;">{erg.title}</h1>
     <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{erg.blurb}</p>
     <div style="margin-top:1rem;">{erg.workbook && <WorkbookDownload file={erg.workbook} />}</div>
   </header>
+  <TeamTools team={erg} />
 
   <div class="notice" style="margin-bottom:1.5rem;">
     <strong>Green = read from Master; blue = your inputs (saved for the team).</strong>

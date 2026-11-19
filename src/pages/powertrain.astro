@@ -1,5 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import Crumbs from '../components/Crumbs.astro';
+import TeamTools from '../components/TeamTools.astro';
 import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
@@ -33,15 +35,14 @@ const OUTPUTS = [
 ];
 ---
 <Base title={pt.title} description={pt.blurb}>
-  <nav class="annot" style="margin-bottom:0.75rem;">
-    <a href={url('')} style="color:inherit;">Home</a> / {pt.title}
-  </nav>
+  <Crumbs page="powertrain" label={pt.title} />
   <header style="margin-bottom:1.25rem;">
     <p class="annot annot-tick">Discipline</p>
     <h1 style="margin-top:0.4rem;">{pt.title}</h1>
     <p style="color:var(--ink-2);margin-top:0.5rem;max-width:72ch;">{pt.blurb}</p>
     <div style="margin-top:1rem;">{pt.workbook && <WorkbookDownload file={pt.workbook} />}</div>
   </header>
+  <TeamTools team={pt} />
 
   <div class="notice" style="margin-bottom:1rem;">
     <strong>Shared numbers come from Vehicle Spec.</strong> Green = read from the
