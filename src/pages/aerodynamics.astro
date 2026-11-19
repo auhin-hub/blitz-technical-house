@@ -8,20 +8,61 @@ import CockpitShell from '../components/CockpitShell.astro';
 import CalcTool from '../components/CalcTool.astro';
 import { DISCIPLINES } from '../lib/config';
 import { PARAM_SEED } from '../lib/master';
+import { AERO_ELEMENTS } from '../lib/calc/aero-balance';
 
 const aero = DISCIPLINES.find((d) => d.slug === 'aerodynamics')!;
-const seedMass = PARAM_SEED.find((p) => p.key === 'mass_total')!.value;
 const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
 const SPEEDS = [40, 60, 80, 100, 120];
+
+// Downforce tool owns Cl·A, Cd·A and ρ for the page (one home per number).
 const INPUTS = [
   { key: 'clA', label: 'Cl·A', unit: 'm²', val: 0.8 },
   { key: 'cdA', label: 'Cd·A', unit: 'm²', val: 0.6 },
   { key: 'rho', label: 'Air density ρ', unit: 'kg/m³', val: 1.18 },
-  { key: 'aeroBalance', label: 'Aero balance (front)', unit: '-', val: 0.45 },
+  { key: 'radius', label: 'Corner radius R (skidpad centreline ≈ 9.125)', unit: 'm', val: 9.125 },
 ];
+const LINKED = [
+  { mkey: 'mass_total', label: 'Total mass (with driver)', sym: 'm', unit: 'kg' },
+  { mkey: 'mu_lat_peak', label: 'Peak lateral μ (tyre)', sym: 'μt', unit: '-' },
+];
+const PERF = [
+  { key: 'v0Kmh', label: 'Corner speed, no aero V0 = √(μt·g·R)', unit: 'km/h' },
+  { key: 'vKmh', label: 'Corner speed, with aero V', unit: 'km/h' },
+  { key: 'dvPct', label: 'Corner-speed gain ΔV = (V − V0)/V0', unit: '%' },
+  { key: 't0', label: 'Skidpad lap time, no aero = 2πR/V0', unit: 's' },
+  { key: 't', label: 'Skidpad lap time, with aero = 2πR/V', unit: 's' },
+  { key: 'ayG', label: 'Lateral grip with aero = V²/R', unit: 'g' },
+];
+
+// Aero balance tool: per-element Cl·A and position. Example values only.
+const EL_DEFAULTS: Record<string, [number, number]> = { fw: [0.25, -550], fl: [0.3, 800], rw: [0.35, 1750], ot: [0, 800] };
+const BAL_LINKED = [
+  { mkey: 'wheelbase', label: 'Wheelbase', sym: 'l', unit: 'mm' },
+  { mkey: 'mass_total', label: 'Total mass (with driver)', sym: 'm', unit: 'kg' },
+  { mkey: 'mass_frac_front', label: 'Static front mass fraction', sym: 'ff', unit: '-' },
+];
+const BAL_INPUTS = [
+  { key: 'speed', label: 'Speed V', unit: 'km/h', val: 80 },
+  { key: 'rho', label: 'Air density ρ', unit: 'kg/m³', val: 1.18 },
+  { key: 'hDrag', label: 'Drag centre height h_drag', unit: 'mm', val: 400 },
+];
+const BAL_OUT = [
+  { key: 'sumClA', label: 'Total Cl·A = Σ Cl·Aᵢ', unit: 'm²' },
+  { key: 'sumF', label: 'Total downforce Σ Fᵢ', unit: 'N' },
+  { key: 'nfAero', label: 'Front axle aero load = Σ Fᵢ·(l − xᵢ)/l', unit: 'N' },
+  { key: 'nrAero', label: 'Rear axle aero load = Σ Fᵢ·xᵢ/l', unit: 'N' },
+  { key: 'fDrag', label: 'Drag F_drag = ½ρV²·Cd·A', unit: 'N' },
+  { key: 'nf', label: 'Front axle load = m·g·ff + Nf,aero − F_drag·h/l', unit: 'N' },
+  { key: 'nr', label: 'Rear axle load = m·g·(1−ff) + Nr,aero + F_drag·h/l', unit: 'N' },
+  { key: 'xcg', label: 'CG position from front axle = (1 − ff)·l', unit: 'mm' },
+  { key: 'cpMinusCg', label: 'Aero front − weight front (>0 = front-biased)', unit: '-' },
+];
+
 const td = 'padding:0.45rem 0.6rem;';
 const th = 'padding:0.5rem 0.6rem;';
 const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
+const h3 = 'font-size:var(--fs-500);margin-top:1.25rem;';
+const tbl = 'border-collapse:collapse;font-size:var(--fs-300);margin-top:0.4rem;';
 ---
 <Base title={aero.title} description={aero.blurb}>
   <Crumbs page="aerodynamics" label={aero.title} />
@@ -40,24 +81,34 @@ const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
   <LegendKey />
 
   <div style="margin-top:1.25rem;"></div>
-  <CockpitShell tools={[{ id: 'aero', title: 'Downforce / drag vs speed' }, { id: 'aerobalance', title: 'Aero balance / CoP' }]} railLabel="Aerodynamics">
+  <CockpitShell tools={[
+    { id: 'aero', title: 'Downforce, drag & performance' },
+    { id: 'aerobalance', title: 'Aero balance / CoP / axle loads' },
+    { id: 'mesh', title: 'CFD mesh y+' },
+  ]} railLabel="Aerodynamics">
+
+  <!-- ============ Downforce, drag & performance (TOOL_SPECS §1, §1b) ============ -->
   <section id="aero" class="card" style="margin-top:1.5rem;">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
-      <h2 style="font-size:var(--fs-700);">Downforce / drag vs speed</h2>
-      <span class="badge">TOOL_SPECS §1</span>
+      <h2 style="font-size:var(--fs-700);">Downforce, drag &amp; performance</h2>
+      <span class="badge">TOOL_SPECS §1 · §1b</span>
     </div>
 
-    <h3 style="font-size:var(--fs-500);margin-top:1.1rem;">From Master</h3>
-    <table style="border-collapse:collapse;font-size:var(--fs-300);margin-top:0.4rem;">
-      <tbody><tr>
-        <td style={td}>Total mass (with driver) <span class="mono" style="color:var(--ink-3);">(m)</span></td>
-        <td style={td + 'text-align:right;'}><span class="field field-linked mono" data-master="mass_total" data-seed={seedMass}>{seedMass}</span></td>
-        <td style={td} class="mono">kg</td>
-      </tr></tbody>
+    <h3 style={h3}>From Master</h3>
+    <table style={tbl}>
+      <tbody>
+        {LINKED.map((l) => (
+          <tr>
+            <td style={td}>{l.label} <span class="mono" style="color:var(--ink-3);">({l.sym})</span></td>
+            <td style={td + 'text-align:right;'}><span class="field field-linked mono" data-master={l.mkey} data-seed={seed[l.mkey] ?? ''}>{seed[l.mkey] ?? '—'}</span></td>
+            <td style={td} class="mono">{l.unit}</td>
+          </tr>
+        ))}
+      </tbody>
     </table>
 
-    <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Inputs</h3>
-    <table style="border-collapse:collapse;font-size:var(--fs-300);margin-top:0.4rem;">
+    <h3 style={h3}>Inputs</h3>
+    <table style={tbl}>
       <tbody>
         {INPUTS.map((i) => (
           <tr style="border-bottom:1px solid var(--rule);">
@@ -69,14 +120,15 @@ const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
       </tbody>
     </table>
 
-    <h3 style="font-size:var(--fs-500);margin-top:1.25rem;">Per-speed outputs</h3>
+    <h3 style={h3}>Per-speed outputs</h3>
     <div style="overflow-x:auto;">
-      <table style="border-collapse:collapse;font-size:var(--fs-300);min-width:460px;margin-top:0.4rem;">
+      <table style={tbl + 'min-width:560px;'}>
         <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
           <th style={th} class="annot">Speed (km/h)</th>
           <th style={th + 'text-align:right;'} class="annot">Downforce (N)</th>
           <th style={th + 'text-align:right;'} class="annot">Drag (N)</th>
           <th style={th + 'text-align:right;'} class="annot">% of weight</th>
+          <th style={th + 'text-align:right;'} class="annot">Drag power ½ρCdA·V³ (kW)</th>
         </tr></thead>
         <tbody>
           {SPEEDS.map((s) => (
@@ -85,6 +137,7 @@ const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
               <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`df_${s}`}>—</span></td>
               <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`drag_${s}`}>—</span></td>
               <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`pct_${s}`}>—</span></td>
+              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`pw_${s}`}>—</span></td>
             </tr>
           ))}
         </tbody>
@@ -98,35 +151,161 @@ const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
       </div>
     </div>
 
-    <h3 style="font-size:var(--fs-500);margin-top:1.5rem;">Downforce & drag vs speed</h3>
+    <h3 style={h3}>Downforce &amp; drag vs speed</h3>
     <div style="margin-top:0.5rem;height:300px;position:relative;"><canvas id="aero-chart"></canvas></div>
 
-    <h3 style="font-size:var(--fs-500);margin-top:1.5rem;">Contribute to Master</h3>
-    <p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.3rem;">Writes Cl·A, Cd·A and aero balance (front) to the shared store (ToMaster → Aero).</p>
+    <h3 style={h3}>Performance impact — steady cornering at radius R</h3>
+    <p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.3rem;max-width:72ch;">
+      With aero: V = √[ μt·m·g / (m/R − μt·½ρ·Cl·A) ], from m·V²/R = μt·(m·g + ½ρ·Cl·A·V²).
+      The tyre's peak μ is the belt-rig figure — track grip is usually lower.
+    </p>
+    <table style={tbl}>
+      <tbody>
+        {PERF.map((o) => (
+          <tr style="border-bottom:1px solid var(--rule);">
+            <td style={td}>{o.label}</td>
+            <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={o.key}>—</span></td>
+            <td style={td} class="mono">{o.unit}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <p class="mono" data-out="perfNote" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-2);"></p>
+
+    <h3 style={h3}>Contribute to Master</h3>
+    <p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.3rem;">Writes Cl·A and Cd·A to the shared store (ToMaster → Aero). Aero balance is contributed by the balance tool, where it is computed.</p>
     <button class="btn btn-heritage" type="button" data-contribute style="margin-top:0.75rem;">Contribute results to Master</button>
     <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
     <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
   </section>
 
-  <CalcTool id="aerobalance" title="Aero balance / CoP" spec="§9"
-    blurb="Front aero balance from front/rear Cl·A; compare the centre of pressure to the CG front fraction (Δ>0 = front-biased downforce)."
-    linked={[{ mkey: 'mass_frac_front', label: 'CG front fraction', sym: 'ff', unit: '-' }]} seed={seed}
+  <!-- ============ Aero balance / CoP / axle loads (TOOL_SPECS §1d) ============ -->
+  <section id="aerobalance" class="card" style="margin-top:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+      <h2 style="font-size:var(--fs-700);">Aero balance, centre of pressure &amp; axle loads</h2>
+      <span class="badge">TOOL_SPECS §1d</span>
+    </div>
+    <p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.35rem;max-width:72ch;">
+      Per-element downforce Fᵢ = ½ρV²·Cl·Aᵢ acting at xᵢ, measured from the <strong>front axle,
+      positive rearward</strong> (a front wing ahead of the axle has a negative x). %front and the
+      centre of pressure don't change with speed; the axle loads do. Element values are examples —
+      replace them with your CFD or tunnel numbers.
+    </p>
+
+    <h3 style={h3}>From Master</h3>
+    <table style={tbl}>
+      <tbody>
+        {BAL_LINKED.map((l) => (
+          <tr>
+            <td style={td}>{l.label} <span class="mono" style="color:var(--ink-3);">({l.sym})</span></td>
+            <td style={td + 'text-align:right;'}><span class="field field-linked mono" data-master={l.mkey} data-seed={seed[l.mkey] ?? ''}>{seed[l.mkey] ?? '—'}</span></td>
+            <td style={td} class="mono">{l.unit}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    <h3 style={h3}>From the Downforce tool</h3>
+    <table style={tbl}>
+      <tbody><tr>
+        <td style={td}>Cd·A (contributed) <span class="mono" style="color:var(--ink-3);">(cd_a)</span></td>
+        <td style={td + 'text-align:right;'}><span class="field field-linked mono" data-output="cd_a" data-output-hint="press Contribute in Downforce, drag & performance">—</span></td>
+        <td style={td} class="mono">m²</td>
+      </tr></tbody>
+    </table>
+
+    <h3 style={h3}>Elements</h3>
+    <div style="overflow-x:auto;">
+      <table style={tbl + 'min-width:520px;'}>
+        <thead><tr style="border-bottom:1px solid var(--rule-strong);text-align:left;">
+          <th style={th} class="annot">Element</th>
+          <th style={th + 'text-align:right;'} class="annot">Cl·Aᵢ (m²)</th>
+          <th style={th + 'text-align:right;'} class="annot">xᵢ from front axle (mm)</th>
+          <th style={th + 'text-align:right;'} class="annot">Fᵢ at V (N)</th>
+        </tr></thead>
+        <tbody>
+          {AERO_ELEMENTS.map((e) => (
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style={td}>{e.label}</td>
+              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`cla_${e.key}`} value={EL_DEFAULTS[e.key][0]} aria-label={`${e.label} Cl·A`} /></td>
+              <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={`x_${e.key}`} value={EL_DEFAULTS[e.key][1]} aria-label={`${e.label} position from front axle`} /></td>
+              <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={`f_${e.key}`}>—</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style={h3}>Conditions</h3>
+    <table style={tbl}>
+      <tbody>
+        {BAL_INPUTS.map((i) => (
+          <tr style="border-bottom:1px solid var(--rule);">
+            <td style={td}>{i.label}</td>
+            <td style={td + 'text-align:right;'}><input type="number" step="any" class="field field-input" style={numInput} data-in={i.key} value={i.val} aria-label={i.label} /></td>
+            <td style={td} class="mono">{i.unit}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));margin-top:1.25rem;">
+      <div class="ct-stat"><span class="annot">Aero %front = Nf,aero / ΣF</span><div class="val"><span data-out="pctFront">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> %</span></div></div>
+      <div class="ct-stat"><span class="annot">Centre of pressure x_cp = Σ(Fᵢ·xᵢ)/ΣFᵢ</span><div class="val"><span data-out="xcp">—</span><span class="ct-unit" style="font-size:var(--fs-400)"> mm</span></div></div>
+    </div>
+
+    <h3 style={h3}>Outputs</h3>
+    <table style={tbl}>
+      <tbody>
+        {BAL_OUT.map((o) => (
+          <tr style="border-bottom:1px solid var(--rule);">
+            <td style={td}>{o.label}</td>
+            <td style={td + 'text-align:right;'}><span class="field field-computed mono" data-out={o.key}>—</span></td>
+            <td style={td} class="mono">{o.unit}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    <h3 style={h3}>Contribute to Master</h3>
+    <p style="color:var(--ink-2);font-size:var(--fs-300);margin-top:0.3rem;">Writes the computed aero balance (front fraction, 0–1) to the shared store (ToMaster → Aero).</p>
+    <button class="btn btn-heritage" type="button" data-contribute style="margin-top:0.75rem;">Contribute results to Master</button>
+    <span class="mono" data-contribute-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span>
+    <p class="mono" data-save-status style="margin-top:0.8rem;font-size:var(--fs-200);color:var(--ink-3);"></p>
+  </section>
+
+  <!-- ============ CFD mesh y+ (TOOL_SPECS §1c) ============ -->
+  <CalcTool id="mesh" title="CFD mesh — first-layer height for a target y+" spec="TOOL_SPECS §1c"
+    blurb="Flat-plate estimate for full-vehicle CFD: Re = ρUL/μ, Cf = 0.058·Re^−0.2, τw = Cf·½ρU², u* = √(τw/ρ), y = y+·μ/(ρ·u*), first layer Δ1 = 2y. A starting size — check the solved y+ field after the run."
     inputs={[
-      { key: 'clAfront', label: 'Front Cl·A', unit: 'm²', vals: [0.36] },
-      { key: 'clArear', label: 'Rear Cl·A', unit: 'm²', vals: [0.44] },
+      { key: 'rho', label: 'Air density ρ', unit: 'kg/m³', vals: [1.225], ref: { typ: '1.225 (ISA, 15 °C)' } },
+      { key: 'u', label: 'Free-stream velocity U', unit: 'm/s', vals: [20] },
+      { key: 'len', label: 'Reference length L', unit: 'm', vals: [2.9], note: 'car length for full-vehicle' },
+      { key: 'muAir', label: 'Dynamic viscosity of air μ', unit: 'Pa·s', vals: [1.789e-5], ref: { typ: '1.789e-5 (15 °C)' } },
+      { key: 'yPlus', label: 'Target y+', unit: '-', vals: [1], ref: { typ: '≈1 resolved · 30–300 wall fn' } },
     ]}
-    outputs={[{ key: 'total', label: 'Total Cl·A', unit: 'm²' }, { key: 'delta', label: 'CoP − CG (front)', unit: '-' }]}
-    stats={[{ key: 'balanceFront', label: 'Aero balance (front)', unit: '-' }]} />
+    outputs={[
+      { key: 're', label: 'Reynolds number Re = ρUL/μ', unit: '-' },
+      { key: 'cf', label: 'Skin friction Cf = 0.058·Re^−0.2', unit: '-' },
+      { key: 'tauW', label: 'Wall shear τw = Cf·½ρU²', unit: 'Pa' },
+      { key: 'uStar', label: 'Friction velocity u* = √(τw/ρ)', unit: 'm/s' },
+      { key: 'deltaMm', label: 'Boundary-layer thickness δ = 0.37·L·Re^−1/5', unit: 'mm' },
+    ]}
+    stats={[
+      { key: 'yMm', label: 'First cell centre y', unit: 'mm' },
+      { key: 'firstLayerMm', label: 'First layer thickness Δ1 = 2y', unit: 'mm' },
+    ]} />
   </CockpitShell>
 </Base>
 
 <script>
   import { mountCalculator } from '../lib/calc/engine';
   import { aeroCompute, SPEEDS } from '../lib/calc/aero';
-  import { aeroBalanceCompute } from '../lib/calc/extras';
+  import { aeroBalanceCompute, AERO_ELEMENTS } from '../lib/calc/aero-balance';
+  import { meshCompute } from '../lib/calc/aero-mesh';
 
-  const digits: Record<string, number> = { ld: 3 };
-  for (const s of SPEEDS) { digits[`df_${s}`] = 1; digits[`drag_${s}`] = 1; digits[`pct_${s}`] = 1; }
+  const digits: Record<string, number> = { ld: 3, v0Kmh: 1, vKmh: 1, dvPct: 2, t0: 3, t: 3, ayG: 2 };
+  for (const s of SPEEDS) { digits[`df_${s}`] = 1; digits[`drag_${s}`] = 1; digits[`pct_${s}`] = 1; digits[`pw_${s}`] = 2; }
 
   mountCalculator({
     root: 'aero', tool: 'aero', compute: aeroCompute, digits,
@@ -151,9 +330,21 @@ const numInput = 'width:92px;text-align:right;font-family:var(--font-mono);';
     toMaster: [
       { key: 'cl_a', label: 'Cl·A', unit: 'm²', from: 'clA' },
       { key: 'cd_a', label: 'Cd·A', unit: 'm²', from: 'cdA' },
-      { key: 'aero_balance_front', label: 'Aero balance (front)', unit: '-', from: 'aeroBalance' },
     ],
   });
 
-  mountCalculator({ root: 'aerobalance', tool: 'aero_balance', compute: aeroBalanceCompute, digits: { total: 2, delta: 3, balanceFront: 3 } });
+  const balDigits: Record<string, number> = {
+    sumClA: 3, sumF: 1, nfAero: 1, nrAero: 1, fDrag: 1, nf: 0, nr: 0,
+    pctFront: 1, xcp: 0, xcg: 0, cpMinusCg: 3, balanceFront: 3,
+  };
+  for (const e of AERO_ELEMENTS) balDigits[`f_${e.key}`] = 1;
+  mountCalculator({
+    root: 'aerobalance', tool: 'aero_balance_elements', compute: aeroBalanceCompute, digits: balDigits,
+    toMaster: [{ key: 'aero_balance_front', label: 'Aero balance (front, computed)', unit: '-', from: 'balanceFront' }],
+  });
+
+  mountCalculator({
+    root: 'mesh', tool: 'aero_mesh', compute: meshCompute,
+    digits: { re: 0, cf: 6, tauW: 4, uStar: 4, yMm: 4, firstLayerMm: 4, deltaMm: 1 },
+  });
 </script>

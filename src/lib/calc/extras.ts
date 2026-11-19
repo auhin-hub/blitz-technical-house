@@ -58,12 +58,8 @@ export function boltedJointCompute(i: Flat): Out {
 }
 
 // ---- Aero ------------------------------------------------------------------
-/** Aero balance from front/rear ClA; compare CoP vs CG front fraction. */
-export function aeroBalanceCompute(i: Flat, m: Flat): Out {
-  const total = i.clAfront + i.clArear;
-  const balanceFront = total > 0 ? i.clAfront / total : NaN;
-  return { total, balanceFront, cgFront: m.mass_frac_front, delta: balanceFront - m.mass_frac_front };
-}
+// The front/rear Cl·A balance moved to aero-balance.ts (per-element, request §2),
+// which reproduces it exactly with two elements on the axles.
 
 // ---- Electrical ------------------------------------------------------------
 /** Battery sizing from load, endurance time and depth of discharge. */

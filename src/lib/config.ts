@@ -101,12 +101,13 @@ export const DISCIPLINES: Discipline[] = [
     slug: 'aerodynamics',
     title: 'Aerodynamics',
     short: 'Aero',
-    blurb: 'Downforce / drag vs speed, aero balance and centre of pressure.',
+    blurb: 'Downforce, drag & cornering performance; per-element balance, CoP and axle loads; CFD mesh y+.',
     workbook: 'Blitz_Aero_WorkingFile.xlsx',
     built: true,
     tools: [
-      { title: 'Downforce / drag vs speed', anchor: 'aero', blurb: 'Downforce, drag, %-of-weight, L/D across the speed range.', spec: 'TOOL_SPECS §1' },
-      { title: 'Aero balance / CoP', anchor: 'aerobalance', blurb: 'Front aero balance vs the CG front fraction.' },
+      { title: 'Downforce, drag & performance', anchor: 'aero', blurb: 'Downforce, drag, drag power, L/D; corner speed and skidpad time with / without aero.', spec: 'TOOL_SPECS §1 · §1b' },
+      { title: 'Aero balance / CoP / axle loads', anchor: 'aerobalance', blurb: 'Per-element downforce → %front, centre of pressure, axle loads with the drag couple.', spec: 'TOOL_SPECS §1d' },
+      { title: 'CFD mesh y+', anchor: 'mesh', blurb: 'First-layer height for a target y+ (full-vehicle CFD).', spec: 'TOOL_SPECS §1c' },
     ],
   },
   {
@@ -226,7 +227,8 @@ export function pageParent(slug: string): { label: string; href?: string } | nul
 export const TOOL_OUTPUT_KEYS: { key: string; label: string; team: string; upstream?: string[] }[] = [
   { key: 'cl_a', label: 'Cl·A (downforce)', team: 'Aero' },
   { key: 'cd_a', label: 'Cd·A (drag)', team: 'Aero' },
-  { key: 'aero_balance_front', label: 'Aero balance (front)', team: 'Aero', upstream: ['mass_total', 'mass_frac_front'] },
+  // Computed from per-element positions relative to the wheelbase (aero-balance.ts).
+  { key: 'aero_balance_front', label: 'Aero balance (front)', team: 'Aero', upstream: ['wheelbase'] },
   { key: 'engine_peak_power', label: 'Engine peak power', team: 'Powertrain' },
   { key: 'final_drive', label: 'Final drive ratio', team: 'Powertrain' },
   { key: 'max_wheel_torque', label: 'Max wheel torque', team: 'Powertrain' },

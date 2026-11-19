@@ -15,7 +15,7 @@
  */
 import Chart from 'chart.js/auto';
 import {
-  loadMaster, loadToolStateVersioned, saveToolStateVersioned, saveToolOutputs,
+  loadMaster, loadToolOutputsMap, loadToolStateVersioned, saveToolStateVersioned, saveToolOutputs,
   STATE_CONFLICT, OFFLINE_WRITE, isOffline, fmt, debounce, type StateVersion,
 } from '../store';
 import { decorateLinkedCells } from '../linked';
@@ -59,6 +59,12 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
   scope.querySelectorAll<HTMLElement>('[data-master]').forEach((el) => {
     master[el.dataset.master!] = Number(el.dataset.seed);
   });
+  // Contributed results (tool_outputs) linked the same way — `data-output="cd_a"`
+  // — so a tool can read another tool's published number instead of keeping a
+  // private copy of it (golden rule). They join `master` under their own key.
+  const outputCells = Array.from(scope.querySelectorAll<HTMLElement>('[data-output]'));
+  const watchedOutputs = new Set(outputCells.map((el) => el.dataset.output!));
+  for (const k of watchedOutputs) master[k] = NaN;
   async function refreshMaster(): Promise<void> {
     const loaded = await loadMaster();
     if (Object.keys(loaded).length) {
@@ -69,6 +75,20 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
     }
     // Decorate each linked cell by its Master state (not set / unfrozen / frozen).
     decorateLinkedCells(scope!, loaded);
+    if (outputCells.length) {
+      const outs = await loadToolOutputsMap();
+      for (const el of outputCells) {
+        const k = el.dataset.output!;
+        const v = outs[k]?.value;
+        const has = v !== null && v !== undefined && Number.isFinite(Number(v));
+        master[k] = has ? Number(v) : NaN;
+        el.textContent = has ? fmt(Number(v), 4) : '—';
+        el.classList.toggle('linked-unset', !has);
+        el.title = has
+          ? `Contributed result (${k}).`
+          : `Not contributed yet — ${el.dataset.outputHint ?? 'press Contribute in the tool that produces it'}.`;
+      }
+    }
   }
   await refreshMaster();
 
@@ -225,13 +245,16 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
   const watched = new Set(Array.from(scope.querySelectorAll<HTMLElement>('[data-master]')).map((el) => el.dataset.master!));
   subscribeLive({
     name: `tool-${spec.tool}`,
-    tables: ['vehicle_spec', 'tool_state'],
+    tables: watchedOutputs.size ? ['vehicle_spec', 'tool_state', 'tool_outputs'] : ['vehicle_spec', 'tool_state'],
     onChange: async (events) => {
       const mine = events.filter((e) => e.table === 'vehicle_spec' && watched.has((e.row?.key ?? e.old?.key) as string));
-      if (mine.length) {
+      const outs = events.filter((e) => e.table === 'tool_outputs' && watchedOutputs.has((e.row?.key ?? e.old?.key) as string));
+      if (mine.length || outs.length) {
         await refreshMaster();
         recompute();
-        liveToast(`Vehicle Spec changed (${describeBurst(mine)}) — recalculated.`);
+        liveToast(mine.length
+          ? `Vehicle Spec changed (${describeBurst(mine)}) — recalculated.`
+          : 'A linked tool result was re-contributed — recalculated.');
       }
       const stateEvent = events.find((e) => e.table === 'tool_state' && (e.row?.tool ?? e.old?.tool) === spec.tool);
       if (stateEvent && stateEvent.row) {

@@ -2,7 +2,7 @@
 import { it, expect } from 'vitest';
 import {
   accelCompute, skidpadCompute, gripBudgetCompute, gearSpeedCompute, restrictorCompute,
-  tubeBucklingCompute, boltedJointCompute, aeroBalanceCompute, batteryCompute, wireDropCompute,
+  tubeBucklingCompute, boltedJointCompute, batteryCompute, wireDropCompute,
   cogTiltCompute, cornerWeightCompute, quarterCarCompute, rpSweep, trifilarCompute,
 } from './extras';
 
@@ -45,11 +45,6 @@ it('bolted joint', () => {
   expect(r.proofLoad as number).toBeCloseTo(48140, 0);
   expect(r.clamp as number).toBeCloseTo(36105, 0);
   expect(r.torque as number).toBeCloseTo(72.21, 1);
-});
-it('aero balance vs CG', () => {
-  const r = aeroBalanceCompute({ clAfront: 0.36, clArear: 0.44 }, { mass_frac_front: 0.456867 });
-  expect(r.balanceFront as number).toBeCloseTo(0.45, 4);
-  expect(r.delta as number).toBeCloseTo(-0.006867, 4);
 });
 it('battery sizing', () => {
   const r = batteryCompute({ loadA: 26, timeMin: 25, dodPct: 80, voltage: 12 });
