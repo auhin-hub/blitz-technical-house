@@ -8,6 +8,9 @@ import CalcTool from '../components/CalcTool.astro';
 import CockpitShell from '../components/CockpitShell.astro';
 import { DISCIPLINES } from '../lib/config';
 import { PARAM_SEED } from '../lib/master';
+import { RULES, RULE_IDS } from '../lib/ergo/rules';
+import { COCKPIT_POINTS, COCKPIT_SCALARS } from '../lib/ergo/defaults';
+import { MEASUREMENTS } from '../lib/ergo/estimate';
 
 const erg = DISCIPLINES.find((d) => d.slug === 'ergonomics')!;
 const seed = Object.fromEntries(PARAM_SEED.map((p) => [p.key, p.value]));
@@ -30,6 +33,14 @@ const CHECKLIST = [
   { key: 'view', label: 'Clear view of track & marshals' },
   { key: 'belts', label: 'Belts anchored per rules' },
 ];
+const AXES = ['+x', '-x', '+y', '-y', '+z', '-z'];
+const ANGLES = [
+  { key: 'hip', label: 'Hip (torso–thigh)' },
+  { key: 'knee', label: 'Knee' },
+  { key: 'ankle', label: 'Ankle (shin–foot)' },
+  { key: 'elbow', label: 'Elbow' },
+];
+const ni = 'width:84px;text-align:right;font-family:var(--font-mono);';
 ---
 <Base title={erg.title} description={erg.blurb}>
   <Crumbs page="ergonomics" label={erg.title} />
@@ -47,7 +58,181 @@ const CHECKLIST = [
   <LegendKey />
 
   <div style="margin-top:1.25rem;"></div>
-  <CockpitShell tools={[{ id: 'fit', title: 'Driver fit' }, { id: 'checklist', title: 'Egress & fit checklist' }]} railLabel="Ergonomics">
+  <CockpitShell tools={[
+    { id: 'studio', title: 'Cockpit packaging studio' },
+    { id: 'drivers', title: 'Driver roster' },
+    { id: 'fit', title: 'Driver fit' },
+    { id: 'checklist', title: 'Egress & fit checklist' },
+  ]} railLabel="Ergonomics">
+
+  <!-- ===================== Cockpit packaging studio ===================== -->
+  <section id="studio" class="ct">
+    <header class="ct-head"><h2>Cockpit packaging studio</h2><span class="badge">TOOL_SPECS §5b</span></header>
+    <p class="ct-sub">
+      Side view of the cockpit with the rulebook's 95th-percentile template ("Percy") and your own drivers posed
+      in it. Change seat, pedal, wheel and hoop positions and every rule check updates. Coordinates are mm:
+      <strong>x rearward from the front axle, z up from the ground</strong>. The starting layout is an example —
+      replace it with your CAD hardpoints.
+    </p>
+
+    <div class="st-layout">
+      <!-- ---------- controls ---------- -->
+      <div class="st-controls">
+        <h3 class="ct-h3">Rulebook</h3>
+        <select id="st-rules" class="field field-input" style="width:100%;" aria-label="Rulebook">
+          {RULE_IDS.map((id) => <option value={id}>{RULES[id].name}</option>)}
+        </select>
+        <p class="ct-sub st-rules-info" data-rules-info></p>
+
+        <h3 class="ct-h3">Show</h3>
+        <div class="st-toggles">
+          <label><input type="checkbox" data-show="percy" /> Percy</label>
+          <label><input type="checkbox" data-show="driver" /> Selected driver</label>
+          <label><input type="checkbox" data-show="all" /> All drivers</label>
+          <label><input type="checkbox" data-show="cad" /> CAD silhouette</label>
+        </div>
+
+        <h3 class="ct-h3">Driver</h3>
+        <select id="st-driver" class="field field-input" style="width:100%;" aria-label="Driver shown"></select>
+        <div class="ct-wrap" style="margin-top:0.4rem;">
+          <table class="ct-table"><tbody>
+            <tr><td>Seat insert thickness</td><td class="ct-num"><input type="number" step="any" class="field field-input" style={ni} data-setup="insert" aria-label="Seat insert thickness" /></td><td class="ct-unit">mm</td></tr>
+            <tr><td>Pedal box moved rearward</td><td class="ct-num"><input type="number" step="any" class="field field-input" style={ni} data-setup="pedalShift" aria-label="Pedal box moved rearward" /></td><td class="ct-unit">mm</td></tr>
+            <tr><td>Head-restraint pad moved forward</td><td class="ct-num"><input type="number" step="any" class="field field-input" style={ni} data-setup="restraintShift" aria-label="Head restraint moved forward" /></td><td class="ct-unit">mm</td></tr>
+          </tbody></table>
+        </div>
+        <p class="ct-sub">Saved with the driver. Measurements are in the <a href="#drivers">Driver roster</a>.</p>
+
+        <details class="st-group" open>
+          <summary>Cockpit points (mm)</summary>
+          <div class="ct-wrap">
+            <table class="ct-table">
+              <thead><tr><th>Point</th><th class="ct-num">x</th><th class="ct-num">z</th></tr></thead>
+              <tbody>
+                {COCKPIT_POINTS.map((p) => (
+                  <tr>
+                    <td>{p.label}{p.hint && <span class="ct-unit"> · {p.hint}</span>}</td>
+                    <td class="ct-num"><input type="number" step="any" class="field field-input" style={ni} data-ck={`${p.key}.x`} aria-label={`${p.label} x`} /></td>
+                    <td class="ct-num"><input type="number" step="any" class="field field-input" style={ni} data-ck={`${p.key}.z`} aria-label={`${p.label} z`} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div class="ct-wrap" style="margin-top:0.5rem;">
+            <table class="ct-table"><tbody>
+              {COCKPIT_SCALARS.map((p) => (
+                <tr>
+                  <td>{p.label}</td>
+                  <td class="ct-num"><input type="number" step="any" class="field field-input" style={ni} data-ck={p.key} aria-label={p.label} /></td>
+                  <td class="ct-unit">{p.unit}</td>
+                </tr>
+              ))}
+            </tbody></table>
+          </div>
+          <p style="margin-top:0.5rem;"><button type="button" class="btn btn-ghost" data-reset-cockpit style="font-size:var(--fs-200);">Reset to the example layout</button></p>
+        </details>
+
+        <details class="st-group">
+          <summary>CAD side view (SolidWorks STL)</summary>
+          <div class="st-disclaimer">
+            <strong>Export from SolidWorks:</strong> File → Save As → <em>STL (*.stl)</em> → <em>Options…</em>:
+            Output as <em>Binary</em>; Unit <strong>Millimeters</strong>; Resolution <em>Coarse</em> is enough;
+            tick <em>Do not translate STL output data to positive space</em> (keeps your CAD origin); for an
+            assembly, tick <em>Save all components of an assembly in a single file</em>.
+            <br><strong>Disclaimer:</strong> the file is read in your browser only and is <strong>not uploaded</strong> —
+            load it again next visit. It is drawn as a side-view silhouette (every triangle projected), so it shows
+            the envelope, not a section. Hardpoint checks use the typed points above, not the STL — line them up
+            with the silhouette. If the car looks 25.4× or 1000× off, the export units were not millimetres.
+          </div>
+          <input type="file" id="st-stl" accept=".stl" class="field" style="margin-top:0.6rem;max-width:100%;" aria-label="Load an STL file" />
+          <div class="ct-wrap" style="margin-top:0.5rem;">
+            <table class="ct-table"><tbody>
+              <tr><td>CAD axis pointing to the car's front</td><td class="ct-num"><select class="field field-input" data-stl="forward" aria-label="Forward axis">{AXES.map((a) => <option value={a}>{a}</option>)}</select></td></tr>
+              <tr><td>CAD axis pointing up</td><td class="ct-num"><select class="field field-input" data-stl="up" aria-label="Up axis">{AXES.map((a) => <option value={a}>{a}</option>)}</select></td></tr>
+              <tr><td>Units in the file</td><td class="ct-num"><select class="field field-input" data-stl="scale" aria-label="STL units"><option value="1">mm</option><option value="1000">m</option><option value="25.4">inch</option></select></td></tr>
+              <tr><td>Front-axle centre, CAD coordinate on the forward axis</td><td class="ct-num"><input type="number" step="any" class="field field-input" style={ni} data-stl="frontAxle" aria-label="Front axle CAD coordinate" /></td></tr>
+              <tr><td>Ground, CAD coordinate on the up axis</td><td class="ct-num"><input type="number" step="any" class="field field-input" style={ni} data-stl="ground" aria-label="Ground CAD coordinate" /></td></tr>
+            </tbody></table>
+          </div>
+          <p class="ct-sub mono" data-stl-info>No file loaded.</p>
+        </details>
+
+        <h3 class="ct-h3">Export</h3>
+        <p>
+          <button type="button" class="btn btn-halftone" data-export-dxf>DXF for SolidWorks</button>
+          <button type="button" class="btn btn-ghost" data-export-csv style="margin-left:0.4rem;">CSV of points</button>
+        </p>
+        <p class="ct-sub">DXF X = x (rearward), Y = z (up), millimetres — choose mm when SolidWorks asks. Insert it on the car's side plane with the front axle at the origin.</p>
+      </div>
+
+      <!-- ---------- drawing + checks ---------- -->
+      <div class="st-main">
+        <div class="st-canvas-wrap">
+          <canvas id="st-canvas" aria-hidden="true"></canvas>
+          <svg id="st-svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cockpit side view with the driver template and selected driver"></svg>
+        </div>
+        <p class="st-legend mono">
+          <span class="st-key st-key-percy"></span> Percy (rulebook template)
+          <span class="st-key st-key-driver"></span> selected driver
+          <span class="st-key st-key-clear"></span> helmet clearance line
+        </p>
+
+        <h3 class="ct-h3">Joint angles — selected driver</h3>
+        <div class="ct-wrap">
+          <table class="ct-table">
+            <thead><tr><th>Joint</th><th class="ct-num">Angle (°)</th><th class="ct-num">Team target from</th><th class="ct-num">to</th><th></th></tr></thead>
+            <tbody>
+              {ANGLES.map((a) => (
+                <tr>
+                  <td>{a.label}</td>
+                  <td class="ct-num mono"><span class="field field-computed" data-angle={a.key}>—</span></td>
+                  <td class="ct-num"><input type="number" step="any" class="field field-input" style="width:64px;text-align:right;" data-band={`${a.key}.0`} aria-label={`${a.label} target from`} /></td>
+                  <td class="ct-num"><input type="number" step="any" class="field field-input" style="width:64px;text-align:right;" data-band={`${a.key}.1`} aria-label={`${a.label} target to`} /></td>
+                  <td data-angle-status={a.key}></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="ct-sub">Interior angles (180° = straight). No comfort range is assumed — enter the team's target band
+          (from seat-fit trials or published driving-posture studies) to flag drivers outside it.</p>
+
+        <div data-checks></div>
+        <p class="ct-foot"><span class="mono" data-studio-status></span>
+          <span class="ct-srcs">A packaging aid — confirm with a seat fitting and at technical inspection. Last save wins if two people edit at once.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== Driver roster ===================== -->
+  <section id="drivers" class="ct">
+    <header class="ct-head"><h2>Driver roster</h2><span class="badge">TOOL_SPECS §5c</span></header>
+    <p class="ct-sub">
+      Each driver's name and body measurements, used to pose them in the packaging studio. Stored in the team's
+      private workspace (visible to signed-in members only); remove a driver to delete their data.
+      Only height is required — anything left blank is <strong>estimated from height</strong> (shown greyed) and
+      flagged in the studio. Measured values are always used over estimates.
+    </p>
+    <p style="margin-top:0.7rem;"><button type="button" class="btn btn-heritage" data-add-driver>Add driver</button>
+      <span class="mono" data-roster-status style="margin-left:0.6rem;font-size:var(--fs-200);color:var(--ink-3);"></span></p>
+    <div id="roster-list" style="margin-top:0.8rem;"></div>
+
+    <details class="st-group" style="margin-top:1rem;">
+      <summary>How to measure</summary>
+      <div class="ct-wrap">
+        <table class="ct-table">
+          <thead><tr><th>Measurement</th><th>How</th></tr></thead>
+          <tbody>{MEASUREMENTS.map((m) => <tr><td>{m.label} <span class="ct-unit">({m.unit})</span></td><td>{m.how}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="ct-sub">Estimates use segment-to-height ratios from Drillis &amp; Contini (1966) as given in Winter,
+        <em>Biomechanics and Motor Control of Human Movement</em>; sitting height ≈ 0.52 × height. Expect errors of a
+        couple of centimetres per segment — measure the people who will actually drive.</p>
+    </details>
+  </section>
+
+  <!-- ===================== Driver fit (existing) ===================== -->
   <CalcTool id="fit" title="Driver fit" spec="TOOL_SPECS §5"
     blurb="Driver envelope and cockpit dimensions. Keep the helmet-to-roll-hoop margin positive."
     linked={LINKED} seed={seed} inputs={INPUTS}
@@ -72,9 +257,65 @@ const CHECKLIST = [
   </CockpitShell>
 </Base>
 
+<style is:global>
+  /* Studio layout */
+  #studio .st-layout { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 1.25rem; margin-top: 0.8rem; align-items: start; }
+  @media (max-width: 900px) { #studio .st-layout { grid-template-columns: 1fr; } #studio .st-main { order: -1; } }
+  #studio .st-controls select.field { padding: 0.3rem 0.4rem; }
+  #studio .st-toggles { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; font-size: var(--fs-300); }
+  #studio .st-group { margin-top: 1rem; border-top: 1px solid var(--rule); padding-top: 0.6rem; }
+  #studio .st-group > summary { cursor: pointer; font-weight: 600; font-size: var(--fs-300); }
+  #studio .st-disclaimer { margin-top: 0.6rem; font-size: var(--fs-200); color: var(--ink-2); border-left: 3px solid var(--amber); padding: 0.4rem 0.6rem; background: var(--surface-2); border-radius: var(--radius-sm); }
+  #studio .st-rules-info { margin-top: 0.4rem; }
+  #studio .st-unverified { margin-top: 0.4rem; color: var(--amber-text); }
+  #studio .st-unverified ul { margin: 0.2rem 0 0 1.1rem; }
+  #studio .st-canvas-wrap { position: relative; width: 100%; aspect-ratio: 16 / 10; background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; }
+  #studio #st-canvas, #studio #st-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #studio #st-svg * { vector-effect: non-scaling-stroke; }
+  #studio .st-ground { stroke: var(--ink-3); stroke-width: 1; }
+  #studio .st-chassis { stroke: var(--ink); stroke-width: 2.5; }
+  #studio .st-hoopline { stroke: var(--ink-2); stroke-width: 1.2; stroke-dasharray: 6 4; }
+  #studio .st-clear { stroke: var(--heritage); stroke-width: 1.2; stroke-dasharray: 2 3; }
+  #studio .st-seat { stroke: var(--ink-2); stroke-width: 3; }
+  #studio .st-hr { fill: var(--ink-3); opacity: 0.6; }
+  #studio .st-pedal, #studio .st-wheel { stroke: var(--ink); stroke-width: 3; fill: var(--ink); }
+  #studio .st-mount { fill: var(--ink); }
+  #studio .st-belt { stroke: var(--state-linked); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  #studio .st-percy { stroke: var(--amber); stroke-width: 2; fill: none; }
+  #studio .st-driver { stroke: var(--sky); stroke-width: 2.2; fill: none; }
+  #studio .st-driver.st-joint { fill: var(--sky); }
+  #studio .st-other { stroke: var(--ink-3); stroke-width: 1; fill: none; opacity: 0.7; }
+  #studio .st-other.st-joint { fill: var(--ink-3); }
+  #studio .st-label { font: 28px var(--font-mono); fill: var(--ink-2); }
+  #studio .st-dim { fill: var(--ink-3); }
+  #studio .st-percylabel { fill: var(--amber-text); }
+  #studio .st-drvlabel { fill: var(--sky); }
+  #studio .st-legend { font-size: var(--fs-100); color: var(--ink-3); margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; align-items: center; }
+  #studio .st-key { display: inline-block; width: 18px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 0.3rem; }
+  #studio .st-key-percy { border-color: var(--amber); }
+  #studio .st-key-driver { border-color: var(--sky); }
+  #studio .st-key-clear { border-top: 2px dotted var(--heritage); }
+  .st-pill { display: inline-block; padding: 0.05rem 0.45rem; border-radius: 999px; font: 600 var(--fs-100) var(--font-mono); text-transform: uppercase; border: 1px solid; }
+  .st-pass { color: var(--state-linked); border-color: var(--state-linked); }
+  .st-fail { color: var(--heritage); border-color: var(--heritage); }
+  .st-advisory { color: var(--amber-text); border-color: var(--amber-deep); }
+  .st-info { color: var(--ink-3); border-color: var(--rule-strong); }
+  /* Roster */
+  #drivers .drv { border: 1px solid var(--rule); border-radius: var(--radius); padding: 0.5rem 0.7rem; margin-top: 0.6rem; background: var(--surface); }
+  #drivers .drv > summary { cursor: pointer; display: flex; gap: 0.8rem; align-items: baseline; font-weight: 600; }
+  #drivers .drv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 0.5rem 0.9rem; margin-top: 0.6rem; }
+  #drivers .drv-f { display: flex; flex-direction: column; gap: 0.2rem; font-size: var(--fs-200); color: var(--ink-2); }
+  #drivers .drv-f input { width: 100%; font-family: var(--font-mono); }
+  #drivers .drv-f input::placeholder { color: var(--ink-3); font-style: italic; }
+  #drivers .drv-wide { grid-column: 1 / -1; max-width: 360px; }
+</style>
+
 <script>
   import { mountCalculator } from '../lib/calc/engine';
   import { loadToolState, saveToolState, debounce } from '../lib/store';
+  import { mountStudio } from '../lib/ergo/studio';
+
+  mountStudio();
 
   // Driver fit: no formulas — echo the three ToMaster values for contribution.
   mountCalculator({

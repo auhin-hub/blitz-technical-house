@@ -142,10 +142,12 @@ export const DISCIPLINES: Discipline[] = [
     slug: 'ergonomics',
     title: 'Ergonomics',
     short: 'Ergo',
-    blurb: 'Driver fit + egress checklist.',
+    blurb: 'Cockpit packaging studio (Percy + your drivers vs FSAE / FS UK / FS Japan / FS China rules, SolidWorks STL), driver roster, fit checklist.',
     workbook: 'Blitz_Ergonomics_WorkingFile.xlsx',
     built: true,
     tools: [
+      { title: 'Cockpit packaging studio', anchor: 'studio', blurb: 'Side view: Percy + drivers, seat / pedal / wheel setups, helmet clearance, belt angles, STL backdrop, DXF export.', spec: 'TOOL_SPECS §5b' },
+      { title: 'Driver roster', anchor: 'drivers', blurb: 'Driver names and body measurements (estimates from height where missing).', spec: 'TOOL_SPECS §5c' },
       { title: 'Driver fit', anchor: 'fit', blurb: '5th/95th-%ile fit, reach, helmet margin.', spec: 'TOOL_SPECS §5' },
       { title: 'Egress & fit checklist', anchor: 'checklist', blurb: 'Shared fit / egress < 5 s checklist.' },
     ],
