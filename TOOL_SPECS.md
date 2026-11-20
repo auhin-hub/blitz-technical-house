@@ -310,6 +310,8 @@ Two Powertrain rail tools (no iframe; `public/tools/cooling.html` deleted):
 - **Quirks kept from the original:** the KPI margin / PASS are against a fixed 110 °C while the scenario table uses
   the "max safe coolant temp" input; at 0 km/h with the fan off the air flow is zero and the result is NaN (gap in the
   chart); runAnalysis' `||` fallbacks (blank sprocket → 14/42, tyre → 520, primary → 3.071, limit → 110, trigger → 96).
+  The "Sustained endurance (avg load)" scenario uses a fixed 20 kW heat load, not the dyno data (labelled so on the page).
+  Changing either is a model decision for the Powertrain lead, not a port fix.
 - **Links to the rest of the site** (golden rule): tyre Ø used = 2 × Vehicle Spec `rolling_radius` when set (same
   quantity: effective rolling diameter, mm), else the tool's own tyre Ø (data-master). Final drive used = Drivetrain &
   traction's contributed `final_drive` when present (same meaning: overall ratio after the gearbox, rear ÷ front

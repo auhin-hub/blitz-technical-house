@@ -1,5 +1,5 @@
 ---
-import { url, SITE, NAV, DISCIPLINES } from '../lib/config';
+import { url, SITE, NAV, DISCIPLINES, PROGRAMME_SUBPAGES } from '../lib/config';
 import type { NavGroup, NavLink } from '../lib/config';
 import ThemeToggle from './ThemeToggle.astro';
 import logo from '../assets/blitz-logo.png';
@@ -16,6 +16,8 @@ const isGroup = (n: NavLink | NavGroup): n is NavGroup => 'links' in n;
 function groupCurrent(g: NavGroup): boolean {
   if (g.links.some((l) => l.href === rel)) return true;
   if (g.label === 'Teams') return DISCIPLINES.some((d) => d.tools.some((t) => t.href?.split('#')[0] === rel));
+  // Snapshots / old Validation URL are Programme pages reached from Gates / Report.
+  if (g.label === 'Programme') return PROGRAMME_SUBPAGES.includes(rel);
   return false;
 }
 ---

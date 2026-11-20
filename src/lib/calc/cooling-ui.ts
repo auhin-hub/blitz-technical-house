@@ -196,7 +196,7 @@ export async function mountCooling(): Promise<void> {
     const desc = [
       `${r.peakRPM.toLocaleString()} rpm @ ${r.scens[0].vspd.toFixed(1)} km/h`,
       `${r.peakRPM.toLocaleString()} rpm @ ${r.peakSpeedTopGear.toFixed(1)} km/h`,
-      `Mid rpm @ top gear — ${r.midSpeed.toFixed(1)} km/h`,
+      `Mid rpm @ top gear — ${r.midSpeed.toFixed(1)} km/h · fixed 20 kW load (the original tool's assumption, not from the dyno data)`,
     ];
     scenBody.innerHTML = r.scens.map((s, i) => {
       const t = s.ss.Tout, lim = s.maxSafeT || 110, margin = lim - t;
