@@ -23,7 +23,7 @@ const entries: Entry[] = [
   { label: 'Vehicle Spec', hint: 'shared Master store', href: url('vehicle-spec'), kind: 'page' },
   ...DISCIPLINES.map((d) => ({ label: d.title, hint: 'team', href: url(d.slug), kind: 'discipline' })),
   ...DISCIPLINES.flatMap((d) =>
-    d.tools.map((t) => ({ label: t.title, hint: `${t.href ? 'page' : 'tool'} · ${d.title}`, href: toolHref(d, t), kind: 'tool' })),
+    d.tools.map((t) => ({ label: t.title, hint: `${t.href ? 'page' : 'tool'} · ${d.title}${t.rare ? ' · rarely used' : ''}`, href: toolHref(d, t), kind: 'tool' })),
   ),
   ...PROGRAMME_LINKS.map((l) => ({ label: l.label, hint: `programme · ${l.hint ?? ''}`, href: url(l.href), kind: 'page' })),
   ...RESOURCE_LINKS.map((l) => ({ label: l.label, hint: `resources · ${l.hint ?? ''}`, href: url(l.href), kind: 'page' })),

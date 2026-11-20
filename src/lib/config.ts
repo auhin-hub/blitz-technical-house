@@ -37,7 +37,20 @@ export interface Tool {
   blurb: string;
   /** TOOL_SPECS.md section this tool ports, for traceability. */
   spec?: string;
+  /**
+   * Rarely-used one-formula tool: kept and still found by search (hint "rarely
+   * used"), but left off the landing cards, their tool counts and the team page's
+   * "More tools" strip; on a team page it sits in the rail's collapsed "More tools".
+   */
+  rare?: boolean;
 }
+
+/** A tool that lives as a section inside another tool's page (`page#section`). */
+export const isSectionLink = (t: Tool): boolean => !!t.href && t.href.includes('#');
+/** Tools shown on landing cards / counted: everything except the rare ones. */
+export const visibleTools = (d: Discipline): Tool[] => d.tools.filter((t) => !t.rare);
+/** The page slug of a page-tool (strips any `#section`). */
+export const pageOf = (t: Tool): string | undefined => t.href?.split('#')[0];
 
 export interface Discipline {
   slug: string;
@@ -62,21 +75,19 @@ export const DISCIPLINES: Discipline[] = [
     workbook: 'Blitz_Vehicle_Dynamics_WorkingFile.xlsx',
     built: true,
     tools: [
-      { title: 'Setup / kinematics', anchor: 'setup', blurb: 'Kinematic targets + platform values from Master.', spec: 'TOOL_SPECS §7a' },
+      { title: 'Setup / kinematics targets', href: 'geometry#setup', blurb: 'Kinematic targets (camber, RC height, caster, toe) — a section of Suspension geometry.', spec: 'TOOL_SPECS §7a' },
       { title: 'Suspension geometry & hardpoints', href: 'geometry', blurb: 'RC height, camber, scrub, KPI, caster; hardpoint table (freeze at G3).', spec: 'TOOL_SPECS §7c' },
       { title: 'Springs & dampers', href: 'springs', blurb: 'Ride-frequency sizing: wheel rate, spring rate, damping.', spec: 'TOOL_SPECS §7d' },
       { title: 'Suspension loads', anchor: 'loads', blurb: 'Corner verticals, pushrod force, anti-dive / anti-squat.', spec: 'TOOL_SPECS §7e' },
-      { title: 'Steering', anchor: 'steering', blurb: 'Ackermann split + rack & pinion geometry.', spec: 'TOOL_SPECS §7f' },
-      { title: 'Steering effort', anchor: 'steereffort', blurb: 'Steering-wheel torque and rack force.' },
-      { title: 'R&P gear sweep', anchor: 'rpsweep', blurb: 'Rack-and-pinion ratio sweep.' },
-      { title: 'Load transfer', anchor: 'loadtransfer', blurb: 'Lateral / longitudinal load transfer and TLLTD.' },
+      { title: 'Steering', anchor: 'steering', blurb: 'Ackermann split + rack & pinion geometry, steering effort (wheel torque, rack force) and the R&P gear sweep.', spec: 'TOOL_SPECS §7f' },
+      { title: 'Load transfer', href: 'balance#loadtransfer', blurb: 'Lateral load transfer and achieved TLLTD — a section of Balance.' },
       { title: 'Brake system', href: 'brakes', blurb: 'Clamp, brake torque, achieved vs Olley-optimum bias.', spec: 'TOOL_SPECS §7b' },
       { title: 'Balance', href: 'balance', blurb: 'Understeer gradient, static margin, TLLTD pair.' },
       { title: 'Mass budget', href: 'massbudget', blurb: 'Mass, front fraction, CoG height, yaw inertia.' },
       { title: 'Tyre', href: 'tyre', blurb: 'Tyre toolset download, shared fit results, guides.' },
       { title: 'g–g diagram', href: 'gg', blurb: 'Acceleration envelope: grip ellipse, power/brake limits, aero.' },
       { title: 'Lap-time simulator', href: 'lapsim', blurb: 'Point-mass lap sim on the shared values.' },
-      { title: 'Event predictors', href: 'events', blurb: 'Acceleration, skidpad, grip budget.' },
+      { title: 'Event predictors', href: 'events', blurb: 'Acceleration, skidpad, grip budget.', rare: true },
       { title: 'Coupling & sensitivity', href: 'sensitivity', blurb: 'Change one Master number, see which results move.' },
       { title: 'Measurement', href: 'measurement', blurb: 'CoG tilt-test, corner-weight, quarter-car, trifilar Izz.' },
       { title: 'Setup sheet', href: 'setup-sheet', blurb: 'Trackside setup record.' },
@@ -93,8 +104,8 @@ export const DISCIPLINES: Discipline[] = [
       { title: 'Torsional & relative stiffness', anchor: 'stiffness', blurb: 'Twist test → K chassis → K sus, K vehicle, K relative.', spec: 'TOOL_SPECS §2d' },
       { title: 'Tube stress & FoS', anchor: 'tube', blurb: 'Section area, axial stress, factor of safety.', spec: 'TOOL_SPECS §2a' },
       { title: 'Component-mass tracker', anchor: 'mass', blurb: 'CAD vs measured per component → feeds MassBudget.', spec: 'TOOL_SPECS §2b' },
-      { title: 'Tube buckling', anchor: 'buckling', blurb: 'Euler critical load for a round tube.' },
-      { title: 'Bolted joint', anchor: 'bolt', blurb: 'Proof load, clamp and tightening torque.' },
+      { title: 'Tube buckling', anchor: 'buckling', blurb: 'Euler critical load for a round tube.', rare: true },
+      { title: 'Bolted joint', anchor: 'bolt', blurb: 'Proof load, clamp and tightening torque.', rare: true },
     ],
   },
   {
@@ -119,8 +130,8 @@ export const DISCIPLINES: Discipline[] = [
     tools: [
       { title: 'Drivetrain & traction', anchor: 'traction', blurb: 'Wheel torque, tractive force vs traction limit, launch accel.', spec: 'TOOL_SPECS §6' },
       { title: 'Cooling — Dyno Analyzer', anchor: 'cooling', blurb: 'Heat rejection vs speed, fan model, power/torque curves (re-skinned).', spec: 'BRIEF §E2' },
-      { title: 'Gear speed', anchor: 'gearspeed', blurb: 'Road speed per gear.' },
-      { title: 'Intake restrictor', anchor: 'restrictor', blurb: 'Restrictor sizing.' },
+      { title: 'Gear speed', anchor: 'gearspeed', blurb: 'Road speed per gear.', rare: true },
+      { title: 'Intake restrictor', anchor: 'restrictor', blurb: 'Restrictor sizing.', rare: true },
     ],
   },
   {
@@ -133,8 +144,8 @@ export const DISCIPLINES: Discipline[] = [
       { title: 'Power budget', anchor: 'power', blurb: 'Load currents vs stator output; margin.', spec: 'TOOL_SPECS §4a' },
       { title: 'Wiring / harness list', anchor: 'wiring', blurb: 'Connection table + colour-code guide (editable grid).', spec: 'TOOL_SPECS §4b' },
       { title: 'DAQ & Telemetry', anchor: 'daq', blurb: 'CAN bus load per channel + utilisation.', spec: 'TOOL_SPECS §3' },
-      { title: 'Battery sizing', anchor: 'battery', blurb: 'Ah / Wh from load, time and depth of discharge.' },
-      { title: 'Wire voltage drop', anchor: 'wiredrop', blurb: 'Round-trip voltage drop for a run.' },
+      { title: 'Battery sizing', anchor: 'battery', blurb: 'Ah / Wh from load, time and depth of discharge.', rare: true },
+      { title: 'Wire voltage drop', anchor: 'wiredrop', blurb: 'Round-trip voltage drop for a run.', rare: true },
       { title: 'DAQ log interpretation', href: 'daq', blurb: 'Read logged channels back against the plan.' },
     ],
   },
@@ -155,13 +166,11 @@ export const DISCIPLINES: Discipline[] = [
     slug: 'business',
     title: 'Business & Ops',
     short: 'Business',
-    blurb: 'Cost report, team budget, season Gantt and the competition points predictor.',
+    blurb: 'Cost report (FSAE-J format) and team budget.',
     built: true,
     tools: [
       { title: 'Cost report (FSAE-J)', href: 'cost', blurb: 'Cost / BOM in the FSAE-J format.' },
       { title: 'Budget', href: 'budget', blurb: 'Team budget vs actual.' },
-      { title: 'Season Gantt', href: 'gantt', blurb: 'Schedule against the gates.' },
-      { title: 'Points predictor', href: 'points', blurb: 'Competition points by event.' },
     ],
   },
 ];
@@ -179,11 +188,11 @@ export const PROGRAMME_LINKS: NavLink[] = [
   { href: 'gates', label: 'Gates / Phases', hint: 'G0–G9, freeze-and-log' },
   { href: 'taskmap', label: 'Task Map', hint: 'who waits on whom' },
   { href: 'readiness', label: 'Design Readiness', hint: 'component requirements' },
-  { href: 'validation', label: 'Validation', hint: 'targets vs achieved' },
   { href: 'change-log', label: 'Change Log', hint: 'every frozen edit' },
-  { href: 'snapshots', label: 'Snapshots', hint: 'baselines · diff · restore' },
-  { href: 'report', label: 'Design report', hint: 'printable, whole store' },
+  { href: 'report', label: 'Design report', hint: 'printable, whole store · validation' },
 ];
+/** Programme pages that are reached from another page, not from the menu. */
+export const PROGRAMME_SUBPAGES: string[] = ['snapshots', 'validation'];
 export const RESOURCE_LINKS: NavLink[] = [
   { href: 'resources', label: 'Resources', hint: 'reference PDFs & uploads' },
   { href: 'tyre', label: 'Tyre', hint: 'toolset download & results' },
@@ -205,9 +214,9 @@ export const NAV: (NavLink | NavGroup)[] = [
 export function pageParent(slug: string): { label: string; href?: string } | null {
   for (const d of DISCIPLINES) {
     if (d.slug === slug) return null;
-    if (d.tools.some((t) => t.href === slug)) return { label: d.title, href: d.slug };
+    if (d.tools.some((t) => pageOf(t) === slug)) return { label: d.title, href: d.slug };
   }
-  if (PROGRAMME_LINKS.some((l) => l.href === slug)) return { label: 'Programme' };
+  if (PROGRAMME_LINKS.some((l) => l.href === slug) || PROGRAMME_SUBPAGES.includes(slug)) return { label: 'Programme' };
   if (RESOURCE_LINKS.some((l) => l.href === slug)) return { label: 'Resources' };
   return null;
 }

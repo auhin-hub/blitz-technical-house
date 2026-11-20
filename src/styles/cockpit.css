@@ -40,6 +40,13 @@
   background: var(--surface-2); color: var(--ink);
   border-color: var(--rule); box-shadow: inset 0 0 0 1px var(--rule), -2px 0 0 0 var(--amber);
 }
+.cockpit-rail .rail-more { margin-top: 0.4rem; border-top: 1px solid var(--rule); padding-top: 0.3rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.cockpit-rail .rail-more > summary { cursor: pointer; list-style: none; font-family: var(--font-mono); font-size: var(--fs-200); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); padding: 0.3rem 0.5rem; border-radius: var(--radius); }
+.cockpit-rail .rail-more > summary::-webkit-details-marker { display: none; }
+.cockpit-rail .rail-more > summary::before { content: '▸ '; }
+.cockpit-rail .rail-more[open] > summary::before { content: '▾ '; }
+.cockpit-rail .rail-more > summary:hover { color: var(--ink); background: var(--surface-2); }
+.cockpit-rail .rail-more > summary:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .cockpit-view { min-width: 0; }
 .cockpit-view > [hidden] { display: none !important; }
 
@@ -133,6 +140,7 @@
   .cockpit-shell { grid-template-columns: 1fr; }
   .cockpit-rail { position: static; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: 0.35rem; padding-bottom: 0.3rem; }
   .cockpit-rail .rail-label { display: none; }
+  .cockpit-rail .rail-more { margin-top: 0; border-top: 0; padding-top: 0; flex: none; flex-direction: row; align-items: center; gap: 0.35rem; }
   .cockpit-toolbtn { white-space: nowrap; flex: none; }
   .cockpit-toolbtn[aria-current='true'] { box-shadow: inset 0 0 0 1px var(--rule), 0 2px 0 0 var(--amber); }
   .ct-body { grid-template-columns: 1fr; }

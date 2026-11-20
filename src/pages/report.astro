@@ -1,6 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
-import { url } from '../lib/config';
+import { url, VALIDATION_ROWS } from '../lib/config';
+
+const cmpText = { approx: '≈ target', max: '≤ limit', min: '≥ limit' };
 ---
 <Base title="Design report" description="One printable document: the whole Master, every contributed result, gate status and what is still floating.">
   <nav class="annot no-print" style="margin-bottom:0.75rem;">
@@ -64,6 +66,39 @@ import { url } from '../lib/config';
     <div class="card" id="rp-changes"><p class="mono" style="color:var(--ink-3);">Loading…</p></div>
   </section>
 
+  <section id="validation" style="margin-bottom:2rem;">
+    <div class="annot-dim" style="margin-bottom:0.6rem;">6 · Validation — targets vs achieved</div>
+    <div class="card">
+      <p style="color:var(--ink-2);font-size:var(--fs-300);max-width:74ch;margin:0 0 0.6rem;">
+        Target vs achieved for the car's key design metrics — the destination for each tool's
+        <strong>Contribute to Master</strong>. Targets come from the Master or the handbook's
+        design-evaluation (EDP) limits; achieved values are whatever the tools last contributed.
+        Predicted now; cross-check measured on the car.
+      </p>
+      <div class="rp-wrap">
+        <table class="rp-table" style="min-width:640px;">
+          <thead><tr><th>Metric</th><th>Target</th><th style="text-align:right;">Achieved</th><th>Unit</th><th>Rule</th><th>Status</th></tr></thead>
+          <tbody>
+            {VALIDATION_ROWS.map((row, i) => (
+              <tr data-vrow={i}>
+                <td>{row.label}</td>
+                <td class="mono" data-vtarget>—</td>
+                <td class="num" data-vachieved>—</td>
+                <td class="mono">{row.unit}</td>
+                <td class="mono" style="color:var(--ink-3);">{cmpText[row.cmp]}</td>
+                <td><span data-vstatus class="mono" style="color:var(--ink-3);">—</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="mono no-print" style="margin:0.8rem 0 0;font-size:var(--fs-200);color:var(--ink-3);">
+        Contribute from a tool (Brakes, Springs, Geometry, Balance, …) to populate the achieved column.
+        Freeze governed numbers in <a href={url('vehicle-spec')}>Vehicle Spec</a>; sign gates off in <a href={url('gates')}>Gates</a>.
+      </p>
+    </div>
+  </section>
+
   <p class="mono" style="font-size:var(--fs-200);color:var(--ink-3);">
     Generated from the live shared store. The original Excel Master remains the
     authoritative archive; tyre figures carry the belt-rig caveat wherever they appear.
@@ -99,7 +134,7 @@ import { url } from '../lib/config';
 
 <script>
   import { loadMaster, loadToolOutputsMap, loadGates, loadChangeLog, fmt } from '../lib/store';
-  import { TOOL_OUTPUT_KEYS } from '../lib/config';
+  import { TOOL_OUTPUT_KEYS, VALIDATION_ROWS } from '../lib/config';
   import { esc } from '../lib/html';
   import { toCsv, downloadText } from '../lib/csv';
   import { unfrozenUpstream, type MasterCell } from '../lib/calc/readiness';
@@ -213,6 +248,33 @@ import { url } from '../lib/config';
     ].join('');
   }
 
+  // Validation: same logic as the former /validation page (targets: Master or fixed EDP
+  // limits; achieved: tool_outputs). Reuses the master / outputs already loaded here.
+  function renderValidation() {
+    const num = (k?: string) => { const v = k ? master[k]?.value : null; return v === null || v === undefined ? NaN : Number(v); };
+    VALIDATION_ROWS.forEach((r, i) => {
+      const tr = document.querySelector(`tr[data-vrow="${i}"]`);
+      if (!tr) return;
+      const target = r.targetMaster ? num(r.targetMaster) : (r.targetFixed ?? NaN);
+      const achieved = r.achievedKey ? outputs[r.achievedKey]?.value : null;
+      const tEl = tr.querySelector('[data-vtarget]')!;
+      const aEl = tr.querySelector('[data-vachieved]')!;
+      const sEl = tr.querySelector('[data-vstatus]') as HTMLElement;
+      tEl.textContent = Number.isFinite(target) ? fmt(target, 2) : '—';
+      const have = achieved !== null && achieved !== undefined && Number.isFinite(achieved);
+      aEl.textContent = have ? fmt(achieved as number, 3) : '—';
+      if (!have) { sEl.textContent = '— not yet'; sEl.style.color = 'var(--ink-3)'; return; }
+      if (!Number.isFinite(target)) { sEl.textContent = 'recorded'; sEl.style.color = 'var(--state-linked)'; return; }
+      const a = achieved as number;
+      let met: boolean, label: string;
+      if (r.cmp === 'max') { met = a <= target; label = met ? '✓ within' : '✗ over'; }
+      else if (r.cmp === 'min') { met = a >= target; label = met ? '✓ met' : '✗ under'; }
+      else { const err = ((a - target) / target) * 100; met = Math.abs(err) <= 10; label = `${err >= 0 ? '+' : ''}${fmt(err, 1)}%`; }
+      sEl.textContent = label;
+      sEl.style.color = met ? 'var(--state-linked)' : 'var(--heritage)';
+    });
+  }
+
   function csv(): string {
     const rows: (string | number | null)[][] = [];
     for (const r of Object.values(master) as any[]) {
@@ -232,6 +294,7 @@ import { url } from '../lib/config';
     renderSummary();
     renderMaster(unsetBox.checked);
     renderOutputs();
+    renderValidation();
     renderFloating();
     await renderGates();
     await renderChanges();

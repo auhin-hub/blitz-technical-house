@@ -68,8 +68,8 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
     { id: 'stiffness', title: 'Torsional & relative stiffness' },
     { id: 'tube', title: 'Tube stress & FoS' },
     { id: 'mass', title: 'Component-mass tracker' },
-    { id: 'buckling', title: 'Tube buckling' },
-    { id: 'bolt', title: 'Bolted joint' },
+    { id: 'buckling', title: 'Tube buckling', rare: true },
+    { id: 'bolt', title: 'Bolted joint', rare: true },
   ]} railLabel="Chassis">
   <CalcTool id="impact" title="Impact forces — front / rear / side" spec="TOOL_SPECS §2c"
     blurb="Quasi-static impact load F = m · n · 9.81. Mass is the car + driver total from Vehicle Spec; the decelerations are the team's design assumptions, not rulebook values."
@@ -100,7 +100,7 @@ const numInput = 'width:78px;text-align:right;font-family:var(--font-mono);';
       { key: 'kDeg', label: 'K chassis (torsional stiffness)', unit: 'N·m/deg', ref: { typ: 'target ≥ 1600', src: 'Validation target' } },
       { key: 'kRelative', label: 'K relative = K chassis / K sus', unit: '%' },
     ]}
-    contribute contributeNote="Writes K chassis (N·m/deg) to the shared store as the measured torsional stiffness — checked against the 1600 N·m/deg target on the Validation page." />
+    contribute contributeNote="Writes K chassis (N·m/deg) to the shared store as the measured torsional stiffness — checked against the 1600 N·m/deg target in the Design report's Validation section." />
 
   <CalcTool id="tube" title="Tube stress & factor of safety" spec="TOOL_SPECS §2a"
     blurb="Axial stress and factor of safety for a round tube. (Torsional stiffness now comes from the twist-test tool.)"

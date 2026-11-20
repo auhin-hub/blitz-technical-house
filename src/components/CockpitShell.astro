@@ -5,19 +5,31 @@
  * a <section> whose id matches a rail entry); only the selected one is shown.
  * On mobile the rail becomes a horizontal chip strip.
  *
- * Props: tools = [{ id, title }] in rail order (first is shown by default).
+ * Props: tools = [{ id, title, rare? }] in rail order (first is shown by default).
+ * `rare` tools (config.ts Tool.rare) go in a collapsed "More tools" disclosure at
+ * the bottom of the rail; they stay reachable by search / #hash (which opens it).
  */
-interface ToolRef { id: string; title: string; }
+interface ToolRef { id: string; title: string; rare?: boolean; }
 const { tools, railLabel = 'Tools' } = Astro.props as { tools: ToolRef[]; railLabel?: string };
+const main = tools.filter((t) => !t.rare);
+const more = tools.filter((t) => t.rare);
 ---
 <div class="cockpit-shell" data-cockpit>
   <nav class="cockpit-rail" aria-label={`${railLabel} — select a calculator`}>
     <span class="rail-label">{railLabel}</span>
-    {tools.map((t, i) => (
+    {main.map((t, i) => (
       <button class="cockpit-toolbtn" type="button" data-tool={t.id} aria-current={i === 0 ? 'true' : 'false'}>
         {t.title}
       </button>
     ))}
+    {more.length > 0 && (
+      <details class="rail-more">
+        <summary>More tools <span class="rail-more-n">{more.length}</span></summary>
+        {more.map((t) => (
+          <button class="cockpit-toolbtn" type="button" data-tool={t.id} aria-current="false">{t.title}</button>
+        ))}
+      </details>
+    )}
   </nav>
   <div class="cockpit-view">
     <slot />
@@ -36,6 +48,9 @@ const { tools, railLabel = 'Tools' } = Astro.props as { tools: ToolRef[]; railLa
         if (el) el.hidden = x !== id;
       }
       btns.forEach((b) => b.setAttribute('aria-current', b.dataset.tool === id ? 'true' : 'false'));
+      // A rare tool lives in the collapsed "More tools" — open it when one is selected.
+      const more = shell.querySelector<HTMLDetailsElement>('.rail-more');
+      if (more && btns.some((b) => b.dataset.tool === id && more.contains(b))) more.open = true;
       // Charts created while hidden have 0 size — nudge Chart.js (responsive) to refit.
       window.dispatchEvent(new Event('resize'));
     }
