@@ -180,7 +180,10 @@ import { url } from '../lib/config';
     boardEl.innerHTML = teams.map((team) => {
       const comps = components.map((c, idx) => ({ c, idx })).filter((x) => x.c.owner_team === team && shown(x.c));
       return `<h2 class="rd-team-h">${esc(team)}</h2><div class="rd-grid">${comps.map(({ c, idx }) => card(c, idx)).join('')}</div>`;
-    }).join('') || '<p class="mono" style="color:var(--ink-3);">No components. Add one, or reset to the seed.</p>';
+    }).join('') || (components.length
+      // Filtered to nothing — say so, so nobody "fixes" an empty view by resetting the team's board.
+      ? '<p class="mono" style="color:var(--ink-3);">No components match this filter. Choose "everyone" / "all teams" to see the whole board.</p>'
+      : '<p class="mono" style="color:var(--ink-3);">No components. Add one, or reset to the seed.</p>');
 
     boardEl.querySelectorAll<HTMLElement>('.rd-chip').forEach((chip) => {
       chip.addEventListener('dragstart', (e) => { e.dataTransfer!.setData('text/plain', chip.dataset.ref!); });
