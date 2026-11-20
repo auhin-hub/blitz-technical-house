@@ -98,6 +98,7 @@ export interface Cockpit {
   wheelTiltDeg: number;  // wheel plane from vertical, top toward the driver
   shoulderMount: Pt;     // shoulder-harness mount (side view)
   lapMount: Pt;          // lap-belt mount (side view)
+  noseTop: Pt;           // top of the nose / front bodywork (sightline obstruction; not a rule point)
 }
 
 /** Seat lines as unit vectors: along the pan (forward), its upward normal,
@@ -178,6 +179,7 @@ export interface DriverBody {
   sittingHeight: number;        // seat surface → top of head, sitting erect
   sittingHelmetHeight: number;  // seat surface → top of helmet, sitting erect
   sittingShoulderHeight: number;// seat surface → acromion (shoulder tip)
+  sittingEyeHeight: number;     // seat surface → eye (ISO 7250 style, sitting erect)
   thigh: number;                // greater trochanter → knee joint line
   shank: number;                // knee joint line → lateral malleolus (ankle bone)
   ankleHeight: number;          // floor → lateral malleolus

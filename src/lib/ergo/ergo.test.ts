@@ -182,3 +182,120 @@ describe('DXF', () => {
     expect(s.trim().endsWith('EOF')).toBe(true);
   });
 });
+
+// ---- driver CoG (Dempster / Winter Table 4.1) -------------------------------------------
+import { driverCog, SEGMENT_PARAMS, SEGMENT_COUNT } from './cog';
+import { eyePoint, wheelTopPoint, sightline, EYE_FORWARD_OF_HEAD_CENTRE_MM } from './sightline';
+
+describe('driver centre of gravity', () => {
+  const { body } = completeBody({ stature: 1780, mass: 78 });
+  const pose = poseDriver(C, body, { insert: 0, pedalShift: 0, restraintShift: 0 });
+  const r = driverCog(pose, 78, 0.108 * 1780);
+
+  it('segment fractions (arms and legs doubled) sum to exactly 1', () => {
+    const k = Object.keys(SEGMENT_PARAMS) as (keyof typeof SEGMENT_PARAMS)[];
+    expect(k.reduce((s, q) => s + SEGMENT_PARAMS[q].mass * SEGMENT_COUNT[q], 0)).toBeCloseTo(1, 12);
+    expect(r.mass).toBeCloseTo(78, 9);
+  });
+  it('is the mass-weighted mean of the segment centres', () => {
+    const x = r.segments.reduce((s, q) => s + q.mass * q.com.x, 0) / 78;
+    const z = r.segments.reduce((s, q) => s + q.mass * q.com.z, 0) / 78;
+    expect(r.cog.x).toBeCloseTo(x, 9); expect(r.cog.z).toBeCloseTo(z, 9);
+  });
+  it('lies inside the bounding box of the posed body', () => {
+    const pts = [pose.hip, pose.shoulder, pose.head, pose.knee, pose.ankle, pose.toe, pose.heel, pose.elbow, pose.grip];
+    const xs = pts.map((p) => p.x), zs = pts.map((p) => p.z);
+    expect(r.cog.x).toBeGreaterThanOrEqual(Math.min(...xs)); expect(r.cog.x).toBeLessThanOrEqual(Math.max(...xs));
+    expect(r.cog.z).toBeGreaterThanOrEqual(Math.min(...zs)); expect(r.cog.z).toBeLessThanOrEqual(Math.max(...zs));
+  });
+  it('hand-computed: trunk-only geometry puts the CoG on the trunk centre line', () => {
+    // Collapse every limb onto the hip and the head onto the shoulder: only the trunk (0.497, mid-point)
+    // and the lumped rest move the CoG. All points then lie on one vertical line → x constant, z hand-computed.
+    const p = { ...pose, hip: { x: 500, z: 100 }, shoulder: { x: 500, z: 600 }, head: { x: 500, z: 600 },
+      knee: { x: 500, z: 100 }, ankle: { x: 500, z: 100 }, toe: { x: 500, z: 100 }, heel: { x: 500, z: 100 },
+      elbow: { x: 500, z: 600 }, grip: { x: 500, z: 600 } };
+    const q = driverCog(p, 100, 0);
+    // legs (0.322) at z=100; trunk 0.497 at 350; head+arms (0.081+0.1) at 600
+    expect(q.cog.x).toBeCloseTo(500, 9);
+    expect(q.cog.z).toBeCloseTo(0.322 * 100 + 0.497 * 350 + 0.181 * 600, 9);
+  });
+  it('mirroring the posed body mirrors the CoG x and keeps z (symmetric case)', () => {
+    const m = (v: { x: number; z: number }) => ({ x: -v.x, z: v.z });
+    const mp = { ...pose, hip: m(pose.hip), shoulder: m(pose.shoulder), head: m(pose.head), knee: m(pose.knee), ankle: m(pose.ankle),
+      toe: m(pose.toe), heel: m(pose.heel), elbow: m(pose.elbow), grip: m(pose.grip) };
+    const q = driverCog(mp, 78, 0.108 * 1780);
+    expect(q.cog.x).toBeCloseTo(-r.cog.x, 9); expect(q.cog.z).toBeCloseTo(r.cog.z, 9);
+  });
+  it('scales with mass but the position does not move', () => {
+    const q = driverCog(pose, 55, 0.108 * 1780);
+    expect(q.mass).toBeCloseTo(55, 9); expect(q.cog.x).toBeCloseTo(r.cog.x, 9); expect(q.cog.z).toBeCloseTo(r.cog.z, 9);
+  });
+});
+
+describe('sitting eye height estimate and eye point', () => {
+  it('estimate = sitting height − 0.064·stature; tracks a measured sitting height', () => {
+    expect(estimateFromStature(1800).sittingEyeHeight).toBeCloseTo(0.52 * 1800 - 0.064 * 1800, 9);
+    const c1 = completeBody({ stature: 1800, sittingHeight: 950 });
+    expect(c1.body.sittingEyeHeight).toBeCloseTo(950 - 0.064 * 1800, 9);
+    expect(c1.estimated).toContain('sittingEyeHeight');
+    const c2 = completeBody({ stature: 1800, sittingEyeHeight: 800 });
+    expect(c2.body.sittingEyeHeight).toBe(800); expect(c2.estimated).not.toContain('sittingEyeHeight');
+  });
+  const { body } = completeBody({ stature: 1780, mass: 75 });
+  const pose = poseDriver(C, body, { insert: 0, pedalShift: 0, restraintShift: 0 });
+  const eye = eyePoint(pose, body);
+  it('sits on the neck line at (eye − shoulder height) from the shoulder, shifted forward by the named constant', () => {
+    const back = { x: eye.x + EYE_FORWARD_OF_HEAD_CENTRE_MM, z: eye.z };
+    expect(dist(back, pose.shoulder)).toBeCloseTo(body.sittingEyeHeight - body.sittingShoulderHeight, 6);
+    // …and on the same line as shoulder → head
+    const u = sub(pose.head, pose.shoulder), w = sub(back, pose.shoulder);
+    expect(u.x * w.z - u.z * w.x).toBeCloseTo(0, 6);
+  });
+  it('is above the shoulder and below the top of the helmet', () => {
+    expect(eye.z).toBeGreaterThan(pose.shoulder.z);
+    expect(eye.z).toBeLessThan(pose.head.z + pose.rHead);
+  });
+  it('a taller seated eye height raises the eye', () => {
+    const hi = eyePoint(pose, { ...body, sittingEyeHeight: body.sittingEyeHeight + 30 });
+    expect(hi.z).toBeGreaterThan(eye.z);
+  });
+});
+
+describe('sightline', () => {
+  const eye = { x: 1000, z: 800 };
+  it('hand-computed: the front hoop (shallowest clearing slope) blocks; ground hit at 3000 mm ahead', () => {
+    const s = sightline(eye, [
+      { name: 'wheel', pt: { x: 800, z: 700 } },       // slope −100/200 = −0.5
+      { name: 'hoop', pt: { x: 650, z: 730 } },        // −70/350  = −0.2
+      { name: 'nose', pt: { x: 250, z: 380 } },        // −420/750 = −0.56
+    ]);
+    expect(s.blocker?.name).toBe('hoop');
+    expect(s.groundForwardOfAxle).toBeCloseTo(800 / 0.2 - 1000, 9);  // 3000
+    expect(s.dropDeg).toBeCloseTo(Math.atan(0.2) * 180 / Math.PI, 9);
+  });
+  it('the line clears every obstruction and touches the blocker', () => {
+    const obs = [{ name: 'a', pt: { x: 700, z: 650 } }, { name: 'b', pt: { x: 100, z: 300 } }, { name: 'c', pt: { x: 400, z: 720 } }];
+    const s = sightline(eye, obs);
+    const zAt = (x: number) => eye.z - (eye.x - x) * Math.tan(s.dropDeg * Math.PI / 180);
+    for (const o of obs) expect(zAt(o.pt.x)).toBeGreaterThanOrEqual(o.pt.z - 1e-9);
+    expect(zAt(s.blocker!.pt.x)).toBeCloseTo(s.blocker!.pt.z, 9);
+    expect(s.groundPoint!.z).toBe(0);
+    expect(zAt(s.groundPoint!.x)).toBeCloseTo(0, 6);
+  });
+  it('ignores obstructions at or behind the eye; none ahead → no blocker', () => {
+    const s = sightline(eye, [{ name: 'behind', pt: { x: 1200, z: 2000 } }]);
+    expect(s.blocker).toBeNull(); expect(s.ignored).toEqual(['behind']); expect(s.groundForwardOfAxle).toBeNull();
+  });
+  it('a line that rises never meets the ground', () => {
+    const s = sightline(eye, [{ name: 'high', pt: { x: 500, z: 1000 } }]);
+    expect(s.dropDeg).toBeLessThan(0); expect(s.groundForwardOfAxle).toBeNull();
+  });
+  it('wheel top is the higher rim end, toward the driver when tilted that way', () => {
+    const t = wheelTopPoint(C);
+    expect(t.z).toBeCloseTo(C.wheelCentre.z + (C.wheelDia / 2) * Math.cos(C.wheelTiltDeg * Math.PI / 180), 9);
+    expect(t.x).toBeGreaterThan(C.wheelCentre.x);
+  });
+  it('the example cockpit has a nose point ahead of the front hoop and below its top', () => {
+    expect(C.noseTop.x).toBeLessThan(C.frontHoopTop.x); expect(C.noseTop.z).toBeLessThan(C.frontHoopTop.z);
+  });
+});
