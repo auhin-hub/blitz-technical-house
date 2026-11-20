@@ -28,6 +28,9 @@ import { url } from '../lib/config';
       <label style="font-size:var(--fs-300);">Filter team
         <select id="rd-filter" style="display:block;margin-top:0.2rem;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);padding:0.25rem 0.4rem;"><option value="">all teams</option></select>
       </label>
+      <label style="font-size:var(--fs-300);">Assigned to
+        <select id="rd-who" style="display:block;margin-top:0.2rem;font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--rule-strong);border-radius:var(--radius);color:var(--ink);padding:0.25rem 0.4rem;"><option value="">everyone</option></select>
+      </label>
       <button class="btn btn-ghost" type="button" id="rd-add-comp">+ Component</button>
       <button class="btn btn-ghost" type="button" id="rd-add-req">+ Requirement</button>
       <button class="btn btn-ghost" type="button" id="rd-reset" style="font-size:var(--fs-200);">Reset to seed</button>
@@ -37,6 +40,7 @@ import { url } from '../lib/config';
     <form id="rd-comp-form" hidden style="margin-top:0.7rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-end;background:var(--surface-2);padding:0.6rem;border-radius:var(--radius);">
       <label style="font-size:var(--fs-300);">Name<input required id="rc-name" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
       <label style="font-size:var(--fs-300);">Owner team<select id="rc-team" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;"></select></label>
+      <label style="font-size:var(--fs-300);">Assigned to<select id="rc-who" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;"></select></label>
       <label style="font-size:var(--fs-300);">Subassembly<input id="rc-sub" style="display:block;margin-top:0.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius-sm);color:var(--ink);padding:0.25rem 0.4rem;" /></label>
       <button class="btn btn-heritage" type="submit">Add</button>
     </form>
@@ -61,13 +65,16 @@ import { url } from '../lib/config';
   .rd-bin.drag { border-color: var(--sky); background: var(--surface-2); }
   .rd-chip { display: flex; align-items: center; gap: 0.4rem; font-size: var(--fs-200); padding: 0.25rem 0.4rem; border: 1px solid var(--rule); border-radius: var(--radius-sm); margin: 0.2rem 0; background: var(--surface-2); cursor: grab; }
   .rd-dot { width: 0.7em; height: 0.7em; border-radius: 50%; flex: none; }
+  .rd-who { display: flex; gap: 0.4rem; align-items: center; margin-top: 0.35rem; font-size: var(--fs-200); color: var(--ink-2); }
+  .rd-who select { flex: 1; min-width: 0; background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius-sm); color: var(--ink); padding: 0.15rem 0.3rem; font-size: var(--fs-200); }
   .rd-green { background: var(--state-linked); } .rd-amber { background: var(--amber); } .rd-grey { background: var(--ink-3); }
 </style>
 
 <script>
   import { PARAM_SEED } from '../lib/master';
   import { TOOL_OUTPUT_KEYS, url } from '../lib/config';
-  import { componentReadiness, blockingSummary, unfrozenUpstream, type Component, type Prereq, type MasterCell, type Bin } from '../lib/calc/readiness';
+  import { componentReadiness, blockingSummary, unfrozenUpstream, assigneeKey, assigneeLabel, matchesAssignee, type Component, type Prereq, type MasterCell, type Bin } from '../lib/calc/readiness';
+  import { loadMembers, myRole, type MemberRow } from '../lib/roles';
   import { subscribeLive, liveToast, describeBurst } from '../lib/realtime';
   import { loadMaster, loadToolOutputsMap, loadToolJson, saveToolJson, debounce } from '../lib/store';
   import { mountListControls } from '../lib/list-controls';
@@ -81,6 +88,8 @@ import { url } from '../lib/config';
   let components: Component[] = [];
   let master: Record<string, MasterCell> = {};
   let outputs: Record<string, { value: number | null }> = {};
+  let people: MemberRow[] = [];          // the roster (Programme → Team & roles), for assignment
+  let me: string | undefined;            // my sign-in e-mail, for "Assigned to me"
 
   // Requirement picker = union of all vehicle_spec keys + all tool_output keys.
   const teamFromSource = (s: string) => ({ Tyre: 'VD(Tyre)', MassBudget: 'VD', VD: 'VD', Geometry: 'VD', target: 'VD', input: 'VD' } as Record<string, string>)[s] ?? 'VD';
@@ -93,6 +102,16 @@ import { url } from '../lib/config';
 
   const say = (m: string, ok = true) => { statusEl.textContent = m; statusEl.style.color = ok ? 'var(--state-linked)' : 'var(--heritage)'; };
   const esc = (s: string) => (s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  /** Roster members as <option>s (name — team), plus anyone still assigned who left the roster. */
+  function personOptions(selected: string): string {
+    const opts = people
+      .filter((m) => assigneeKey(m.email))
+      .map((m) => { const k = assigneeKey(m.email)!; return `<option value="${esc(k)}"${k === selected ? ' selected' : ''}>${esc(m.full_name?.trim() || k.split('@')[0])}${m.team ? ' — ' + esc(m.team) : ''}</option>`; });
+    const known = new Set(people.map((m) => assigneeKey(m.email)));
+    const extra = [...new Set(components.map((c) => c.assignee).filter((a): a is string => !!a && !known.has(a)))]
+      .map((a) => `<option value="${esc(a)}"${a === selected ? ' selected' : ''}>${esc(a.split('@')[0])} (not in roster)</option>`);
+    return opts.join('') + extra.join('');
+  }
 
   const persist = debounce(async () => {
     const err = await saveToolJson(TOOL, { components });
@@ -100,14 +119,14 @@ import { url } from '../lib/config';
   }, 600);
 
   // ---- CSV (one row per prerequisite) ----
-  const CSV_COLS = ['component', 'owner_team', 'subassembly', 'prerequisite', 'default_bin', 'source_type', 'source_key', 'produced_by_team', 'notes'];
+  const CSV_COLS = ['component', 'owner_team', 'subassembly', 'prerequisite', 'default_bin', 'source_type', 'source_key', 'produced_by_team', 'notes', 'assignee_email'];
   function flatten(): (string | number)[][] {
     const rows: (string | number)[][] = [];
     for (const c of components) {
       // A component with no prerequisites still gets one row (blank prereq) so it
       // survives an export → import round-trip (audit P2-9).
-      if (!c.prereqs.length) { rows.push([c.name, c.owner_team, c.subassembly ?? '', '', '', '', '', '', '']); continue; }
-      for (const p of c.prereqs) rows.push([c.name, c.owner_team, c.subassembly ?? '', p.label, p.bin, p.source_type, p.source_key, p.produced_by_team, (p as any).notes ?? '']);
+      if (!c.prereqs.length) { rows.push([c.name, c.owner_team, c.subassembly ?? '', '', '', '', '', '', '', c.assignee ?? '']); continue; }
+      for (const p of c.prereqs) rows.push([c.name, c.owner_team, c.subassembly ?? '', p.label, p.bin, p.source_type, p.source_key, p.produced_by_team, (p as any).notes ?? '', c.assignee ?? '']);
     }
     return rows;
   }
@@ -117,7 +136,12 @@ import { url } from '../lib/config';
     for (const r of rows) {
       const name = (r[i('component')] ?? '').trim(); if (!name) continue;
       let c = byName.get(name);
-      if (!c) { c = { name, owner_team: (r[i('owner_team')] ?? 'VD').trim(), subassembly: i('subassembly') >= 0 ? (r[i('subassembly')] ?? '').trim() : '', prereqs: [] }; byName.set(name, c); }
+      if (!c) {
+        c = { name, owner_team: (r[i('owner_team')] ?? 'VD').trim(), subassembly: i('subassembly') >= 0 ? (r[i('subassembly')] ?? '').trim() : '', prereqs: [] };
+        const who = i('assignee_email') >= 0 ? assigneeKey(r[i('assignee_email')]) : undefined;   // older CSVs have no column
+        if (who) c.assignee = who;
+        byName.set(name, c);
+      }
       const label = (r[i('prerequisite')] ?? '').trim(); if (!label) continue;
       c.prereqs.push({
         label, bin: ((r[i('default_bin')] ?? 'blocking').trim() === 'soft' ? 'soft' : 'blocking') as Bin,
@@ -134,6 +158,11 @@ import { url } from '../lib/config';
     const filter = (document.getElementById('rd-filter') as HTMLSelectElement).value;
     (document.getElementById('rd-filter') as HTMLSelectElement).innerHTML = '<option value="">all teams</option>' + TEAMS.map((t) => `<option value="${t}"${t === filter ? ' selected' : ''}>${t}</option>`).join('');
     (document.getElementById('rc-team') as HTMLSelectElement).innerHTML = TEAMS.map((t) => `<option>${t}</option>`).join('');
+    const whoEl = document.getElementById('rd-who') as HTMLSelectElement;
+    const who = whoEl.value;
+    whoEl.innerHTML = `<option value="">everyone</option><option value="__me"${who === '__me' ? ' selected' : ''}>me</option><option value="__none"${who === '__none' ? ' selected' : ''}>unassigned</option>`
+      + personOptions(who);
+    (document.getElementById('rc-who') as HTMLSelectElement).innerHTML = '<option value="">— unassigned —</option>' + personOptions('');
     (document.getElementById('rr-comp') as HTMLSelectElement).innerHTML = components.map((c, i) => `<option value="${i}">${esc(c.name)}</option>`).join('');
     (document.getElementById('rr-key') as HTMLSelectElement).innerHTML =
       `<optgroup label="Master (vehicle_spec)">${MASTER_PICK.map((p) => `<option value="${p.key}">${esc(p.label)} — ${p.key}</option>`).join('')}</optgroup>` +
@@ -146,11 +175,15 @@ import { url } from '../lib/config';
       : `<p style="color:var(--state-linked);margin-top:0.3rem;">Nothing blocking — every blocking prerequisite is green.</p>`);
 
     // board grouped by owner team
-    const teams = [...new Set(components.map((c) => c.owner_team))].filter((t) => !filter || t === filter);
+    const shown = (c: Component) => matchesAssignee(c, who, me);
+    const teams = [...new Set(components.filter(shown).map((c) => c.owner_team))].filter((t) => !filter || t === filter);
     boardEl.innerHTML = teams.map((team) => {
-      const comps = components.map((c, idx) => ({ c, idx })).filter((x) => x.c.owner_team === team);
+      const comps = components.map((c, idx) => ({ c, idx })).filter((x) => x.c.owner_team === team && shown(x.c));
       return `<h2 class="rd-team-h">${esc(team)}</h2><div class="rd-grid">${comps.map(({ c, idx }) => card(c, idx)).join('')}</div>`;
-    }).join('') || '<p class="mono" style="color:var(--ink-3);">No components. Add one, or reset to the seed.</p>';
+    }).join('') || (components.length
+      // Filtered to nothing — say so, so nobody "fixes" an empty view by resetting the team's board.
+      ? '<p class="mono" style="color:var(--ink-3);">No components match this filter. Choose "everyone" / "all teams" to see the whole board.</p>'
+      : '<p class="mono" style="color:var(--ink-3);">No components. Add one, or reset to the seed.</p>');
 
     boardEl.querySelectorAll<HTMLElement>('.rd-chip').forEach((chip) => {
       chip.addEventListener('dragstart', (e) => { e.dataTransfer!.setData('text/plain', chip.dataset.ref!); });
@@ -165,6 +198,13 @@ import { url } from '../lib/config';
         if (components[ci]?.prereqs[pi]) { components[ci].prereqs[pi].bin = targetBin; render(); persist(); }
       });
     });
+    boardEl.querySelectorAll<HTMLSelectElement>('[data-assign]').forEach((sel) =>
+      sel.addEventListener('change', () => {
+        const c = components[+sel.dataset.assign!]; if (!c) return;
+        const key = assigneeKey(sel.value);
+        if (key) c.assignee = key; else delete c.assignee;
+        render(); persist(); say(`${c.name}: ${assigneeLabel(c.assignee, people)} ✓`);
+      }));
     boardEl.querySelectorAll<HTMLButtonElement>('[data-del-comp]').forEach((b) =>
       b.addEventListener('click', () => { components.splice(+b.dataset.delComp!, 1); render(); persist(); }));
     boardEl.querySelectorAll<HTMLButtonElement>('[data-del-req]').forEach((b) =>
@@ -193,6 +233,8 @@ import { url } from '../lib/config';
         <strong>${esc(c.name)}</strong><span style="display:flex;gap:0.4rem;align-items:center;">${ring} ${go}</span>
       </div>
       <p class="mono" style="font-size:var(--fs-100);color:var(--ink-3);">${esc(c.subassembly || '')}</p>
+      <label class="rd-who">Assigned to
+        <select data-assign="${idx}" aria-label="${esc(c.name)} assigned to"><option value="">— unassigned —</option>${personOptions(c.assignee ?? '')}</select></label>
       <p class="annot" style="margin-top:0.4rem;">Blocking</p><div class="rd-bin" data-bin="blocking" data-ci="${idx}">${binHtml('blocking')}</div>
       <p class="annot" style="margin-top:0.4rem;">Soft</p><div class="rd-bin" data-bin="soft" data-ci="${idx}">${binHtml('soft')}</div>
       ${pending}
@@ -201,7 +243,9 @@ import { url } from '../lib/config';
   }
 
   (async () => {
-    const [mRows, oMap, saved] = await Promise.all([loadMaster(), loadToolOutputsMap(), loadToolJson<any>(TOOL, {})]);
+    const [mRows, oMap, saved, roster, mine] = await Promise.all([loadMaster(), loadToolOutputsMap(), loadToolJson<any>(TOOL, {}), loadMembers(), myRole()]);
+    people = roster;
+    me = assigneeKey(mine.email);
     master = Object.fromEntries(Object.entries(mRows).map(([k, v]) => [k, { value: (v as any).value ?? null, text_value: (v as any).text_value ?? null, frozen: !!(v as any).frozen }]));
     outputs = Object.fromEntries(Object.entries(oMap).map(([k, v]) => [k, { value: (v as any).value ?? null }]));
 
@@ -230,6 +274,7 @@ import { url } from '../lib/config';
 
     // Controls
     document.getElementById('rd-filter')!.addEventListener('change', render);
+    document.getElementById('rd-who')!.addEventListener('change', render);
     document.getElementById('rd-add-comp')!.addEventListener('click', () => { const f = document.getElementById('rd-comp-form') as HTMLElement; f.hidden = !f.hidden; });
     document.getElementById('rd-add-req')!.addEventListener('click', () => { const f = document.getElementById('rd-req-form') as HTMLElement; f.hidden = !f.hidden; render(); });
     document.getElementById('rd-reset')!.addEventListener('click', async () => {
@@ -240,7 +285,10 @@ import { url } from '../lib/config';
     (document.getElementById('rd-comp-form') as HTMLFormElement).addEventListener('submit', (e) => {
       e.preventDefault();
       const name = (document.getElementById('rc-name') as HTMLInputElement).value.trim(); if (!name) return;
-      components.push({ name, owner_team: (document.getElementById('rc-team') as HTMLSelectElement).value, subassembly: (document.getElementById('rc-sub') as HTMLInputElement).value.trim(), prereqs: [] });
+      const comp: Component = { name, owner_team: (document.getElementById('rc-team') as HTMLSelectElement).value, subassembly: (document.getElementById('rc-sub') as HTMLInputElement).value.trim(), prereqs: [] };
+      const who = assigneeKey((document.getElementById('rc-who') as HTMLSelectElement).value);
+      if (who) comp.assignee = who;
+      components.push(comp);
       (document.getElementById('rd-comp-form') as HTMLFormElement).reset();
       (document.getElementById('rd-comp-form') as HTMLElement).hidden = true;
       render(); persist();

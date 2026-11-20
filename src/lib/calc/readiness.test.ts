@@ -64,3 +64,30 @@ it('blockingSummary ranks the gating key', () => {
   const s = blockingSummary([comp], master, outputs);
   expect(s[0]).toEqual({ source_key: 'brake_torque_front', team: 'Brake', count: 1 });
 });
+
+// ---- people / assignment ----------------------------------------------------------
+import { assigneeKey, assigneeLabel, matchesAssignee } from './readiness';
+
+it('assignee keys are trimmed, lower-case e-mails; blank means unassigned', () => {
+  expect(assigneeKey('  Rafi@Example.COM ')).toBe('rafi@example.com');
+  expect(assigneeKey('')).toBeUndefined();
+  expect(assigneeKey(null)).toBeUndefined();
+});
+
+it('an assignee shows by roster name, else by e-mail local part', () => {
+  const people = [{ email: 'Rafi@example.com', full_name: 'Rafi Ahmed' }, { email: 'nadia@example.com', full_name: null }];
+  expect(assigneeLabel('rafi@example.com', people)).toBe('Rafi Ahmed');
+  expect(assigneeLabel('nadia@example.com', people)).toBe('nadia');
+  expect(assigneeLabel('gone@example.com', people)).toBe('gone');   // left the roster: still readable
+  expect(assigneeLabel(undefined, people)).toBe('Unassigned');
+});
+
+it('assignee filter: everyone / me / unassigned / one person', () => {
+  const a: Component = { name: 'Upright', owner_team: 'VD', subassembly: '', prereqs: [], assignee: 'rafi@example.com' };
+  const b: Component = { name: 'Seat', owner_team: 'Ergonomics', subassembly: '', prereqs: [] };
+  expect([a, b].filter((c) => matchesAssignee(c, '', 'rafi@example.com'))).toHaveLength(2);
+  expect([a, b].filter((c) => matchesAssignee(c, '__me', 'rafi@example.com'))).toEqual([a]);
+  expect([a, b].filter((c) => matchesAssignee(c, '__me', undefined))).toEqual([]);   // signed-out / unknown: nothing is "mine"
+  expect([a, b].filter((c) => matchesAssignee(c, '__none', 'rafi@example.com'))).toEqual([b]);
+  expect([a, b].filter((c) => matchesAssignee(c, 'rafi@example.com', undefined))).toEqual([a]);
+});

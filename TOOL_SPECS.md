@@ -344,6 +344,17 @@ Two Powertrain rail tools (no iframe; `public/tools/cooling.html` deleted):
   "rarely used"); on a team page they sit in the rail's collapsed *More tools*.
 - **Kept as-is:** Design Readiness, Coupling & sensitivity, Budget, DAQ log interpretation.
 
+## People: Team & roles + Readiness assignment
+- **Team & roles** (Programme menu → `gates#members`): the existing Members panel (`members` table,
+  migration 0011) with a **name** column leads can edit, and a lead-facing guide to inviting someone
+  (sign-up is invite-only: Supabase dashboard → Authentication → Users → *Invite user*; they appear
+  in the table after their first sign-in). Roles: lead / member / viewer — enforced by RLS.
+- **Design Readiness — assignment:** each component may name one **assignee** (sign-in e-mail, lower-case,
+  stored in the component in tool_state `readiness`; no migration). Picked from the roster on the card or
+  when adding a component; filter *Assigned to: everyone / me / unassigned / a person*. CSV gains an optional
+  `assignee_email` column (older CSVs still import). Someone assigned who later leaves the roster still shows,
+  marked "(not in roster)". Logic in `readiness.ts` (`assigneeKey`, `assigneeLabel`, `matchesAssignee`), tested.
+
 ## Build notes
 - **Navigation grouping (BRIEF §D):** tools are grouped under discipline pages,
   not shown as one flat list. Vehicle Dynamics page = SuspensionGeom (+ Setup

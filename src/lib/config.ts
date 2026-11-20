@@ -188,7 +188,8 @@ export interface NavGroup { label: string; links: NavLink[]; }
 export const PROGRAMME_LINKS: NavLink[] = [
   { href: 'gates', label: 'Gates / Phases', hint: 'G0–G9, freeze-and-log' },
   { href: 'taskmap', label: 'Task Map', hint: 'who waits on whom' },
-  { href: 'readiness', label: 'Design Readiness', hint: 'component requirements' },
+  { href: 'readiness', label: 'Design Readiness', hint: 'components · who owns what' },
+  { href: 'gates#members', label: 'Team & roles', hint: 'members, roles, inviting' },
   { href: 'change-log', label: 'Change Log', hint: 'every frozen edit' },
   { href: 'report', label: 'Design report', hint: 'printable, whole store · validation' },
 ];

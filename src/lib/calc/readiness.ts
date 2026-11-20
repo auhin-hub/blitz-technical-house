@@ -26,6 +26,35 @@ export interface Component {
   owner_team: string;
   subassembly: string;
   prereqs: Prereq[];
+  /** The person responsible, by sign-in e-mail (lower-case). Absent = unassigned. */
+  assignee?: string;
+}
+
+// ---- people --------------------------------------------------------------------
+/** Normalise an e-mail for use as an assignee key ('' → undefined). */
+export const assigneeKey = (email: string | null | undefined): string | undefined => {
+  const e = (email ?? '').trim().toLowerCase();
+  return e ? e : undefined;
+};
+
+export interface PersonRef { email: string | null; full_name: string | null; }
+
+/** How to show an assignee: their roster name, else the e-mail's local part. */
+export function assigneeLabel(email: string | undefined, people: PersonRef[]): string {
+  if (!email) return 'Unassigned';
+  const p = people.find((x) => assigneeKey(x.email) === email);
+  return p?.full_name?.trim() || email.split('@')[0];
+}
+
+/**
+ * Assignee filter: '' = everyone, '__me' = the signed-in member, '__none' =
+ * unassigned, otherwise an assignee e-mail.
+ */
+export function matchesAssignee(c: Component, filter: string, myEmail: string | undefined): boolean {
+  if (!filter) return true;
+  if (filter === '__none') return !c.assignee;
+  if (filter === '__me') return !!myEmail && c.assignee === myEmail;
+  return c.assignee === filter;
 }
 
 /** A minimal view of a vehicle_spec row for status resolution. */
