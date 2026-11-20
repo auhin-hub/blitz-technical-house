@@ -47,9 +47,12 @@ export interface CalcSpec {
   toMaster?: { key: string; label: string; unit: string; from: string }[];
 }
 
-export async function mountCalculator(spec: CalcSpec): Promise<void> {
+/** Returned so a tool with non-scalar inputs (tables) can ask for a recompute when they change. */
+export interface CalcHandle { recompute: () => void; }
+
+export async function mountCalculator(spec: CalcSpec): Promise<CalcHandle | undefined> {
   const scope = document.getElementById(spec.root);
-  if (!scope) return;
+  if (!scope) return undefined;
   applyChartDefaults();
   const inputs = Array.from(scope.querySelectorAll<HTMLInputElement>('[data-in]'));
   const saveStatus = scope.querySelector<HTMLElement>('[data-save-status]');
@@ -128,10 +131,18 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
         const cfg = cs.build({ out, inp, master, pal });
         if (!cfg) continue;
         const existing = charts.get(cs.canvasId);
-        if (existing) {
-          existing.data = cfg.data;
-          if (cfg.options) existing.options = cfg.options;
-          existing.update();
+        // Chart.js can't change a chart's type in place: swapping data into an
+        // existing chart keeps its old type (e.g. an empty 'line' placeholder would
+        // draw later 'bar' data as a line). Rebuild when the type changes.
+        if (existing && (existing.config as { type?: string }).type !== cfg.type) {
+          existing.destroy();
+          charts.delete(cs.canvasId);
+        }
+        const current = charts.get(cs.canvasId);
+        if (current) {
+          current.data = cfg.data;
+          if (cfg.options) current.options = cfg.options;
+          current.update();
         } else {
           const cv = document.getElementById(cs.canvasId) as HTMLCanvasElement | null;
           if (cv) charts.set(cs.canvasId, new Chart(cv, cfg));
@@ -264,4 +275,6 @@ export async function mountCalculator(spec: CalcSpec): Promise<void> {
       }
     },
   });
+
+  return { recompute: () => { recompute(); } };
 }

@@ -6,7 +6,8 @@ import LegendKey from '../components/LegendKey.astro';
 import WorkbookDownload from '../components/WorkbookDownload.astro';
 import CalcTool from '../components/CalcTool.astro';
 import CockpitShell from '../components/CockpitShell.astro';
-import { url, DISCIPLINES } from '../lib/config';
+import CoolingTools from '../components/CoolingTools.astro';
+import { DISCIPLINES } from '../lib/config';
 import { PARAM_SEED } from '../lib/master';
 
 const pt = DISCIPLINES.find((d) => d.slug === 'powertrain')!;
@@ -51,7 +52,7 @@ const OUTPUTS = [
   <LegendKey />
 
   <div style="margin-top:1.25rem;"></div>
-  <CockpitShell tools={[{ id: 'traction', title: 'Drivetrain & traction' }, { id: 'cooling', title: 'Cooling — Dyno Analyzer' }, { id: 'gearspeed', title: 'Gear speed', rare: true }, { id: 'restrictor', title: 'Intake restrictor', rare: true }]} railLabel="Powertrain">
+  <CockpitShell tools={[{ id: 'traction', title: 'Drivetrain & traction' }, { id: 'cooling-data', title: 'Cooling — dyno & pump data' }, { id: 'cooling', title: 'Cooling — radiator analysis' }, { id: 'gearspeed', title: 'Gear speed', rare: true }, { id: 'restrictor', title: 'Intake restrictor', rare: true }]} railLabel="Powertrain">
   <CalcTool id="traction" title="Drivetrain & traction" spec="TOOL_SPECS §6"
     blurb="1st-gear wheel torque, tractive force vs the traction limit, and launch acceleration."
     linked={LINKED} seed={seed} inputs={INPUTS} outputs={OUTPUTS}
@@ -59,37 +60,9 @@ const OUTPUTS = [
     chartId="traction-chart" chartTitle="Tractive force vs traction limit"
     contribute contributeNote="Writes engine peak power, final drive ratio and max wheel torque to the shared store (ToMaster → Powertrain)." />
 
-  <!-- Cooling Dyno Analyzer — the provided self-contained app, physics kept
-       exactly and re-skinned to the design system (BRIEF §E2). Embedded here so
-       it lives inside the Powertrain page; it carries its own inputs. -->
-  <section id="cooling" class="card" style="margin-top:1.25rem;">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
-      <h2 style="font-size:var(--fs-700);">Cooling — Dyno Analyzer</h2>
-      <span class="badge">BRIEF §E2</span>
-    </div>
-    <p style="color:var(--ink-2);margin-top:0.35rem;font-size:var(--fs-300);">
-      Measured dyno data in → engine heat load → radiator performance via the
-      NTU-effectiveness method, with heat rejection vs speed, fan model, gearing
-      and power/torque curves. The original tool's physics are unchanged; only
-      the look is re-skinned to this workspace.
-    </p>
-    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin:0.9rem 0;">
-      <a class="btn btn-halftone" href={url('tools/cooling.html')} target="_blank" rel="noopener">Open full-screen ↗</a>
-    </div>
-    <div style="border:1px solid var(--rule);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);">
-      <iframe class="cooling-frame" src={url('tools/cooling.html')} title="Cooling Dyno Analyzer"
-        loading="lazy"></iframe>
-    </div>
-    <p class="annot cooling-hint" style="margin-top:0.5rem;">
-      The analyzer scrolls inside its own frame on a small screen — use
-      “Open full-screen” above for the full layout.
-    </p>
-    <p class="mono" style="margin-top:0.6rem;font-size:var(--fs-200);color:var(--ink-3);">
-      Its "From Vehicle Spec" strip pulls the live rolling radius → tyre Ø and
-      final drive → rear sprocket (one click each, labelled); other inputs keep
-      their KTM 390 RC defaults.
-    </p>
-  </section>
+  <!-- Cooling Dyno Analyzer — native tools (ported from the original Dyno Thermal Analyzer;
+       physics in src/lib/calc/cooling.ts, wiring in cooling-ui.ts). Two rail entries. -->
+  <CoolingTools />
 
   <CalcTool id="gearspeed" title="Gear speed" spec="§9"
     blurb="Road speed at an engine rpm in a gear, from the ratios and rolling radius."
@@ -120,22 +93,13 @@ const OUTPUTS = [
   </CockpitShell>
 </Base>
 
-<style>
-  /* The embedded analyzer is a tall self-contained app. Desktop gets its full
-     height (no nested scrolling); on a phone a 1600px frame made the page
-     unusable, so it is capped to the viewport and scrolls internally (audit P2.3). */
-  .cooling-frame { width: 100%; height: 1600px; border: 0; display: block; background: var(--surface); }
-  .cooling-hint { display: none; }
-  @media (max-width: 860px) {
-    .cooling-frame { height: 80vh; min-height: 420px; }
-    .cooling-hint { display: block; }
-  }
-</style>
-
 <script>
   import { mountCalculator } from '../lib/calc/engine';
   import { tractionCompute } from '../lib/calc/pt-traction';
   import { gearSpeedCompute, restrictorCompute } from '../lib/calc/extras';
+  import { mountCooling } from '../lib/calc/cooling-ui';
+
+  mountCooling();
 
   mountCalculator({
     root: 'traction', tool: 'pt_traction', compute: tractionCompute, defaultDigits: 1,

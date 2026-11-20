@@ -4,11 +4,18 @@
  * once. These tests fail the build if a registered page or anchor doesn't exist.
  */
 import { describe, it, expect } from 'vitest';
-import { DISCIPLINES, PROGRAMME_LINKS, RESOURCE_LINKS, PROGRAMME_SUBPAGES, pageParent, visibleTools, isSectionLink, pageOf } from './config';
+import { DISCIPLINES, TOOL_OUTPUT_KEYS, PROGRAMME_LINKS, RESOURCE_LINKS, PROGRAMME_SUBPAGES, pageParent, visibleTools, isSectionLink, pageOf } from './config';
 
 // Page sources via Vite's glob (no Node fs/path — the project ships no Node types).
 const SOURCES = import.meta.glob('../pages/*.astro', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const COMPONENTS = import.meta.glob('../components/*.astro', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const pagePath = (slug: string) => `../pages/${slug}.astro`;
+/** A page's source plus the source of every component it imports (tool sections may live in a component). */
+const withComponents = (p: string): string => {
+  const src = SOURCES[p] ?? '';
+  const extra = [...src.matchAll(/from '\.\.\/components\/(\w+)\.astro'/g)].map((m) => COMPONENTS[`../components/${m[1]}.astro`] ?? '');
+  return [src, ...extra].join('\n');
+};
 const existsSync = (p: string) => p in SOURCES;
 const readFileSync = (p: string) => SOURCES[p];
 const page = pagePath;
@@ -41,7 +48,7 @@ describe('tool registry', () => {
   it('every `page#section` tool points at an id that exists on that page', () => {
     for (const d of DISCIPLINES) for (const t of d.tools.filter(isSectionLink)) {
       const [pg, id] = t.href!.split('#');
-      expect(SOURCES[page(pg)].includes(`id="${id}"`), `${t.title} → ${t.href}`).toBe(true);
+      expect(withComponents(page(pg)).includes(`id="${id}"`), `${t.title} → ${t.href}`).toBe(true);
     }
   });
 
@@ -91,7 +98,7 @@ describe('tool registry', () => {
 
   it('every anchor-tool exists as an id on its team page', () => {
     for (const d of DISCIPLINES) {
-      const src = readFileSync(page(d.slug));
+      const src = withComponents(page(d.slug));
       for (const t of d.tools.filter((x) => x.anchor)) {
         expect(src.includes(`id="${t.anchor}"`), `${d.slug}#${t.anchor}`).toBe(true);
       }
@@ -109,5 +116,26 @@ describe('pageParent (breadcrumbs)', () => {
     expect(pageParent('snapshots')).toEqual({ label: 'Programme' });
     expect(pageParent('validation')).toEqual({ label: 'Programme' });
     expect(pageParent('chassis')).toBeNull();
+  });
+});
+
+describe('cooling is native (no iframe)', () => {
+  it('the Powertrain page embeds no iframe and the old static app is gone', () => {
+    expect(readFileSync(page('powertrain'))).not.toContain('<iframe');
+    expect(withComponents(page('powertrain'))).not.toContain('<iframe');
+    expect(withComponents(page('powertrain'))).not.toContain('tools/cooling.html');
+    const ASSETS = import.meta.glob('../../public/tools/*', { query: '?url', import: 'default', eager: true });
+    expect(Object.keys(ASSETS)).toEqual([]);
+  });
+  it('both cooling tools are registered and on the page rail', () => {
+    const pt = DISCIPLINES.find((d) => d.slug === 'powertrain')!;
+    expect(pt.tools.map((t) => t.anchor)).toEqual(expect.arrayContaining(['cooling-data', 'cooling']));
+    const src = readFileSync(page('powertrain'));
+    expect(src).toContain("id: 'cooling-data'"); expect(src).toContain("id: 'cooling'");
+  });
+  it('its contributed keys are registered with upstream lists', () => {
+    const keys = TOOL_OUTPUT_KEYS.filter((o) => ['heat_rejection_kw', 'radiator_area', 'coolant_tout_peak', 'coolant_margin'].includes(o.key));
+    expect(keys.map((k) => k.key).sort()).toEqual(['coolant_margin', 'coolant_tout_peak', 'heat_rejection_kw', 'radiator_area']);
+    for (const k of keys) expect(k.team).toBe('Powertrain');
   });
 });
