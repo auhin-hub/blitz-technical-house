@@ -39,10 +39,17 @@ describe('tool registry', () => {
     const hrefs = [
       ...DISCIPLINES.flatMap((d) => d.tools.filter((t) => t.href).map((t) => t.href!.split('#')[0])),
       ...PROGRAMME_SUBPAGES,
-      ...PROGRAMME_LINKS.map((l) => l.href),
+      ...PROGRAMME_LINKS.map((l) => l.href.split('#')[0]),
       ...RESOURCE_LINKS.map((l) => l.href),
     ];
     for (const h of hrefs) expect(existsSync(page(h)), h).toBe(true);
+  });
+
+  it('every `page#section` menu link points at an id on that page (e.g. Team & roles)', () => {
+    for (const l of PROGRAMME_LINKS.filter((x) => x.href.includes('#'))) {
+      const [pg, id] = l.href.split('#');
+      expect(readFileSync(page(pg)).includes(`id="${id}"`), l.href).toBe(true);
+    }
   });
 
   it('every `page#section` tool points at an id that exists on that page', () => {

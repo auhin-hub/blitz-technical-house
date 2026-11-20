@@ -17,7 +17,7 @@
  *
  * The cache name carries a version; bump it to retire old entries.
  */
-const VERSION = 'blitz-v8';  // bumped: native cooling tools (iframe removed)
+const VERSION = 'blitz-v9';  // bumped: Readiness assignment + Team & roles
 const SCOPE = new URL(self.registration.scope);
 const BASE = SCOPE.pathname.replace(/\/+$/, '');
 const p = (path) => `${BASE}/${path.replace(/^\/+/, '')}`;
